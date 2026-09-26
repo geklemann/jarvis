@@ -73,7 +73,7 @@ function escritorioTrib(m){const L=(db.accLines||[]).filter(l=>l.month===m&&(l.k
 let cache=null;let aliqCache=new Map(),tribInfo=new Map(),credInfo=null;
 function contas(){const m=new Map(PLANO.map(([c,n,t])=>[c,{c,n,t}]));for(const u of [...UFS.filter(u=>u!=='SC'),'99'])m.set('2.1.02.02.'+u,{c:'2.1.02.02.'+u,n:u==='99'?'DIFAL a recolher · UF a identificar':'DIFAL/FCP a recolher · '+u,t:'P'});let i=1,j=1;
  for(const a of db.bankAccounts||[]){const cod=a.tipo==='aplicacao'?`1.1.02.${String(j++).padStart(2,'0')}`:`1.1.01.${String(i++).padStart(2,'0')}`;m.set(cod,{c:cod,n:a.nome,t:'A',banco:a.id})}return m}
-function diario(){const k=[JSON.stringify(db.gerencial?.fiscal?.por_uf||{}),(db.accLines||[]).length,(window.VendaDireta?.vendas?.()||[]).length,(window.VendaDireta?.titulos?.()||[]).filter(r=>r.status==='recebido').length,provisaoOn(),db.gerencial?.contabil?.aliq_efetiva,JSON.stringify(db.gerencial?.contabil?.mapa||{}),db.orders.length,(db.bankTx||[]).length,(db.payables||[]).length,(db.purchases||[]).length,(db.bankAccounts||[]).length,(window.Estoque?.lista?.()||[]).length].join('|');if(cache?.k===k)return cache.v;
+function diario(){const k=[db.gerencial?.contabil?.custo_cmv,JSON.stringify(db.gerencial?.fiscal||{}),(db.accLines||[]).length,(window.VendaDireta?.vendas?.()||[]).length,(window.VendaDireta?.titulos?.()||[]).filter(r=>r.status==='recebido').length,provisaoOn(),db.gerencial?.contabil?.aliq_efetiva,JSON.stringify(db.gerencial?.contabil?.mapa||{}),db.orders.length,(db.bankTx||[]).length,(db.payables||[]).length,(db.purchases||[]).length,(db.bankAccounts||[]).length,(window.Estoque?.lista?.()||[]).length].join('|');if(cache?.k===k)return cache.v;
  const plano=contas(),banco=new Map([...plano.values()].filter(x=>x.banco).map(x=>[x.banco,x.c])),L=[];
  const lanc=(d,hist,orig,linhas)=>{linhas=linhas.filter(([,v])=>Math.abs(v)>=0.005);if(linhas.length)L.push({d,hist,orig,l:linhas})}; // l: [conta, valor>0 débito / <0 crédito]
  const par=(d,hist,orig,deb,cred,v)=>{v=Math.round(v*100)/100;if(!v)return;if(v<0){[deb,cred]=[cred,deb];v=-v}lanc(d,hist,orig,[[deb,v],[cred,-v]])};
@@ -116,12 +116,19 @@ function diario(){const k=[JSON.stringify(db.gerencial?.fiscal?.por_uf||{}),(db.
   for(const [m,v] of porMes)par(fim(m),`Compensação do crédito de ICMS das compras de ${m.slice(5)}/${m.slice(0,4)}`,{tipo:'provisao',id:m},'2.1.02.01','1.1.06',v)}
  // Vendas: receita bruta, tarifa e frete do vendedor por canal; CMV pelos itens × custo.
  const custo=new Map((db.products||[]).map(p=>[p.id,Number(p.custo)||0]));for(const p of window.Estoque?.lista?.()||[])if(Number(p.custo))custo.set(p.id,Number(p.custo));
+ // Base do CMV: custo médio ponderado das notas de entrada até o fim do mês da venda (como o escritório valora o estoque);
+ // SKU sem nota de entrada usa o custo do cadastro. Alternativa na parametrização: só o custo do cadastro (Bling).
+ const medioMes=new Map();if((db.gerencial?.contabil?.custo_cmv||'medio_nf')==='medio_nf'){const ent=[];
+  for(const n of db.purchases||[]){if(n.tipo==='devolucao'||!n.emissao||/rejeit|cancel|denegad/i.test(n.situacao||'')||String(n.fornecedorDoc||n.fornecedor_doc||'').replace(/\D/g,'').length!==14)continue;for(const it of n.itens||[])if(Number(it.qtd)>0&&Number(it.total)>0)ent.push([n.emissao.slice(0,7),String(it.sku||'').trim(),Number(it.qtd),Number(it.total)])}
+  ent.sort((a,b)=>a[0].localeCompare(b[0]));const acc=new Map(),ms=[...new Set([...db.orders.map(o=>o.date.slice(0,7)),...(window.VendaDireta?.vendas?.()||[]).map(v=>String(v.emissao||'').slice(0,7))])].filter(Boolean).sort();let i=0;
+  for(const m of ms){while(i<ent.length&&ent[i][0]<=m){const [,s,q,v]=ent[i++];const a=acc.get(s)||{q:0,v:0};a.q+=q;a.v+=v;acc.set(s,a)}for(const [s,a] of acc)medioMes.set(m+'|'+s,a.v/a.q)}}
+ const custoDe=(s,m)=>medioMes.get(m+'|'+s)??custo.get(s);
  let semCusto=0;
  for(const o of db.orders){const a=`1.1.03.${pl(o.platform)}`,r=`4.1.${pl(o.platform)}`,orig={tipo:'pedido',id:o.id};
   const linhas=[[a,o.gross],[r,-o.gross]];if(o.fee){linhas.push(['6.1.01',o.fee],[a,-o.fee])}// Frete só é custo do vendedor quando vem da API do marketplace; no pedido do Bling é o frete da nota (pago pelo comprador).
   if(o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')){linhas.push(['6.1.02',o.shipping],[a,-o.shipping])}
   lanc(o.date,`Venda ${o.platform} · pedido ${o.id}`,orig,linhas);
-  let cmv=0;for(const it of o.items||[]){const c=custo.get(String(it.sku||'').trim());if(c)cmv+=c*(Number(it.qty)||0);else semCusto++}
+  let cmv=0;for(const it of o.items||[]){const c=custoDe(String(it.sku||'').trim(),o.date.slice(0,7));if(c)cmv+=c*(Number(it.qty)||0);else semCusto++}
   if(cmv)par(o.date,`CMV · pedido ${o.id}`,orig,'5.1.01','1.1.04',cmv)}
  if(provisaoOn()){const rec=new Map();for(const o of db.orders){const m=o.date.slice(0,7);rec.set(m,(rec.get(m)||0)+o.gross)}const meses=[...rec.keys()].sort();aliqCache=aliquotas(meses);const fixa=Number(db.gerencial?.contabil?.aliq_efetiva);if(fixa>0)for(const m of meses)aliqCache.set(m,{r:fixa/100,m,fonte:'parametrização'});
   const origem=new Map();for(const p of window.Estoque?.lista?.()||[])if(p.origem!=null&&p.origem!=='')origem.set(String(p.id).trim(),Number(p.origem));
@@ -151,7 +158,7 @@ function diario(){const k=[JSON.stringify(db.gerencial?.fiscal?.por_uf||{}),(db.
    lanc(t.data,h,o,[[c,t.valor],...l])}}
  // Vendas diretas faturadas: receita contra clientes (pelas parcelas) e CMV pelos itens.
  for(const vd of window.VendaDireta?.vendas?.()||[]){if(vd.status!=='faturado'||!vd.emissao)continue;const o={tipo:'venda_direta',id:vd.id};par(vd.emissao,`Venda direta nº ${vd.numero} · ${vd.cliente?.fantasia||vd.cliente?.nome||''}`,o,'1.1.05','4.1.04',Number(vd.total)||0);
-  let cmvVd=0;for(const it of vd.itens||[])cmvVd+=(custo.get(String(it.sku||'').trim())||0)*(Number(it.qtd)||0);if(cmvVd)par(vd.emissao,`CMV · venda direta nº ${vd.numero}`,o,'5.1.01','1.1.04',cmvVd)}
+  let cmvVd=0;for(const it of vd.itens||[])cmvVd+=(custoDe(String(it.sku||'').trim(),String(vd.emissao).slice(0,7))||0)*(Number(it.qtd)||0);if(cmvVd)par(vd.emissao,`CMV · venda direta nº ${vd.numero}`,o,'5.1.01','1.1.04',cmvVd)}
  L.sort((a,b)=>a.d.localeCompare(b.d));cache={k,v:{L,plano,semCusto}};return cache.v}
 
 // ─────────────── Saldos ───────────────
