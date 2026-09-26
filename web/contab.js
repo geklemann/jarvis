@@ -134,8 +134,9 @@ function diario(){const k=[db.gerencial?.contabil?.custo_cmv,JSON.stringify(db.g
   const origem=new Map();for(const p of window.Estoque?.lista?.()||[])if(p.origem!=null&&p.origem!=='')origem.set(String(p.id).trim(),Number(p.origem));
   const tm=tributosMes(db.orders,origem);let fat={icms:1,difal:1,pis:1,cofins:1,m:null};tribInfo=new Map();
   for(const m of meses){const t=tm.get(m);if(!t)continue;const dif=Object.values(t.difal).reduce((s,v)=>s+v,0),e=escritorioTrib(m);
-   if(e){const f=(a,b)=>b>0&&a>0?Math.min(1.35,Math.max(0.75,a/b)):1;fat={icms:f(e.icms,t.icms),difal:f(e.difal,dif),pis:f(e.pis,t.pis),cofins:f(e.cofins,t.cofins),m}}
-   let k={...fat};const a=aliqCache.get(m);if(fixa>0&&a){const bruto=t.icms*k.icms+dif*k.difal+t.pis*k.pis+t.cofins*k.cofins,alvo=t.receita*a.r;if(bruto>0)for(const c of ['icms','difal','pis','cofins'])k[c]*=alvo/bruto}
+   let exato=null;if(e){const f=(a,b,lim)=>b>0&&a>0?(lim?Math.min(1.35,Math.max(0.75,a/b)):a/b):1;fat={icms:f(e.icms,t.icms,1),difal:f(e.difal,dif,1),pis:f(e.pis,t.pis,1),cofins:f(e.cofins,t.cofins,1),m};exato={icms:f(e.icms,t.icms),difal:f(e.difal,dif),pis:f(e.pis,t.pis),cofins:f(e.cofins,t.cofins),m}}
+   // No mês com balancete o valor é o do escritório; nos demais, o fator (limitado) do último balancete.
+   let k={...(exato||fat)};const a=aliqCache.get(m);if(fixa>0&&a){const bruto=t.icms*k.icms+dif*k.difal+t.pis*k.pis+t.cofins*k.cofins,alvo=t.receita*a.r;if(bruto>0)for(const c of ['icms','difal','pis','cofins'])k[c]*=alvo/bruto}
    const ref=k.m===m?'conforme balancete do escritório':k.m?`regras da NF-e calibradas pelo balancete de ${k.m.slice(5)}/${k.m.slice(0,4)}`:'regras da NF-e',mm=`${m.slice(5)}/${m.slice(0,4)}`,o={tipo:'provisao',id:m},d=fim(m);
    par(d,`ICMS próprio sobre vendas de ${mm} · ${ref}`,o,'4.2.04.01','2.1.02.01',t.icms*k.icms);
    for(const [u,v] of Object.entries(t.difal).sort())par(d,`ICMS DIFAL/FCP · ${u} · vendas de ${mm}`,o,'4.2.04.02','2.1.02.02.'+u,v*k.difal);
