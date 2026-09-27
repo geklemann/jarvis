@@ -318,3 +318,4 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .fxdmarca.neg circle{fill:#e0565b}.fxdmarca.neg text{fill:#e0565b}
 .fxdtable tr.fxdreal td{opacity:.72}.fxdtable tr.fxdhoje td{background:color-mix(in srgb,var(--accent) 10%,transparent)}.fxdtable tr.fxdfds td:first-child{color:var(--muted)}
 .fxdtable tr.fxdneg td{background:rgba(224,86,91,.08)}
+.fxdkpis .kpiv{white-space:nowrap;font-size:clamp(20px,1.9vw,30px)}
