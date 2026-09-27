@@ -1,130 +1,114 @@
 'use strict';
-// Tela de entrada viva: os brinquedos mais vendidos, recortados do fundo branco, flutuam soltos em profundidades
-// diferentes (os de trás desfocados), desviam do cartão de login, reagem ao mouse e, de tempos em tempos, somem
-// num brilho e rematerializam em outro ponto com outro produto. Ao fundo, uma rede de partículas (a "mente" do
-// Jarvis) e anéis holográficos girando atrás do cartão. Lê produtos/vitrine.json (bucket público).
-// Sem fotos, flutuam brinquedos desenhados em traço de luz. Respeita "reduzir movimento".
+// Tela de entrada viva: o Jarvis "trabalhando" em volta do cartão de login. Painéis de vidro em 3D com o sistema em
+// ação (vendas do dia, canais, conciliação, fluxo de caixa, mapa de pedidos e feed de eventos), fluxos de dados
+// correndo das bordas para o centro sobre uma grade em perspectiva e uma borda de luz no cartão.
+// Os números são ILUSTRATIVOS (a tela de login é pública: nenhum dado da empresa aparece aqui).
+// Tudo vetorial (SVG e canvas na densidade da tela): nítido em qualquer monitor. Respeita "reduzir movimento".
 (()=>{
-const URL_V=(window.CONCILIA_CONFIG?.supabaseUrl||'')+'/storage/v1/object/public/produtos/vitrine.json';
 const calmo=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let pool=null,buscando=null;
-const TOYS={
- carro:'<path d="M8 38h48M12 38v-8l8-10h22l10 10h4v8"/><circle cx="20" cy="40" r="5"/><circle cx="46" cy="40" r="5"/><path d="M24 20v10M38 20l6 10"/>',
- quadri:'<circle cx="16" cy="42" r="8"/><circle cx="48" cy="42" r="8"/><path d="M16 42l10-16h14l8 16M26 26l-4-8h8M40 26l4-6"/>',
- bola:'<circle cx="32" cy="32" r="18"/><path d="M14 32h36M32 14c8 6 8 30 0 36M32 14c-8 6-8 30 0 36"/>',
- urso:'<circle cx="32" cy="36" r="14"/><circle cx="20" cy="20" r="6"/><circle cx="44" cy="20" r="6"/><circle cx="27" cy="33" r="1.5"/><circle cx="37" cy="33" r="1.5"/><path d="M28 41c3 3 5 3 8 0"/>',
- blocos:'<rect x="10" y="30" width="18" height="18" rx="2"/><rect x="30" y="30" width="18" height="18" rx="2"/><rect x="20" y="12" width="18" height="18" rx="2"/>',
- foguete:'<path d="M32 8c10 8 12 20 8 32H24c-4-12-2-24 8-32z"/><circle cx="32" cy="24" r="4"/><path d="M24 40l-8 8h10M40 40l8 8H38M28 46h8"/>',
- pipa:'<path d="M32 8l14 18-14 22-14-22z"/><path d="M32 8v40M18 26h28M32 48c-2 4 2 6 0 10"/>',
- cavalinho:'<path d="M14 50c10 4 26 4 36 0M20 46l4-14h16l4 14M24 32l-4-12 8 4h8l6 6"/><circle cx="38" cy="22" r="1.5"/>'};
-const CORES=['#5fe0cc','#ff9a7a','#8fbfff','#f5cf7a','#c3b0ff','#7ef0a8'];
+const rnd=(a,b)=>a+Math.random()*(b-a),escolha=l=>l[Math.floor(Math.random()*l.length)];
+const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+const int=v=>Math.round(v).toLocaleString('pt-BR');
+const ICO={
+ check:'<path d="M5 12.5l4.2 4.2L19 7"/>',
+ bolt:'<path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/>',
+ doc:'<path d="M7 3h7l4 4v14H7z M14 3v4h4 M9.5 12h6 M9.5 16h6"/>',
+ tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+ cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>',
+ box:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z M3 8l9 5 9-5 M12 13v8"/>',
+ cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+ chat:'<path d="M4 5h16v11H9l-5 4z"/>'};
+const svgI=(k,s=16)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO[k]}</svg>`;
 
-// Recorte: tira o fundo branco do estúdio. 1) inunda a partir das bordas tudo que é quase branco; 2) apaga também
-// os "buracos" brancos fechados (entre rodas, alças, vãos) quando são branco puro de fundo; 3) nas bordas do
-// produto, transforma o branco em transparência ("cor para alfa"), sem halo; 4) corta no contorno e mede a cor
-// dominante (vira o brilho em volta do produto).
-function recortar(src){return new Promise(ok=>{const img=new Image();img.crossOrigin='anonymous';img.decoding='async';
- img.onload=()=>{try{const S=440,k=S/Math.max(img.width,img.height),w=Math.max(1,Math.round(img.width*k)),h=Math.max(1,Math.round(img.height*k)),N=w*h;
-  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(img,0,0,w,h);
-  const d=g.getImageData(0,0,w,h),p=d.data,fundo=new Uint8Array(N),fila=new Int32Array(N);
-  const mx=i=>Math.max(p[i*4],p[i*4+1],p[i*4+2]),mn=i=>Math.min(p[i*4],p[i*4+1],p[i*4+2]);
-  const quaseBranco=i=>mn(i)>214&&mx(i)-mn(i)<30;
-  let ini=0,fim=0;const semear=i=>{if(!fundo[i]&&quaseBranco(i)){fundo[i]=1;fila[fim++]=i}};
-  for(let x=0;x<w;x++){semear(x);semear((h-1)*w+x)}for(let y=0;y<h;y++){semear(y*w);semear(y*w+w-1)}
-  const inundar=marca=>{while(ini<fim){const i=fila[ini++],x=i%w;if(x>0)marca(i-1);if(x<w-1)marca(i+1);if(i>=w)marca(i-w);if(i<N-w)marca(i+w)}};
-  inundar(semear);
-  // Buracos brancos fechados: componentes de branco puro que não tocam a borda.
-  const visto=new Uint8Array(N),puro=i=>mn(i)>242&&mx(i)-mn(i)<14;
-  for(let s=0;s<N;s++){if(fundo[s]||visto[s]||!puro(s))continue;ini=0;fim=0;visto[s]=1;fila[fim++]=s;let soma=0;
-   const m=i=>{if(!visto[i]&&!fundo[i]&&puro(i)){visto[i]=1;fila[fim++]=i}};
-   while(ini<fim){const i=fila[ini++],x=i%w;soma+=mn(i);if(x>0)m(i-1);if(x<w-1)m(i+1);if(i>=w)m(i-w);if(i<N-w)m(i+w)}
-   if(fim>N*.0015&&soma/fim>247)for(let t=0;t<fim;t++)fundo[fila[t]]=1}
-  // Distância (até 3 px) de cada pixel do produto ao fundo, para suavizar só a faixa da borda.
-  const dist=new Uint8Array(N).fill(9);for(let i=0;i<N;i++)if(fundo[i])dist[i]=0;
-  for(let r=1;r<=3;r++)for(let i=0;i<N;i++){if(dist[i]!==9)continue;const x=i%w;if((x>0&&dist[i-1]===r-1)||(x<w-1&&dist[i+1]===r-1)||(i>=w&&dist[i-w]===r-1)||(i<N-w&&dist[i+w]===r-1))dist[i]=r}
-  let x0=w,y0=h,x1=0,y1=0,n=0,R=0,G=0,B=0,cn=0;
-  for(let i=0;i<N;i++){const o=i*4;if(fundo[i]){p[o+3]=0;continue}
-   if(dist[i]<=3){// cor para alfa: quanto mais perto do branco, mais transparente; desfaz a mistura com o branco.
-    const a=Math.max(0,Math.min(1,(255-mn(i))/255*2.2+(dist[i]-1)*.25));if(a<.04){p[o+3]=0;fundo[i]=1;continue}
-    for(let q=0;q<3;q++)p[o+q]=Math.max(0,Math.min(255,(p[o+q]-255*(1-a))/a));p[o+3]=Math.round(a*255)}
-   n++;const x=i%w,y=(i/w)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
-   const sat=mx(i)-mn(i);if(sat>60&&p[o+3]>200){R+=p[o];G+=p[o+1];B+=p[o+2];cn++}}
-  if(n<N*.04)return ok(null);
-  g.putImageData(d,0,0);const cw=x1-x0+1,ch=y1-y0+1,o=document.createElement('canvas');o.width=cw;o.height=ch;o.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,cw,ch);
-  ok({el:o,cor:cn?`rgb(${R/cn|0},${G/cn|0},${B/cn|0})`:'#5fe0cc',ar:cw/ch})}catch{ok(null)}};
- img.onerror=()=>ok(null);img.src=src})}
-function buscar(){if(pool)return Promise.resolve(pool);if(buscando)return buscando;
- buscando=fetch(URL_V,{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(async j=>{const ps=(j?.produtos||[]).filter(p=>p.img).slice(0,18);
-  const rs=await Promise.all(ps.map(p=>recortar(p.img).then(r=>r&&{...r,nome:String(p.nome||'')})));pool=rs.filter(Boolean);return pool}).catch(()=>{pool=[];return pool});return buscando}
-function brinquedos(){return Object.keys(TOYS).map((k,i)=>{const cor=CORES[i%CORES.length],s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 64 64');s.innerHTML=`<g fill="none" stroke="${cor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${TOYS[k]}</g>`;return {el:s,cor,ar:1,nome:'',toy:true}})}
+// Mapa do Brasil em ladrilhos (uma casa por estado).
+const UFS=[['RR',2,0],['AP',4,0],['AM',1,1],['PA',3,1],['MA',5,1],['CE',6,1],['RN',7,1],['AC',0,2],['RO',1,2],['TO',4,2],['PI',5,2],['PE',6,2],['PB',7,2],
+ ['MT',2,3],['DF',3,3],['GO',4,3],['BA',5,3],['SE',6,3],['AL',7,3],['MS',2,4],['MG',4,4],['ES',5,4],['SP',3,5],['RJ',4,5],['PR',3,6],['SC',3,7],['RS',3,8]];
+const PESO={SP:30,MG:10,RJ:9,PR:7,SC:6,RS:6,BA:5,GO:4,PE:3,CE:3,DF:3,ES:2};
+const sorteiaUF=()=>{const t=UFS.reduce((s,[u])=>s+(PESO[u]||1),0);let r=Math.random()*t;for(const [u] of UFS){r-=PESO[u]||1;if(r<=0)return u}return 'SP'};
 
-const rnd=(a,b)=>a+Math.random()*(b-a);
+const EVENTOS=[
+ ()=>['check','Pedido faturado',`#${int(rnd(48000,49999))} · NF-e autorizada`],
+ ()=>['cash','Repasse conciliado',brl(rnd(380,4200))],
+ ()=>['tag','Etiquetas geradas',`${int(rnd(12,64))} pedidos · PDF único`],
+ ()=>['box','Estoque sincronizado',`${int(rnd(90,140))} SKUs atualizados`],
+ ()=>['cam','Conta lida por foto','Boleto · vence em '+int(rnd(3,28))+' dias'],
+ ()=>['bolt','Contabilidade do dia','Diário e DRE atualizados'],
+ ()=>['doc','Guia GNRE baixada',brl(rnd(90,860))+' · DIFAL'],
+ ()=>['chat','Cliente respondido','Resposta pronta · 12 s']];
+
+function painel(cls,titulo,corpo){return `<section class="jv-p ${cls}"><div class="jv-h"><span class="jv-dot"></span>${titulo}</div>${corpo}</section>`}
 function montar(auth){if(auth.querySelector('.vitrine'))return;
  const v=document.createElement('div');v.className='vitrine';v.setAttribute('aria-hidden','true');
- v.innerHTML=`<canvas class="vt-rede"></canvas><div class="vt-aneis"><svg viewBox="0 0 800 800"><circle class="a1" cx="400" cy="400" r="380"/><circle class="a2" cx="400" cy="400" r="330"/><circle class="a3" cx="400" cy="400" r="290"/><g class="a4"><path d="M400 30a370 370 0 0 1 262 108"/><path d="M400 770a370 370 0 0 1-262-108"/></g></svg></div><div class="vt-palco"></div>`;
- auth.prepend(v);requestAnimationFrame(()=>v.classList.add('on'));
- const cv=v.querySelector('.vt-rede'),ctx=cv.getContext('2d'),palco=v.querySelector('.vt-palco'),aneis=v.querySelector('.vt-aneis');
- let W=0,H=0,dpr=1,card={x:0,y:0,w:0,h:0},mx=0,my=0,tmx=0,tmy=0,vivo=true,ult=performance.now(),tCard=0;
- const cor=getComputedStyle(document.body).getPropertyValue('--accent').trim()||'#5fe0cc',claroTema=document.body.classList.contains('light');
- function medir(){W=innerWidth;H=innerHeight;dpr=Math.min(2,devicePixelRatio||1);cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);lerCard()}
- function lerCard(){const c=auth.querySelector('.authcard');if(!c)return;const r=c.getBoundingClientRect();card={x:r.left,y:r.top,w:r.width,h:r.height};aneis.style.left=(r.left+r.width/2)+'px';aneis.style.top=(r.top+Math.min(r.height/2,H/2))+'px'}
- medir();addEventListener('resize',medir);
- addEventListener('pointermove',e=>{tmx=(e.clientX/W-.5)*2;tmy=(e.clientY/H-.5)*2},{passive:true});
+ v.innerHTML=`<canvas class="jv-fundo"></canvas>
+ <div class="jv-lado jv-esq">
+  ${painel('jv-kpi','Vendas hoje',`<div class="jv-num" data-k="vendas">R$ 0,00</div><div class="jv-sub"><b data-k="ped">0</b> pedidos · <span class="jv-up" data-k="var">+0%</span> vs. ontem</div><svg class="jv-spark" viewBox="0 0 280 70" preserveAspectRatio="none"><defs><linearGradient id="jvg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".45"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><path class="jv-area" fill="url(#jvg1)"/><path class="jv-linha"/><circle class="jv-ponta" r="4"/></svg>`)}
+  ${painel('jv-canais','Pedidos por canal',`<div class="jv-barras">${['Marketplaces','Loja própria','Atacado','Social'].map((c,i)=>`<div class="jv-barra"><span>${c}</span><i><b style="--i:${i}"></b></i><em data-k="c${i}">0</em></div>`).join('')}</div>`)}
+  ${painel('jv-mapa','Pedidos pelo Brasil',`<div class="jv-uf">${UFS.map(([u,c,r])=>`<span data-uf="${u}" style="grid-column:${c+1};grid-row:${r+1}">${u}</span>`).join('')}</div><div class="jv-sub" style="margin-top:8px">último pedido: <b data-k="uf">SP</b></div>`)}
+ </div>
+ <div class="jv-lado jv-dir">
+  ${painel('jv-feed','Jarvis em ação',`<ul class="jv-eventos"></ul>`)}
+  ${painel('jv-conc','Conciliação de repasses',`<div class="jv-anelbox"><svg viewBox="0 0 120 120" class="jv-anel"><circle cx="60" cy="60" r="50" class="jv-trilho"/><circle cx="60" cy="60" r="50" class="jv-cheio" pathLength="100"/></svg><div><div class="jv-num jv-pct" data-k="conc">0%</div><div class="jv-sub">conferido ao centavo<br><b data-k="rep">0</b> repasses no mês</div></div></div>`)}
+  ${painel('jv-fluxo','Fluxo de caixa · 30 dias',`<svg class="jv-fx" viewBox="0 0 300 110" preserveAspectRatio="none"><defs><linearGradient id="jvg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--jv2)" stop-opacity=".4"/><stop offset="1" stop-color="var(--jv2)" stop-opacity="0"/></linearGradient></defs><g class="jv-grade">${[22,50,78].map(y=>`<line x1="0" x2="300" y1="${y}" y2="${y}"/>`).join('')}</g><path class="jv-farea" fill="url(#jvg2)"/><path class="jv-flinha"/><line class="jv-cursor" y1="0" y2="110"/><circle class="jv-fponto" r="4.5"/></svg><div class="jv-sub">saldo projetado <b data-k="saldo">R$ 0</b></div>`)}
+ </div>`;
+ auth.prepend(v);setTimeout(()=>v.classList.add('on'),40);
+ const $=s=>v.querySelector(s),K=k=>v.querySelector(`[data-k="${k}"]`);
+ const cv=$('.jv-fundo'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1,cx=0,cy=0,fluxos=[];
+ const claro=document.body.classList.contains('light');
+ function medir(){W=innerWidth;H=innerHeight;dpr=Math.min(2.5,devicePixelRatio||1);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+  const r=auth.querySelector('.authcard')?.getBoundingClientRect();cx=r?r.left+r.width/2:W/2;cy=r?r.top+Math.min(r.height/2,H/2):H/2;fluxos=novosFluxos()}
 
- // Rede de partículas: pontos que vagam devagar e se ligam quando ficam perto; o mouse atrai de leve.
- const NP=Math.round(Math.min(90,W*H/17000)),pts=[...Array(NP)].map(()=>({x:rnd(0,W),y:rnd(0,H),vx:rnd(-.12,.12),vy:rnd(-.12,.12),r:rnd(.6,1.8)}));
- function rede(dt){ctx.clearRect(0,0,W,H);const mxp=(tmx/2+.5)*W,myp=(tmy/2+.5)*H;
-  for(const p of pts){if(!calmo){const dx=mxp-p.x,dy=myp-p.y,dd=dx*dx+dy*dy;if(dd<200*200){p.vx+=dx*2e-6*dt;p.vy+=dy*2e-6*dt}p.vx*=.995;p.vy*=.995;p.x+=p.vx*dt*.06;p.y+=p.vy*dt*.06;
-   if(p.x<-20)p.x=W+20;if(p.x>W+20)p.x=-20;if(p.y<-20)p.y=H+20;if(p.y>H+20)p.y=-20;if(Math.abs(p.vx)+Math.abs(p.vy)<.05){p.vx=rnd(-.12,.12);p.vy=rnd(-.12,.12)}}}
-  ctx.lineWidth=.7;for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,dd=dx*dx+dy*dy;if(dd<130*130){ctx.strokeStyle=claroTema?`rgba(20,90,110,${(1-Math.sqrt(dd)/130)*.18})`:`rgba(120,230,215,${(1-Math.sqrt(dd)/130)*.16})`;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}
-  ctx.fillStyle=claroTema?'rgba(20,90,110,.45)':'rgba(170,245,235,.55)';for(const p of pts){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
-  // Fios de luz do produto mais próximo às partículas vizinhas: o produto "conectado" à rede.
-  for(const it of itens){if(it.fase!=='vivo'||it.z<.55)continue;let n=0;for(const p of pts){const dx=p.x-it.cx,dy=p.y-it.cy,dd=dx*dx+dy*dy;if(dd<150*150&&n<3){n++;ctx.strokeStyle=`rgba(150,240,225,${(1-Math.sqrt(dd)/150)*.22*it.alfa})`;ctx.beginPath();ctx.moveTo(it.cx,it.cy);ctx.lineTo(p.x,p.y);ctx.stroke()}}}}
+ // ── Fundo: grade em perspectiva + fluxos de dados das bordas até o cartão ──
+ function novosFluxos(){const n=W<700?7:14,l=[];for(let i=0;i<n;i++){const lado=i%4,t=Math.random();
+  const [x0,y0]=lado===0?[-40,H*t]:lado===1?[W+40,H*t]:lado===2?[W*t,-40]:[W*t,H+40];
+  l.push({x0,y0,c1x:x0+(cx-x0)*.35+rnd(-160,160),c1y:y0+(cy-y0)*.2+rnd(-160,160),c2x:cx+rnd(-220,220),c2y:cy+rnd(-160,160),pulsos:[...Array(2)].map(()=>({t:Math.random(),v:rnd(.00008,.00018)}))})}return l}
+ const bz=(f,t)=>{const u=1-t;return [u*u*u*f.x0+3*u*u*t*f.c1x+3*u*t*t*f.c2x+t*t*t*cx,u*u*u*f.y0+3*u*u*t*f.c1y+3*u*t*t*f.c2y+t*t*t*cy]};
+ let off=0;
+ function fundo(dt){ctx.clearRect(0,0,W,H);
+  off=(off+dt*.012)%40;const hz=H*.62;ctx.lineWidth=1;
+  for(let i=0;i<22;i++){const z=(i*40+off)/880,y=hz+(H-hz)*z*z;ctx.strokeStyle=claro?`rgba(20,90,110,${.10*z})`:`rgba(95,224,204,${.14*z})`;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  for(let i=-18;i<=18;i++){ctx.strokeStyle=claro?'rgba(20,90,110,.06)':'rgba(95,224,204,.07)';ctx.beginPath();ctx.moveTo(W/2+i*18,hz);ctx.lineTo(W/2+i*W/9,H);ctx.stroke()}
+  for(const f of fluxos){ctx.strokeStyle=claro?'rgba(20,90,110,.07)':'rgba(120,230,215,.07)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(f.x0,f.y0);ctx.bezierCurveTo(f.c1x,f.c1y,f.c2x,f.c2y,cx,cy);ctx.stroke();
+   for(const p of f.pulsos){p.t+=p.v*dt;if(p.t>1){p.t=0;p.v=rnd(.00008,.00018)}
+    for(let k=0;k<14;k++){const t=p.t-k*.008;if(t<0)break;const [x,y]=bz(f,t),a=(1-k/14)*(t>.9?(1-t)*10:1);
+     ctx.fillStyle=claro?`rgba(15,111,124,${.5*a})`:`rgba(150,245,230,${.75*a})`;ctx.beginPath();ctx.arc(x,y,k?1.4:2.4,0,6.283);ctx.fill()}}}}
 
- // Produtos flutuando. Cada um nasce num ponto livre, vaga numa trajetória orgânica (soma de senoides com fases
- // próprias), desvia do cartão e, depois de 14–30 s, se desfaz num brilho para renascer em outro lugar.
- const itens=[];let fonte=[],fila=[];
- const alvoN=()=>W<700?5:W<1100?8:12;
- function proximo(){if(!fila.length)fila=[...fonte].sort(()=>Math.random()-.5);return fila.pop()}
- function livre(tam){for(let t=0;t<40;t++){const x=rnd(tam*.3,W-tam*.3),y=rnd(tam*.3,H-tam*.3);
-  const m=40;if(x>card.x-tam/2-m&&x<card.x+card.w+tam/2+m&&y>card.y-tam/2-m&&y<card.y+card.h+tam/2+m)continue;
-  if(itens.some(o=>o.fase!=='morto'&&Math.hypot(o.bx-x,o.by-y)<(o.tam+tam)*.55))continue;return [x,y]}return [rnd(0,W),rnd(0,H)]}
- function nascer(){const f=proximo();if(!f)return;const z=Math.random()**.8,base=W<700?100:W<1400?140:165,tam=base*(.5+.75*z);const [x,y]=livre(tam);
-  const el=document.createElement('div');el.className='vt-p nasce';const alt=tam/Math.max(f.ar,.6);
-  el.style.cssText=`width:${tam}px;height:${alt}px;--cor:${f.cor};--blur:${((1-z)*2.6).toFixed(2)}px;z-index:${Math.round(z*10)}`;
-  const midia=f.el.cloneNode(true);if(midia.tagName==='CANVAS')midia.getContext('2d').drawImage(f.el,0,0);el.appendChild(midia);
-  if(f.nome){const s=document.createElement('span');s.textContent=f.nome;el.appendChild(s)}
-  palco.appendChild(el);
-  const it={el,z,tam,alt,bx:x,by:y,cx:x,cy:y,ph:[rnd(0,6.3),rnd(0,6.3),rnd(0,6.3),rnd(0,6.3)],fr:[rnd(.05,.11),rnd(.07,.14),rnd(.04,.09),rnd(.06,.12)],amp:rnd(40,110)*(.6+z*.6),rot:rnd(-14,14),vida:rnd(14e3,30e3),t:0,fase:'vivo',alfa:1,
-   deriva:[rnd(-.012,.012),rnd(-.01,.01)],pausa:false};
-  el.onpointerenter=()=>{it.pausa=true;el.classList.add('foco')};el.onpointerleave=()=>{it.pausa=false;el.classList.remove('foco')};
-  el.addEventListener('animationend',()=>el.classList.remove('nasce'),{once:true});itens.push(it)}
- function morrer(it){it.fase='morto';it.el.classList.add('some');setTimeout(()=>it.el.remove(),1400)}
+ // ── Painéis (números ilustrativos) ──
+ const est={vendas:rnd(38000,52000),ped:Math.round(rnd(310,420)),var:rnd(8,19),serie:[...Array(28)].map((_,i)=>30+i*1.6+rnd(-6,6)),canais:[rnd(60,90),rnd(20,40),rnd(10,25),rnd(5,15)],conc:0,alvoConc:rnd(98.2,99.8),rep:Math.round(rnd(1400,2300)),fx:[],fxi:0};
+ {let s=rnd(180,240),v=0;for(let i=0;i<60;i++){v=v*.7+rnd(-4,6);s+=v;est.fx.push(s)}}
+ const shown={vendas:0,ped:0};
+ const curva=pts=>pts.map((p,i)=>{if(!i)return `M${p[0].toFixed(1)},${p[1].toFixed(1)}`;const a=pts[i-2]||pts[i-1],b=pts[i-1],c=p,d=pts[i+1]||p;return `C${(b[0]+(c[0]-a[0])/6).toFixed(1)},${(b[1]+(c[1]-a[1])/6).toFixed(1)} ${(c[0]-(d[0]-b[0])/6).toFixed(1)},${(c[1]-(d[1]-b[1])/6).toFixed(1)} ${c[0].toFixed(1)},${c[1].toFixed(1)}`}).join("");
+ function spark(){const s=est.serie,mx=Math.max(...s),mn=Math.min(...s),X=i=>i/(s.length-1)*280,Y=y=>64-(y-mn)/(mx-mn||1)*56;
+  const d=curva(s.map((y,i)=>[X(i),Y(y)]));$('.jv-linha').setAttribute('d',d);$('.jv-area').setAttribute('d',d+'L280,70L0,70Z');
+  const p=$('.jv-ponta');p.setAttribute('cx',280);p.setAttribute('cy',Y(s[s.length-1]).toFixed(1))}
+ function canais(){const t=est.canais.reduce((a,b)=>a+b,0),bs=v.querySelectorAll('.jv-barra b');est.canais.forEach((c,i)=>{bs[i].style.width=Math.min(100,c/t*100*1.5).toFixed(1)+'%';K('c'+i).textContent=int(c/t*est.ped)})}
+ function fluxoCaixa(){const s=est.fx.slice(est.fxi,est.fxi+31);if(s.length<31)return null;const mx=Math.max(...s),mn=Math.min(...s),X=i=>i/30*300,Y=y=>100-(y-mn)/(mx-mn||1)*84;
+  const d=curva(s.map((y,i)=>[X(i),Y(y)]));$('.jv-flinha').setAttribute('d',d);$('.jv-farea').setAttribute('d',d+'L300,110L0,110Z');return {X,Y,s}}
+ let fxGeo=fluxoCaixa();
+ const feed=$('.jv-eventos');
+ function evento(){const [ic,t,d]=escolha(EVENTOS)();const li=document.createElement('li');li.innerHTML=`<span class="jv-ic">${svgI(ic)}</span><div><b>${t}</b><small>${d}</small></div><time>agora</time>`;
+  feed.prepend(li);setTimeout(()=>li.classList.add('in'),20);[...feed.children].forEach((x,i)=>{if(i>0)x.querySelector('time').textContent=`há ${i*2+1} s`;if(i>3&&!x.classList.contains('out')){x.classList.add('out');setTimeout(()=>x.remove(),600)}});
+  // Cada pedido acende um estado no mapa e soma nas vendas.
+  if(ic==='check'||Math.random()<.5){const u=sorteiaUF(),el=v.querySelector(`[data-uf="${u}"]`);if(el){el.classList.remove('ping');void el.offsetWidth;el.classList.add('ping');el.style.setProperty('--h',Math.min(1,(parseFloat(el.style.getPropertyValue('--h'))||0)+.3).toFixed(2))}K('uf').textContent=u;
+   est.ped++;est.vendas+=rnd(89,690);est.serie.push(est.serie[est.serie.length-1]+rnd(-3,7));est.serie.shift();est.canais[Math.random()<.7?0:Math.floor(rnd(1,4))]+=rnd(1,4);spark();canais()}}
+
+ let tEv=0,tFx=0,tBr=0,ult=performance.now(),vivo=true,mx=0,my=0,tmx=0,tmy=0,cursor=0;
+ addEventListener('pointermove',e=>{tmx=e.clientX/W-.5;tmy=e.clientY/H-.5},{passive:true});
+ medir();addEventListener('resize',medir);spark();canais();
+ const lados=[...v.querySelectorAll('.jv-lado')];
+ function atualizar(dt){
+  mx+=(tmx-mx)*.05;my+=(tmy-my)*.05;lados.forEach((l,i)=>{l.style.setProperty('--px',(mx*(i?-16:16)).toFixed(2)+'px');l.style.setProperty('--py',(my*-12).toFixed(2)+'px')});
+  shown.vendas+=(est.vendas-shown.vendas)*.06;shown.ped+=(est.ped-shown.ped)*.08;K('vendas').textContent=brl(shown.vendas);K('ped').textContent=int(shown.ped);K('var').textContent='+'+est.var.toFixed(1).replace('.',',')+'%';
+  est.conc+=(est.alvoConc-est.conc)*.025;K('conc').textContent=est.conc.toFixed(1).replace('.',',')+'%';$('.jv-cheio').style.strokeDashoffset=(100-est.conc).toFixed(2);K('rep').textContent=int(est.rep*est.conc/100);
+  if(fxGeo){cursor=(cursor+dt*.00012)%1;const i=cursor*30,a=Math.floor(i),f=i-a,y=fxGeo.s[a]+(fxGeo.s[Math.min(30,a+1)]-fxGeo.s[a])*f,x=fxGeo.X(i);
+   const c=$('.jv-cursor');c.setAttribute('x1',x.toFixed(1));c.setAttribute('x2',x.toFixed(1));const p=$('.jv-fponto');p.setAttribute('cx',x.toFixed(1));p.setAttribute('cy',fxGeo.Y(y).toFixed(1));K('saldo').textContent=brl(y*1000).replace(/,\d\d$/,'')}
+  tEv+=dt;if(tEv>2300){tEv=0;evento()}
+  tFx+=dt;if(tFx>5200){tFx=0;est.fxi=(est.fxi+1)%29;fxGeo=fluxoCaixa()||fxGeo}
+  tBr+=dt;if(tBr>900){tBr=0;v.querySelectorAll('.jv-uf span').forEach(s=>{const h=parseFloat(s.style.getPropertyValue('--h'))||0;if(h>0)s.style.setProperty('--h',Math.max(0,h-.04).toFixed(2))})}}
  function passo(agora){if(!vivo)return;const dt=Math.min(64,agora-ult);ult=agora;
   if(!document.body.contains(v)){vivo=false;removeEventListener('resize',medir);return}
-  if(agora-tCard>600){tCard=agora;lerCard()}
-  mx+=(tmx-mx)*.04;my+=(tmy-my)*.04;
-  if(!document.hidden){rede(dt);
-   for(const it of itens){if(it.fase==='morto')continue;if(!it.pausa)it.t+=dt;const s=it.t/1000;
-    it.bx+=it.deriva[0]*dt*(.5+it.z);it.by+=it.deriva[1]*dt*(.5+it.z);
-    let x=it.bx+Math.sin(s*it.fr[0]+it.ph[0])*it.amp+Math.sin(s*it.fr[1]*1.7+it.ph[1])*it.amp*.35,
-        y=it.by+Math.cos(s*it.fr[2]+it.ph[2])*it.amp*.8+Math.sin(s*it.fr[3]*1.3+it.ph[3])*it.amp*.3;
-    // Desvia do cartão: empurra a base para fora quando a trajetória invade a área do login.
-    const m=30,l=card.x-it.tam/2-m,r=card.x+card.w+it.tam/2+m,tp=card.y-it.alt/2-m,bt=card.y+card.h+it.alt/2+m;
-    if(x>l&&x<r&&y>tp&&y<bt){const esc=[x-l,r-x,y-tp,bt-y],k=esc.indexOf(Math.min(...esc)),f=.04*dt;if(k===0)it.bx-=f;else if(k===1)it.bx+=f;else if(k===2)it.by-=f;else it.by+=f}
-    // Mantém dentro da tela com uma mola suave.
-    if(it.bx<it.tam*.2)it.bx+=.03*dt;if(it.bx>W-it.tam*.2)it.bx-=.03*dt;if(it.by<it.alt*.2)it.by+=.03*dt;if(it.by>H-it.alt*.2)it.by-=.03*dt;
-    const px=mx*(it.z-.4)*-38,py=my*(it.z-.4)*-26;it.cx=x+px;it.cy=y+py;
-    const rot=it.rot+Math.sin(s*.3+it.ph[1])*7;
-    it.el.style.transform=`translate3d(${(it.cx-it.tam/2).toFixed(1)}px,${(it.cy-it.alt/2).toFixed(1)}px,0) rotate(${rot.toFixed(2)}deg)`;
-    if(it.t>it.vida&&!it.pausa)morrer(it)}
-   // Espaço pessoal: produtos próximos se afastam devagar (ninguém encosta em ninguém).
-   for(let i=0;i<itens.length;i++)for(let j=i+1;j<itens.length;j++){const a=itens[i],b=itens[j];if(a.fase!=='vivo'||b.fase!=='vivo')continue;const dx=a.cx-b.cx,dy=a.cy-b.cy,d=Math.hypot(dx,dy)||1,min=(Math.max(a.tam,a.alt)+Math.max(b.tam,b.alt))*.52;if(d<min){const f=(min-d)/min*.22*dt,ux=dx/d,uy=dy/d;a.bx+=ux*f;a.by+=uy*f;b.bx-=ux*f;b.by-=uy*f}}
-   for(let i=itens.length-1;i>=0;i--)if(itens[i].fase==='morto'&&!document.body.contains(itens[i].el))itens.splice(i,1);
-   const vivos=itens.filter(i=>i.fase==='vivo').length;if(vivos<alvoN()&&Math.random()<.02*dt/16)nascer()}
+  if(!document.hidden){fundo(dt);atualizar(dt)}
   requestAnimationFrame(passo)}
- const iniciar=f=>{fonte=f;if(calmo){for(let i=0;i<alvoN();i++)nascer();for(const it of itens){it.el.classList.remove('nasce');it.el.style.transform=`translate3d(${it.bx-it.tam/2}px,${it.by-it.alt/2}px,0) rotate(${it.rot}deg)`}rede(0);return}
-  for(let i=0;i<Math.ceil(alvoN()*.6);i++)setTimeout(nascer,i*260);requestAnimationFrame(passo)};
- rede(0);buscar().then(p=>iniciar(p.length>=5?p:brinquedos()))}
+ if(calmo){fundo(0);for(let i=0;i<4;i++)evento();shown.vendas=est.vendas;shown.ped=est.ped;est.conc=est.alvoConc;atualizar(0);v.querySelectorAll('.jv-eventos li').forEach(l=>l.classList.add('in'));return}
+ for(let i=0;i<3;i++)setTimeout(evento,500+i*700);requestAnimationFrame(passo)}
 new MutationObserver(()=>{const a=document.querySelector('#app .auth');if(a&&a.querySelector('#authForm'))montar(a)}).observe(document.documentElement,{childList:true,subtree:true});
 })();
