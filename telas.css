@@ -248,3 +248,9 @@ body.light .vt-toy{background:color-mix(in srgb,var(--c) 14%,#fff)}
 .catpreco{display:grid;grid-template-columns:150px 110px 110px minmax(0,1fr) auto;gap:8px;align-items:center}
 .catpreco input{padding:8px 10px}
 @media (max-width:760px){.catpreco{grid-template-columns:1fr 1fr}.catpreco strong{grid-column:1/-1}}
+
+/* ─── Privacidade (LGPD) ─── */
+.lgpdres{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.lgpdfonte{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--input,var(--panel2));border:1px solid var(--line)}
+.lgpdfonte>div{display:flex;flex-direction:column}.lgpdfonte small{color:var(--muted);font-size:12.5px}.lgpdfonte>small{grid-column:1/-1}
+.lgpdpassos{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.55}
