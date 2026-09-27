@@ -294,3 +294,27 @@ td.comfoto::after{content:'';display:block;clear:both}
 .lcprev{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--soft,rgba(127,127,127,.08));font-size:15px}
 .lcprev:empty{display:none}
 button.danger{background:#d64545!important;color:#fff!important;border-color:#d64545!important}
+
+/* ─── Conta a pagar por foto, print ou voz ─── */
+.ciacard{margin-bottom:16px;border:1.5px dashed color-mix(in srgb,var(--accent) 45%,transparent);transition:background .2s,border-color .2s}
+.ciacard.arrastando{background:color-mix(in srgb,var(--accent) 10%,transparent);border-color:var(--accent)}
+.ciatop{display:flex;gap:14px;align-items:flex-start}.ciatop h3{margin:0 0 2px}
+.ciaicon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.ciaacoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}.ciaacoes input{flex:1;min-width:220px}
+.ciastatus{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:600}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);animation:giro .8s linear infinite;display:inline-block}
+@keyframes giro{to{transform:rotate(360deg)}}
+.ciares{display:flex;gap:14px;margin-top:12px;align-items:flex-start}.ciares img{width:96px;max-height:130px;object-fit:contain;border-radius:10px;background:#fff;border:1px solid var(--line);flex:none}
+.ciaalertas{margin:6px 0;padding-left:18px;color:var(--gold,#c98a1b)}.ciaalertas li{margin:2px 0}
+.cialinha{font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all;padding:6px 8px;border-radius:8px;background:rgba(127,127,127,.1)}
+@media (max-width:640px){.ciares{flex-direction:column}}
+
+/* ─── Fluxo de caixa diário ─── */
+.fxdgraf{overflow-x:auto;margin-top:6px}.fxdgraf svg{width:100%;height:auto;display:block}
+.fxdent{fill:#1fb589;opacity:.8}.fxdsai{fill:#e0565b;opacity:.75}.fxdcol:hover rect:first-child{fill:rgba(127,127,127,.08)}.fxdcol{cursor:pointer}
+.fxdlinha{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}
+.fxdzero{stroke:#e0565b;stroke-dasharray:4 4;stroke-width:1}.fxdpassado{fill:rgba(127,127,127,.07)}.fxdhojel{stroke:var(--muted);stroke-dasharray:3 3}
+.fxdlbl{font-size:11px;fill:var(--muted)}.fxdmarca circle{fill:var(--accent);stroke:var(--panel,#fff);stroke-width:2}.fxdmarca text{font-size:12px;font-weight:700;fill:var(--text)}
+.fxdmarca.neg circle{fill:#e0565b}.fxdmarca.neg text{fill:#e0565b}
+.fxdtable tr.fxdreal td{opacity:.72}.fxdtable tr.fxdhoje td{background:color-mix(in srgb,var(--accent) 10%,transparent)}.fxdtable tr.fxdfds td:first-child{color:var(--muted)}
+.fxdtable tr.fxdneg td{background:rgba(224,86,91,.08)}
