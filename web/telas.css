@@ -440,3 +440,31 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .fxc.neg{background:rgba(224,86,91,.14);border-color:rgba(224,86,91,.5)}.fxc.neg strong{color:#e0565b}.fxc.sel{outline:2px solid var(--accent);outline-offset:1px}
 @media (max-width:1300px){.fxkpis{grid-template-columns:repeat(3,minmax(0,1fr))}.fxgrid{grid-template-columns:1fr}.fxside{position:static;display:grid;grid-template-columns:1fr 1fr}}
 @media (max-width:760px){.fxkpis{grid-template-columns:1fr 1fr}.fxsit{grid-column:span 2}.fxside{grid-template-columns:1fr}.fxdetg{grid-template-columns:1fr}.fxc{min-height:62px;padding:5px}.fxc small{display:none}.fxtab th:nth-child(2),.fxtab td:nth-child(2):not([colspan]){display:none}}
+
+/* ─── Fiscal: emitir NF-e e notas emitidas ─── */
+.nfamb{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:16px;margin-bottom:14px;background:rgb(var(--ar) / 10%);border:1px solid rgb(var(--ar) / 30%)}
+.nfamb strong{display:block}.nfamb small{color:var(--muted)}.nfamb.prod{background:rgba(224,86,91,.12);border-color:rgba(224,86,91,.5)}.nfamb.prod strong{color:#e0565b}
+.nfgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.nfform{display:flex;flex-direction:column;gap:16px;min-width:0}.nfform h3,.nfres h3{margin:0 0 10px}
+.nfside{position:sticky;top:12px}
+.nfres h4{margin:14px 0 6px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.nfkv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13.5px;border-bottom:1px dashed var(--line)}.nfkv b{font-variant-numeric:tabular-nums}
+.nfkv.tot{border:0;margin-top:6px;padding:10px 12px;border-radius:12px;background:rgb(var(--ar) / 12%);font-size:15px}.nfkv.tot b{font-size:18px}
+.nfacoes{display:flex;flex-direction:column;gap:8px;margin-top:16px}.nfacoes button{width:100%;justify-content:center}
+.nfitens input{padding:7px 8px;text-align:right}
+.nfprod{display:flex;gap:10px;align-items:center}.nfprod img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;flex:none}.nfprod small{color:var(--muted)}
+.nfped{margin-top:12px;font-size:13.5px}
+.modal.modalwide{max-width:min(1040px,94vw)!important;width:min(1040px,94vw)}
+.danfe{position:relative;background:#fff;color:#111;border-radius:10px;padding:18px;font:12px/1.4 Arial,sans-serif;overflow:hidden}
+.dfmarca{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font:800 44px Arial;color:rgba(200,30,30,.13);white-space:nowrap;pointer-events:none}
+.dfcab{display:grid;grid-template-columns:1.4fr .9fr 1.4fr;border:1px solid #333}.dfcab>div{padding:10px;display:flex;flex-direction:column;gap:3px}.dfcab>div+div{border-left:1px solid #333}
+.dfemit b{font-size:14px}.dfbox{text-align:center}.dfbox b{font-size:18px}.dfchave b{font-family:monospace}
+.dfsec{margin:12px 0 4px;font-weight:700;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.dfgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #333}.dfgrid>div{padding:6px 8px;border-right:1px solid #333;border-bottom:1px solid #333;display:flex;flex-direction:column}
+.dfgrid span{font-size:9.5px;text-transform:uppercase;color:#555}.dfgrid b{font-size:12px}.dfimp{grid-template-columns:repeat(5,minmax(0,1fr))}
+.modal .dfgrid{border-color:var(--line)}.modal .dfgrid>div{border-color:var(--line)}.modal .dfgrid span{color:var(--muted)}
+.danfe .dfgrid{border-color:#333}.danfe .dfgrid>div{border-color:#333}.danfe .dfgrid span{color:#555}
+.dftab{width:100%;border-collapse:collapse;font-size:11px;color:#111}.dftab th,.dftab td{border:1px solid #333;padding:4px 6px;background:#fff;color:#111}.dftab th{font-size:9.5px;text-transform:uppercase}
+.dfobs{border:1px solid #333;padding:8px;margin:0;min-height:40px}
+@media (max-width:1180px){.nfgrid{grid-template-columns:1fr}.nfside{position:static}}
+@media (max-width:760px){.dfcab,.dfgrid,.dfimp{grid-template-columns:1fr 1fr}.dfcab>div+div{border-left:0;border-top:1px solid #333}}

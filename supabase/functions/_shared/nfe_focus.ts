@@ -281,3 +281,49 @@ export async function emitirVendaDireta(db: SupabaseClient, ws: string, vendaId:
   await db.from("vendas_diretas").update({ nfe_ref: ref, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", vendaId);
   return { ref, status: row.status, mensagem: row.mensagem };
 }
+
+// ── Tela de emissão (Fiscal › Emitir NF-e) ──
+/** Calcula a nota SEM emitir: mesmo motor da emissão (CFOP, ICMS, DIFAL/FCP, PIS/COFINS, IBS/CBS). De um pedido ou de dados avulsos. */
+export async function simularNota(db: SupabaseClient, ws: string, d: { pedido?: string; dados?: DadosNota }) {
+  const cfg = await configFiscal(db, ws);
+  let payload: any, origem: any = null;
+  if (d.pedido) {
+    const { data: pedido } = await db.from("orders").select("*").eq("workspace_id", ws).eq("id", d.pedido).maybeSingle();
+    if (!pedido) throw new HttpError(404, "Pedido não encontrado.");
+    payload = await montar(db, ws, cfg, pedido);
+    origem = { pedido: pedido.id, canal: pedido.platform, data: pedido.date, cliente: pedido.customer?.name ?? null };
+  } else if (d.dados) payload = await corpoNota(db, ws, cfg, d.dados);
+  else throw new HttpError(400, "Informe o pedido ou os dados da nota.");
+  return { ambiente: cfg.ambiente, emitente: { cnpj: cfg.cnpj, uf: cfg.uf }, origem, payload };
+}
+
+/** Nota avulsa (fora de pedido de marketplace e de venda direta): destinatário, itens e pagamento digitados na tela. */
+export async function emitirAvulsa(db: SupabaseClient, ws: string, d: DadosNota, quem: string, confirmaProducao = false) {
+  const cfg = await configFiscal(db, ws);
+  if (cfg.ambiente === "producao" && !confirmaProducao) throw new HttpError(400, "Emissão em produção precisa de confirmação.");
+  const payload = await corpoNota(db, ws, cfg, d);
+  const ref = `EBA${cfg.ambiente === "producao" ? "P" : "H"}-${Date.now().toString(36).toUpperCase()}`;
+  const total = round(d.itens.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0) + (Number(d.frete) || 0) - (Number(d.desconto) || 0));
+  const r = await focus(cfg.ambiente, "POST", `/v2/nfe?ref=${encodeURIComponent(ref)}`, payload);
+  const row = {
+    workspace_id: ws, ref, pedido: `AVULSA ${String(d.nome ?? "").slice(0, 40)}`, ambiente: cfg.ambiente, status: r.ok ? (r.j.status ?? "processando_autorizacao") : "erro",
+    mensagem: r.ok ? (r.j.mensagem_sefaz ?? null) : `${r.j.codigo ?? r.status}: ${r.j.mensagem ?? ""}${(r.j.erros ?? []).map((x: any) => ` · ${x.campo ?? ""} ${x.mensagem ?? ""}`).join("")}`.slice(0, 1000),
+    valor: total, payload, resposta: r.j, criado_por: quem, updated_at: new Date().toISOString(),
+  };
+  await db.from("notas_fiscais").upsert(row, { onConflict: "workspace_id,ref" });
+  return { ref, status: row.status, mensagem: row.mensagem };
+}
+
+/** Carta de correção eletrônica (CC-e): corrige dados que não mudam valor, imposto, destinatário ou data. */
+export async function cartaCorrecao(db: SupabaseClient, ws: string, ref: string, texto: string) {
+  texto = texto.trim();
+  if (texto.length < 15 || texto.length > 1000) throw new HttpError(400, "A correção precisa ter entre 15 e 1.000 caracteres.");
+  const { data: n } = await db.from("notas_fiscais").select("*").eq("workspace_id", ws).eq("ref", ref).maybeSingle();
+  if (!n) throw new HttpError(404, "Nota não encontrada.");
+  if (n.status !== "autorizado") throw new HttpError(400, "Carta de correção só vale para nota autorizada.");
+  const r = await focus(n.ambiente, "POST", `/v2/nfe/${encodeURIComponent(ref)}/carta_correcao`, { correcao: texto });
+  if (!r.ok) throw new HttpError(400, `Carta de correção recusada: ${r.j?.mensagem ?? r.status}`);
+  const cces = [...((n.resposta?.cartas_correcao as any[]) ?? []), { em: new Date().toISOString(), texto, status: r.j?.status_sefaz ?? r.j?.status ?? null, mensagem: r.j?.mensagem_sefaz ?? null, pdf: r.j?.caminho_pdf_carta_correcao ? BASE[n.ambiente as Amb] + r.j.caminho_pdf_carta_correcao : null }];
+  await db.from("notas_fiscais").update({ resposta: { ...(n.resposta ?? {}), cartas_correcao: cces }, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("ref", ref);
+  return { ref, ...cces[cces.length - 1] };
+}

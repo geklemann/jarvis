@@ -11,7 +11,7 @@ import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
-import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal } from "../_shared/nfe_focus.ts";
+import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
 import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
 
@@ -276,6 +276,15 @@ Deno.serve(handler(async (req) => {
       return json(r);
     }
     case "fiscal_ler_produtos": return json(await detalhesFiscaisBling(db, ws, 150));
+    // Fiscal › Emitir NF-e: simulação (só cálculo), nota avulsa e carta de correção. Emissão só para dono, gestão e financeiro.
+    case "fiscal_simular": return json(await simularNota(db, ws, { pedido: body.pedido ? String(body.pedido) : undefined, dados: body.dados }));
+    case "fiscal_emitir_avulsa": case "fiscal_cce": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não permite emitir ou corrigir notas.");
+      const r = action === "fiscal_cce" ? await cartaCorrecao(db, ws, String(body.ref ?? ""), String(body.texto ?? "")) : await emitirAvulsa(db, ws, body.dados, user.email ?? user.id, body.producao === true);
+      await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: action === "fiscal_cce" ? "Carta de correção enviada" : "NF-e avulsa enviada", actor: user.email ?? user.id, detail: JSON.stringify(r).slice(0, 900) }).then(() => null, () => null);
+      return json(r);
+    }
     case "fiscal_emitir": return json(await emitirNFe(db, ws, String(body.pedido ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_emitir_venda": return json(await emitirVendaDireta(db, ws, String(body.venda ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_consultar": return json(await consultarNFe(db, ws, String(body.ref ?? "")));
