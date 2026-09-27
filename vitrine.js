@@ -95,6 +95,17 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
  addEventListener('pointermove',e=>{tmx=e.clientX/W-.5;tmy=e.clientY/H-.5},{passive:true});
  medir();addEventListener('resize',medir);spark();canais();
  const lados=[...v.querySelectorAll('.jv-lado')];
+ // Celular e telas estreitas: os painéis viram um carrossel em 3D no topo (um em destaque, os vizinhos inclinados),
+ // trocando sozinho. Em tela larga, voltam para as duas colunas em volta do cartão.
+ const estreita=matchMedia('(max-width:1079px)'),ORDEM=['jv-kpi','jv-feed','jv-conc','jv-canais','jv-fluxo'];let trilha=null,idx=0,tCar=0;
+ function arrumar(){const ps=[...v.querySelectorAll('.jv-p')];
+  if(estreita.matches){if(!trilha){trilha=document.createElement('div');trilha.className='jv-trilha';trilha.innerHTML='<div class="jv-trilho-in"></div>';v.appendChild(trilha)}
+   const dentro=trilha.firstChild;for(const c of ORDEM){const p=ps.find(x=>x.classList.contains(c));if(p)dentro.appendChild(p)}carrossel()}
+  else if(trilha){const [e,d]=lados;for(const c of ['jv-kpi','jv-canais','jv-mapa']){const p=ps.find(x=>x.classList.contains(c));if(p)e.appendChild(p)}for(const c of ['jv-feed','jv-conc','jv-fluxo']){const p=ps.find(x=>x.classList.contains(c));if(p)d.appendChild(p)}trilha.remove();trilha=null}}
+ function carrossel(){if(!trilha)return;const dentro=trilha.firstChild,ps=[...dentro.children];if(!ps.length)return;idx=(idx+ps.length)%ps.length;
+  const w=ps[0].offsetWidth,gap=14,x=trilha.clientWidth/2-w/2-idx*(w+gap);dentro.style.transform=`translate3d(${x.toFixed(1)}px,0,0)`;
+  ps.forEach((p,i)=>{const d=i-idx;p.classList.toggle('jv-ativo',d===0);p.style.setProperty('--d',Math.max(-2,Math.min(2,d)))})}
+ estreita.addEventListener?.('change',arrumar);addEventListener('resize',carrossel);arrumar();
  function atualizar(dt){
   mx+=(tmx-mx)*.05;my+=(tmy-my)*.05;lados.forEach((l,i)=>{l.style.setProperty('--px',(mx*(i?-16:16)).toFixed(2)+'px');l.style.setProperty('--py',(my*-12).toFixed(2)+'px')});
   shown.vendas+=(est.vendas-shown.vendas)*.06;shown.ped+=(est.ped-shown.ped)*.08;K('vendas').textContent=brl(shown.vendas);K('ped').textContent=int(shown.ped);K('var').textContent='+'+est.var.toFixed(1).replace('.',',')+'%';
@@ -102,6 +113,7 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
   if(fxGeo){cursor=(cursor+dt*.00012)%1;const i=cursor*30,a=Math.floor(i),f=i-a,y=fxGeo.s[a]+(fxGeo.s[Math.min(30,a+1)]-fxGeo.s[a])*f,x=fxGeo.X(i);
    const c=$('.jv-cursor');c.setAttribute('x1',x.toFixed(1));c.setAttribute('x2',x.toFixed(1));const p=$('.jv-fponto');p.setAttribute('cx',x.toFixed(1));p.setAttribute('cy',fxGeo.Y(y).toFixed(1));K('saldo').textContent=brl(y*1000).replace(/,\d\d$/,'')}
   tEv+=dt;if(tEv>2300){tEv=0;evento()}
+  if(trilha){tCar+=dt;if(tCar>3200){tCar=0;idx++;carrossel()}}
   tFx+=dt;if(tFx>5200){tFx=0;est.fxi=(est.fxi+1)%29;fxGeo=fluxoCaixa()||fxGeo}
   tBr+=dt;if(tBr>900){tBr=0;v.querySelectorAll('.jv-uf span').forEach(s=>{const h=parseFloat(s.style.getPropertyValue('--h'))||0;if(h>0)s.style.setProperty('--h',Math.max(0,h-.04).toFixed(2))})}}
  function passo(agora){if(!vivo)return;const dt=Math.min(64,agora-ult);ult=agora;
