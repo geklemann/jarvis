@@ -38,6 +38,7 @@ const G={
  cadcontas:['Cadastro das contas bancárias e aplicações.','Ao abrir uma conta ou aplicação.','Informe banco, agência, conta e saldo inicial.'],
  categorias:['Plano financeiro: as categorias de despesa e receita usadas nas contas e na DRE.','Ao organizar o financeiro.','Crie ou ajuste categorias.'],
  centros:['Centros de custo (áreas da empresa) para separar despesas.','Se quiser ver gastos por área.','Cadastre e use nos lançamentos.'],
+ catalogo:['Cadastro dos produtos que vão para os marketplaces e o preço de cada um em cada canal. Salva no Bling, que entrega às lojas conectadas (Mercado Livre, Magalu, Shopee).','Ao cadastrar produto novo, mudar preço ou criar anúncio.','Clique no produto para editar e salvar no Bling; ajuste o preço de cada canal; use Novo anúncio para criar um rascunho e Publicar para colocar no ar. Os quadros do topo mostram o que falta: canal sem vínculo, foto e NCM.'],
  cadprodutos:['Cadastro de produtos (vem do Bling): código, custo, preço, NCM e foto.','Ao conferir dados de um produto.','Busque e abra o produto.'],
  parametros:['Regras fiscais e contábeis da empresa (ICMS, DIFAL por estado, PIS/COFINS, natureza, CFOP) — área para a contabilidade configurar.','Na implantação e quando a lei mudar.','A contabilidade revisa as sugestões e aprova.'],
  contabauto:['Contabilidade feita sozinha a partir das vendas, notas, extrato e títulos: diário, balancete, DRE e balanço.','Mensalmente, ou para ver o resultado do mês.','Compare com o escritório na aba Conferência.'],
