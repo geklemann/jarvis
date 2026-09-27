@@ -11,6 +11,7 @@ import { detalhesFiscaisBling, sincronizarEstoqueBling } from "../_shared/estoqu
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
+import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
 
 const required: Record<string, string[]> = {
   bling: ["BLING_CLIENT_ID", "BLING_CLIENT_SECRET"],
@@ -178,6 +179,15 @@ Deno.serve(handler(async (req) => {
         report.push({ workspace_id: i.workspace_id, reguas_erro: String(e) });
       }
     }
+    // Catálogo: diagnóstico sob demanda (só leitura no Bling) — canais e quantidade de vínculos por loja.
+    for (const i of list.filter((x) => x.provider === "bling" && x.settings?.catalogo_diag_pedido)) {
+      try {
+        const r = await vinculosBling(db, i.workspace_id, Math.min(deadline - 20_000, Date.now() + 60_000));
+        const porLoja: Record<string, number> = {};
+        for (const v of r.vinculos) porLoja[v.lojaNome] = (porLoja[v.lojaNome] ?? 0) + 1;
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.catalogo_diag_pedido; s.catalogo_diag = { canais: r.canais, porLoja, total: r.vinculos.length, em: r.em }; });
+      } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.catalogo_diag_pedido; s.catalogo_diag = { erro: String(e).slice(0, 400), em: new Date().toISOString() }; }); }
+    }
     // Estoque (Bling): produtos, custo e saldo.
     for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.estoque?.fim || Date.now() - new Date(x.settings.estoque.fim).getTime() > ESTOQUE_MS))) {
       try {
@@ -268,6 +278,22 @@ Deno.serve(handler(async (req) => {
     case "fiscal_emitir_venda": return json(await emitirVendaDireta(db, ws, String(body.venda ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_consultar": return json(await consultarNFe(db, ws, String(body.ref ?? "")));
     case "fiscal_cancelar": return json(await cancelarNFe(db, ws, String(body.ref ?? ""), String(body.justificativa ?? "")));
+    // Catálogo e anúncios pelo Bling. Gravações só para quem altera estoque (dono, gestão, estoque).
+    case "catalogo_vinculos": return json(await vinculosBling(db, ws));
+    case "catalogo_canais": return json(await canaisBling(db, ws));
+    case "catalogo_anuncios": return json(await anunciosBling(db, ws, String(body.tipo ?? ""), Number(body.loja)));
+    case "catalogo_salvar": case "catalogo_preco_loja": case "catalogo_anuncio": case "catalogo_publicar": case "catalogo_pausar": case "catalogo_foto": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "estoque"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não permite alterar produtos e anúncios.");
+      const d = body.dados ?? {};
+      const r = action === "catalogo_salvar" ? await salvarProdutoBling(db, ws, d)
+        : action === "catalogo_preco_loja" ? await precoLojaBling(db, ws, d)
+        : action === "catalogo_anuncio" ? await criarAnuncioBling(db, ws, d)
+        : action === "catalogo_foto" ? await enviarFotoProduto(db, ws, String(d.base64 ?? ""), String(d.nome ?? ""))
+        : await situacaoAnuncioBling(db, ws, d, action === "catalogo_publicar" ? "publicar" : "pausar");
+      if (action !== "catalogo_foto") await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Catálogo (Bling): " + action.replace("catalogo_", ""), actor: user.email ?? user.id, detail: JSON.stringify({ dados: { ...d, fotos: undefined, descricao: undefined }, r }).slice(0, 900) }).then(() => null, () => null);
+      return json(r);
+    }
     case "estoque_sync": {
       const r = await sincronizarEstoqueBling(db, ws);
       await writeSettings(db, ws, "bling", (s) => { s.estoque = { ...r, fim: new Date().toISOString() }; });

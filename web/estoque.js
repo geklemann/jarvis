@@ -17,7 +17,7 @@ const dataBR=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 async function carregar(){if(!window.Cloud?.ws||st.carregando)return;st.carregando=true;
  try{const [p,i]=await Promise.all([Cloud.client.from('produtos').select('*').eq('workspace_id',Cloud.ws).limit(5000),Cloud.client.from('integrations').select('settings').eq('workspace_id',Cloud.ws).eq('provider','bling').maybeSingle()]);
   if(p.error)throw p.error;st.lista=p.data||[];st.info=i.data?.settings?.estoque||null;st.erro='';st.carregado=true;cache=null}catch(e){st.erro=e.message||String(e);st.carregado=true}finally{st.carregando=false}
- if(['estoque','estcompras','central','dashboard','painel','sazonal','crmprodutos','separacao','pedcompra'].includes(page)&&!document.querySelector('.modalback'))render()}
+ if(['estoque','estcompras','central','dashboard','painel','sazonal','crmprodutos','separacao','pedcompra','catalogo'].includes(page)&&!document.querySelector('.modalback'))render()}
 async function fn(action,body){const r=await Cloud.client.functions.invoke('integrations',{body:{workspace_id:Cloud.ws,action,...body}});if(r.error){let msg=r.error.message;try{msg=(await r.error.context.json()).error||msg}catch{}throw Error(msg)}return r.data}
 
 // ─────────── Vendas por SKU (dos pedidos) e compras (das notas de entrada) ───────────

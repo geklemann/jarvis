@@ -19,11 +19,11 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 // ═════════════════ Estrutura ═════════════════
 const MODS=[
  {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central']]]},
- {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
+ {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','catalogo']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['inventario','separacao']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco']],['Caixa',['fluxo']]]},
  {id:'crm',ic:'heart',t:'CRM',grupos:[['CRM',['crm','crmclientes','crmfases','crmacoes']],['Análises',['crmprodutos','crmgeo']],['Automação',['crmreguas']]]},
- {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['cadprodutos']],['Fiscal e contábil',['parametros']]]},
+ {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Fiscal e contábil',['parametros']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Contabilidade',['contabauto','fechcontab','contabil']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['precos']]]},
  {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
