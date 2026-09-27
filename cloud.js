@@ -132,7 +132,7 @@ Cloud.paintStatus=paintStatus;
 
 // ───────── Tela de acesso ─────────
 function loginView(msg=''){window.Assistant?.sync();
- $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="complogo login"><img src="brand/comprastore-logo.png" alt="Compra Store"></div><div class="brand" style="padding:0;margin-bottom:26px"><span class="mark">${icon('marca')}</span><div>EcomBalance<small>CONCILIAÇÃO E RESULTADO</small></div></div>
+ $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="authhead"><img class="authlogo" src="brand/comprastore-logo.png" alt="Compra Store"><div class="authname">EcomBalance</div><div class="authslogan">Do pedido ao balancete, sem perder um centavo.</div></div>
  <h1 style="font-size:24px">Entre na sua operação</h1><p>Seus dados ficam protegidos na nuvem e sincronizam entre computadores. Primeiro acesso? Informe e-mail e senha e clique em <strong>Criar conta</strong>: o administrador recebe o pedido e libera.</p>
  <form id="authForm" autocomplete="on"><div id="authNomeBox" hidden><label for="authNome">Seu nome</label><input id="authNome" autocomplete="name" style="width:100%" placeholder="Nome e sobrenome"></div><label for="authEmail">E-mail</label><input id="authEmail" type="email" required autocomplete="email" style="width:100%">
  <label for="authPass">Senha</label><input id="authPass" type="password" minlength="8" autocomplete="current-password" style="width:100%" placeholder="Mínimo de 8 caracteres">
