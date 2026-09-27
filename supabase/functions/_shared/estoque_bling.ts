@@ -59,6 +59,9 @@ async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<str
     const nome = u.split("?")[0].split("/").filter(Boolean).slice(-2).join("-").replace(/[^A-Za-z0-9._-]/g, "");
     const chave = `${ws}/${nome}`, pub = PUBLICO() + chave;
     if (atual.get(r.id as string) === pub) { r.imagem = pub; mantidas++; continue; }
+    // Foto em alta resolução já copiada (fotosHdBling): a miniatura da listagem não a substitui.
+    const at = String(atual.get(r.id as string) ?? "");
+    if (at.includes("/hd-")) { r.imagem = at; mantidas++; continue; }
     if (Date.now() > deadline - 15_000) continue; // sem tempo: fica o link do Bling até a próxima rodada
     try {
       const resp = await fetch(u);
@@ -72,6 +75,42 @@ async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<str
     } catch (e) { erros++; if (!primeiroErro) primeiroErro = String((e as any)?.message ?? e).slice(0, 200); }
   }
   return { copiadas, mantidas, erros, ...(primeiroErro ? { primeiroErro } : {}) };
+}
+
+/** Foto em alta resolução: a listagem do Bling só traz a miniatura (fica borrada ampliada). Lê o detalhe do
+ *  produto, copia a primeira foto original para o bucket público e troca o link. Poucos por rodada; revisita a cada 14 dias. */
+export async function fotosHdBling(db: SupabaseClient, ws: string, limite = 30, deadline = Date.now() + 60_000) {
+  const sec = await validSecret(db, ws, "bling");
+  const antigo = new Date(Date.now() - 14 * 86400_000).toISOString();
+  const { data } = await db.from("produtos").select("id,bling_id,imagem").eq("workspace_id", ws).not("bling_id", "is", null).not("imagem", "is", null)
+    .or(`foto_hd_em.is.null,foto_hd_em.lt.${antigo}`).order("foto_hd_em", { ascending: true, nullsFirst: true }).limit(limite);
+  let hd = 0, semFoto = 0, erros = 0;
+  for (const p of data ?? []) {
+    if (Date.now() > deadline) break;
+    try {
+      await sleep(350);
+      const j = await fetchJson(`${API()}/produtos/${p.bling_id}`, { headers: { Authorization: `Bearer ${sec.access_token}`, Accept: "application/json" } });
+      const im = j?.data?.midia?.imagens ?? {};
+      const internas = [...(im.internas ?? [])].sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0));
+      const link = internas[0]?.link || im.externas?.[0]?.link || "";
+      const agora = new Date().toISOString();
+      if (!link) { semFoto++; await db.from("produtos").update({ foto_hd_em: agora }).eq("workspace_id", ws).eq("id", p.id); continue; }
+      const nome = "hd-" + String(p.bling_id) + "-" + link.split("?")[0].split("/").filter(Boolean).slice(-1)[0].replace(/[^A-Za-z0-9._-]/g, "").slice(-60);
+      const chave = `${ws}/${nome}`, pub = PUBLICO() + chave;
+      if (p.imagem !== pub) {
+        const resp = await fetch(link);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const bytes = new Uint8Array(await resp.arrayBuffer());
+        if (bytes.length > 8 * 1024 * 1024) throw new Error("foto maior que 8 MB");
+        const tipo = bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : bytes[0] === 0x52 && bytes[8] === 0x57 ? "image/webp" : "image/jpeg";
+        const { error } = await db.storage.from("produtos").upload(chave, bytes, { contentType: tipo, upsert: true, cacheControl: "31536000" });
+        if (error) throw error;
+      }
+      await db.from("produtos").update({ imagem: pub, foto_hd_em: agora }).eq("workspace_id", ws).eq("id", p.id);
+      hd++;
+    } catch { erros++; }
+  }
+  return { fotos_hd: hd, fotos_hd_sem: semFoto, fotos_hd_erros: erros };
 }
 
 /** Vitrine da tela de login: os produtos mais vendidos nos últimos 30 dias que têm foto permanente. Só nome e foto. */

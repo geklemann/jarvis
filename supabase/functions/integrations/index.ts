@@ -7,7 +7,8 @@ import { persist, provider, providers, validSecret } from "../_shared/store.ts";
 import { importShopeeIncome } from "../_shared/shopee_central.ts";
 import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml.ts";
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
-import { detalhesFiscaisBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
+import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
+import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
@@ -191,7 +192,7 @@ Deno.serve(handler(async (req) => {
     // Estoque (Bling): produtos, custo e saldo.
     for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.estoque?.fim || Date.now() - new Date(x.settings.estoque.fim).getTime() > ESTOQUE_MS))) {
       try {
-        const r = { ...(await sincronizarEstoqueBling(db, i.workspace_id, Math.min(deadline - 20_000, Date.now() + 60_000))), ...(await detalhesFiscaisBling(db, i.workspace_id, 60).catch((e) => ({ fiscais_erro: String(e) }))) };
+        const r = { ...(await sincronizarEstoqueBling(db, i.workspace_id, Math.min(deadline - 20_000, Date.now() + 60_000))), ...(await detalhesFiscaisBling(db, i.workspace_id, 60).catch((e) => ({ fiscais_erro: String(e) }))), ...(await fotosHdBling(db, i.workspace_id, 40, Math.min(deadline - 10_000, Date.now() + 45_000)).catch((e) => ({ fotos_hd_erro: String(e) }))) };
         await writeSettings(db, i.workspace_id, i.provider, (s) => { s.estoque = { ...r, fim: new Date().toISOString() }; });
         report.push({ workspace_id: i.workspace_id, estoque: r });
       } catch (e) { report.push({ workspace_id: i.workspace_id, estoque_erro: String(e) }); }
@@ -292,6 +293,22 @@ Deno.serve(handler(async (req) => {
         : action === "catalogo_foto" ? await enviarFotoProduto(db, ws, String(d.base64 ?? ""), String(d.nome ?? ""))
         : await situacaoAnuncioBling(db, ws, d, action === "catalogo_publicar" ? "publicar" : "pausar");
       if (action !== "catalogo_foto") await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Catálogo (Bling): " + action.replace("catalogo_", ""), actor: user.email ?? user.id, detail: JSON.stringify({ dados: { ...d, fotos: undefined, descricao: undefined }, r }).slice(0, 900) }).then(() => null, () => null);
+      return json(r);
+    }
+    // Expedição e estoque: depósitos, lançamento (entrada, saída, balanço) e etiquetas de envio pelo Bling.
+    case "estoque_depositos": return json(await depositosBling(db, ws));
+    case "estoque_lancar": case "etiquetas": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      const pode = action === "etiquetas" ? ["owner", "member", "estoque", "atendimento"] : ["owner", "member", "estoque"];
+      if (!pode.includes(String(m?.role))) throw new HttpError(403, action === "etiquetas" ? "Seu papel não permite gerar etiquetas." : "Seu papel não permite lançar estoque.");
+      const d = body.dados ?? {};
+      if (action === "estoque_lancar") {
+        const r = await lancarEstoqueBling(db, ws, { ...d, quem: user.email ?? user.id });
+        await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Estoque (Bling): lançamento " + ({ E: "entrada", S: "saída", B: "balanço" } as any)[String(d.operacao)], actor: user.email ?? user.id, detail: JSON.stringify({ dados: d, r }).slice(0, 900) }).then(() => null, () => null);
+        return json(r);
+      }
+      const r = await etiquetasBling(db, ws, Array.isArray(d.ids) ? d.ids : [], String(d.formato ?? "PDF"));
+      await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Etiquetas de envio (Bling)", actor: user.email ?? user.id, detail: JSON.stringify({ formato: r.formato, geradas: r.geradas, resultado: r.resultado }).slice(0, 900) }).then(() => null, () => null);
       return json(r);
     }
     case "estoque_sync": {
