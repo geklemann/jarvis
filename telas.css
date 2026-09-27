@@ -35,7 +35,7 @@ body:not(.light) .estfoto{background:radial-gradient(circle at 50% 40%,#f4f7f9,#
 .vg-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,1fr) minmax(250px,.75fr);gap:18px}
 .vg-big{display:flex;flex-direction:column;justify-content:center;gap:6px}
 .vg-big small{font-size:12.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
-.vg-big strong{font:800 clamp(30px,3.1vw,48px)/1.05 'Manrope',sans-serif;letter-spacing:-2px}
+.vg-big strong{font:800 clamp(26px,2.4vw,38px)/1.1 'Manrope',sans-serif;letter-spacing:-2px}
 .vg-big p{font-size:15px;margin:4px 0 0}
 .vg-big .row{margin-top:12px;flex-wrap:wrap;gap:8px}
 .vg-pill{display:inline-flex;align-items:center;gap:6px;border-radius:30px;padding:6px 12px;font-size:13px;background:var(--input,var(--panel2));border:1px solid var(--line)}
@@ -139,3 +139,31 @@ body.painel .pn-mid .card{display:flex;flex-direction:column}body.painel .pn-bar
 body.vidro .auth{background:transparent}
 body.vidro .authcard{border-radius:28px;background:linear-gradient(155deg,var(--panel),var(--panel2));border:1px solid var(--glassline);box-shadow:inset 0 1px 0 var(--glasshi),var(--shadow);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3)}
 body.vidro .authcard h1{font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-.6px}
+
+/* ─── Rótulos de dados nos gráficos ─── */
+.cclab{font:700 11px 'DM Sans',sans-serif;paint-order:stroke;stroke:var(--solid,var(--panel));stroke-width:3px}
+.cclab.s{fill:var(--accent);font-size:12px}.cclab.sa{fill:var(--red)}.cclab.en{fill:var(--green)}
+.vlab{font:700 9.5px 'DM Sans',sans-serif;fill:var(--muted);paint-order:stroke;stroke:var(--solid,var(--panel));stroke-width:3px}
+.vlab.big{font-size:13px;fill:var(--text)}.vlab.hot{fill:var(--hot,var(--accent));font-size:12px}
+.hj-vl{font-style:normal;font-size:10.5px;font-weight:800;color:var(--text);white-space:nowrap}
+
+/* ─── Guia e Mapa do ERP ─── */
+.guiabtn{width:26px;height:26px;padding:0!important;border-radius:50%!important;margin-left:10px;vertical-align:middle;font:800 14px 'Manrope',sans-serif;color:var(--accent);background:rgb(var(--ar) / 12%)!important;border:1px solid rgb(var(--ar) / 30%)!important}
+.guiabtn:hover{background:rgb(var(--ar) / 22%)!important}
+.guia{display:flex;flex-direction:column;gap:14px}
+.guia>div{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:18px;background:var(--input,var(--panel2));border:1px solid var(--line)}
+.guia small{font-size:11.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent)}
+.guia p{margin:4px 0 0;color:var(--text);font-size:14.5px;line-height:1.55}
+.guiaico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgb(var(--ar) / 13%);color:var(--accent)}
+.mapa{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;align-items:start}
+.mapamod{padding:18px;border-radius:22px;background:linear-gradient(150deg,var(--panel),var(--panel2));border:1px solid var(--glassline,var(--line));display:flex;flex-direction:column;gap:8px}
+.mapamod h2{display:flex;align-items:center;gap:10px;margin-bottom:4px}.mapamod h2 .icon{color:var(--accent)}
+.mapaitem{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:3px;padding:10px 12px!important;border-radius:14px!important;background:var(--input,var(--panel2))!important}
+.mapaitem small{color:var(--muted);font-size:12.5px;line-height:1.4}
+
+/* ─── Foto do produto nas tabelas ─── */
+td.comfoto{min-width:220px}
+td.comfoto .pfoto{float:left;margin:0 10px 0 0}
+.pfoto{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#fff;border:1px solid var(--line);overflow:hidden;flex:none;vertical-align:middle}
+.pfoto img{width:100%;height:100%;object-fit:contain}
+.pfoto:empty:after{content:'';width:14px;height:14px;border-radius:4px;border:2px solid #c4ccd3}
