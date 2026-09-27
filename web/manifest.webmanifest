@@ -1,6 +1,6 @@
 {
-  "name": "EcomBalance · Compra Store",
-  "short_name": "EcomBalance",
+  "name": "Jarvis · Compra Store",
+  "short_name": "Jarvis",
   "description": "ERP do e-commerce: vendas, estoque, financeiro, fiscal e contabilidade.",
   "start_url": "./#central",
   "scope": "./",

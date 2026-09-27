@@ -1,5 +1,5 @@
 'use strict';
-// Início · "Hoje": a primeira tela do EcomBalance. Saudação com o resumo do dia numa frase, barra "pergunte ou peça"
+// Início · "Hoje": a primeira tela do Jarvis. Saudação com o resumo do dia numa frase, barra "pergunte ou peça"
 // (responde na hora com os dados da empresa, por texto ou voz, e só chama a IA quando não sabe), orbe de estado,
 // linha do mês (vendas por dia e vencimentos), cartões vivos de cada área e os módulos com favoritos.
 (()=>{
@@ -57,10 +57,10 @@ function hero(d){const dt=new Date(),pend=d.avisos.length,emp=esc(window.Cloud?.
   <h1 class="hj-hello">${esc(seguro(()=>E().saudacao(),'Olá'))}.</h1>
   <p class="hj-brief">${frase(d)}</p>
   <form class="hj-ask" id="hjAsk" autocomplete="off"><button type="button" class="hj-mic" data-hj="voz" aria-label="Falar" aria-pressed="${ui.ouvindo}">${ico('mic',21)}</button>
-   <input id="hjQ" placeholder="Pergunte, busque ou peça algo…  ( / )" aria-label="Pergunte ao EcomBalance"><button class="hj-send" aria-label="Enviar">${ico('arrow',20)}</button></form>
+   <input id="hjQ" placeholder="Pergunte, busque ou peça algo…  ( / )" aria-label="Pergunte ao Jarvis"><button class="hj-send" aria-label="Enviar">${ico('arrow',20)}</button></form>
   <div class="hj-chips">${chips.map(([t,i])=>`<button type="button" data-hj="chip" data-q="${esc(t)}">${ico(i,15)}${t}</button>`).join('')}</div>
   <div class="hj-answer ${ui.resposta?'on':''}" id="hjAns" aria-live="polite">${ui.resposta}</div></div>
- <div class="hj-side"><button class="hj-orb ${pend?'alert':'calm'} ${ui.ouvindo?'listen':''}" data-hj="orb" aria-label="Falar com o EcomBalance"><span class="hj-orb-core"></span><span class="hj-orb-ring"></span><b>eb</b></button>
+ <div class="hj-side"><button class="hj-orb ${pend?'alert':'calm'} ${ui.ouvindo?'listen':''}" data-hj="orb" aria-label="Falar com o Jarvis"><span class="hj-orb-core"></span><span class="hj-orb-ring"></span><b>eb</b></button>
   <p class="hj-status">${ui.ouvindo?'Ouvindo… pode falar':pend?`${pend} ponto(s) pedem atenção`:'Tudo em dia'}<br><small>toque no orbe para falar</small></p><div class="row wrap" style="justify-content:center;gap:8px"><button class="small" data-hj="painel">${ico('grid',15)} Modo painel</button><button class="small" data-nav="mapa">${ico('folder',15)} Mapa do ERP</button></div></div></section>`}
 function linhaMes(d){const [y,mo]=d.m.split('-').map(Number),n=new Date(y,mo,0).getDate(),vals=[],pag=new Map();
  for(const t of d.ab)if(t.vencimento?.startsWith(d.m)){const x=pag.get(t.vencimento)||{n:0,v:0};x.n++;x.v+=E().saldoT?.(t)??t.valor;pag.set(t.vencimento,x)}
@@ -132,7 +132,7 @@ function painelView(){const d=dados(),mesTxt=new Date().toLocaleDateString('pt-B
  const pm=new Map();for(const o of dRef)for(const it of o.items||[]){const k=String(it.sku||it.title).trim(),x=pm.get(k)||{t:it.title||k,q:0,v:0};x.q+=Number(it.qty)||0;x.v+=(Number(it.qty)||0)*(Number(it.price)||0);pm.set(k,x)}
  const topP=[...pm].sort((a,b)=>b[1].q-a[1].q||b[1].v-a[1].v).slice(0,6);
  const kp=(t,v,s)=>`<div class="pn-kpi"><small>${t}</small><b>${v}</b><em>${s}</em></div>`;
- return `<div class="pn"><div class="pn-top"><img src="brand/comprastore-logo-240.png" alt="" style="height:56px"><div><h1>${esc(window.Cloud?.wsName||'Compra Store')}</h1><span class="caption">EcomBalance ao vivo · atualiza a cada minuto</span></div><div class="pn-clock"><b id="pnHora">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><small>${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</small></div></div>
+ return `<div class="pn"><div class="pn-top"><img src="brand/comprastore-logo-240.png" alt="" style="height:56px"><div><h1>${esc(window.Cloud?.wsName||'Compra Store')}</h1><span class="caption">Jarvis ao vivo · atualiza a cada minuto</span></div><div class="pn-clock"><b id="pnHora">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><small>${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</small></div></div>
  <div class="pn-kpis">${kp('Vendas de hoje',fmtC(d.vh.v),`<b>${d.vh.n}</b> pedidos · <b>${itensHoje}</b> itens · ticket ${money(tk)}`)}${kp(`Vendas de ${mesTxt}`,fmtC(d.mes.v),`<b>${d.mes.n.toLocaleString('pt-BR')}</b> pedidos · <b>${itensMes.toLocaleString('pt-BR')}</b> itens${d.mesAnt.v?` · ${d.mes.v>=d.mesAnt.v?'▲':'▼'} ${Math.abs((d.mes.v/d.mesAnt.v-1)*100).toFixed(0)}%`:''}`)}${kp('Caixa',fmtC(d.pr.inicial),`menor em 30 dias ${fmtC(d.menor.saldo)}`)}${kp('Atenção',String(d.avisos.length),d.avisos[0]?.[2]||'tudo em dia')}</div>
  <div class="pn-canais">${usaOntem&&canais.length?`<p class="caption pn-ontem">Ainda sem vendas hoje · canais e mais vendidos de ontem</p>`:''}${canais.map(x=>`<div class="pn-canal"><span class="plogo" style="background:${COR[x.c]||'#667'}">${sig(x.c)}</span><div><strong>${esc(x.c)}</strong><span class="pn-cbar"><i style="width:${x.v/mxc*100}%;background:${COR[x.c]||'var(--accent)'}"></i></span><small><b>${fmtC(x.v)}</b> · ${x.n} pedidos · ${x.u} itens</small></div></div>`).join('')||'<p class="caption">Nenhuma venda hoje nem ontem.</p>'}</div>
  <div class="pn-mid3"><section class="card"><div class="cardhead"><h2>Últimos 14 dias</h2><span class="caption">${fmtC(dias14.reduce((s,x)=>s+x.v,0))} · ${dias14.reduce((s,x)=>s+x.n,0).toLocaleString('pt-BR')} pedidos</span></div>
@@ -149,7 +149,7 @@ addPage('painel','grid','Modo painel',painelView,'Painel ao vivo para TV.','',pa
 // Fica na lista de páginas (o roteador exige), mas fora do menu: só abre pelo botão, pelo Ctrl K ou pelo chip.
 
 // Registra a tela no lugar da Central do dia.
-addPage('central','home','Hoje',view,'Seu dia no EcomBalance: o que entrou, o que sai e o que precisa de você.','',bind);
+addPage('central','home','Hoje',view,'Seu dia no Jarvis: o que entrou, o que sai e o que precisa de você.','',bind);
 {const ids=navItems.map(n=>n[0]);const ult=ids.lastIndexOf('central');if(ids.indexOf('central')!==ult)navItems.splice(ult,1);const n=navItems.find(x=>x[0]==='central');if(n)n[2]='Hoje'}
 const shell0=shell;shell=function(){const r=shell0.apply(this,arguments);document.body.classList.toggle('pg-home',page==='central');document.body.classList.toggle('painel',page==='painel');return r};
 window.Hoje={perguntar,responder,regra:q=>String(q||'').trim().length>3?seguro(()=>responder(q,true),null):null};

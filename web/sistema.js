@@ -3,10 +3,10 @@
 // pelo banco: cada inclusão, alteração e exclusão, com quem fez, quando e o antes/depois).
 (()=>{
 // ─────────────── Aparência ───────────────
-const TEMAS=[['violeta','Violeta','#a88aff','#7550d4','Roxo original do EcomBalance'],['aqua','Verde-água','#3dd6c3','#0f8f80','Combina com a logo da Compra Store'],['grafite','Grafite','#c3cad6','#3d434d','Neutro e sóbrio, cinza chumbo'],['oceano','Oceano','#5aa9ff','#1f6fd1','Azul profundo, cara de ERP clássico'],['esmeralda','Esmeralda','#4ade80','#15803d','Verde vivo, foco em resultado'],['coral','Coral','#ff8a73','#d4533b','Quente e acolhedor'],['ambar','Âmbar','#f2b544','#a86d00','Dourado, alto contraste'],['rose','Rosé','#f47fb4','#c23f7f','Suave e moderno']];
+const TEMAS=[['violeta','Violeta','#a88aff','#7550d4','Roxo original do Jarvis'],['aqua','Verde-água','#3dd6c3','#0f8f80','Combina com a logo da Compra Store'],['grafite','Grafite','#c3cad6','#3d434d','Neutro e sóbrio, cinza chumbo'],['oceano','Oceano','#5aa9ff','#1f6fd1','Azul profundo, cara de ERP clássico'],['esmeralda','Esmeralda','#4ade80','#15803d','Verde vivo, foco em resultado'],['coral','Coral','#ff8a73','#d4533b','Quente e acolhedor'],['ambar','Âmbar','#f2b544','#a86d00','Dourado, alto contraste'],['rose','Rosé','#f47fb4','#c23f7f','Suave e moderno']];
 const ler=k=>{try{return localStorage.getItem(k)}catch{return null}};
 // Aurora (vidro): variações de cor. "classico" volta ao visual sólido antigo, com o tema escolhido lá.
-const VIDRO=[['aurora','Aurora','Petróleo, água-marinha e coral','#5fe0cc','#0f6f7c','#ff7a59','#0d1b29'],['ametista','Ametista','Violeta e rosa, herança do EcomBalance','#b7a2ff','#5b3fd0','#ff6fa8','#151329'],
+const VIDRO=[['aurora','Aurora','Petróleo, água-marinha e coral','#5fe0cc','#0f6f7c','#ff7a59','#0d1b29'],['ametista','Ametista','Violeta e rosa, herança do Jarvis','#b7a2ff','#5b3fd0','#ff6fa8','#151329'],
  ['oceano','Oceano','Azul profundo com turquesa','#7cb4ff','#1b4fb8','#20c4b0','#0b1830'],['esmeralda','Esmeralda','Verde de resultado com âmbar','#7fe0a8','#0f6b43','#f0a53a','#0b1d16'],
  ['terracota','Terracota','Quente, areia e coral','#ffab8f','#b2432a','#ffd08a','#1f1410'],['grafite','Grafite','Sóbrio, cinza e dourado','#c9d3df','#2b3441','#e0a93b','#12161c']];
 function temaAtual(){const m=window.Cloud?.session?.user?.user_metadata||{};return m.tema2||ler('eb_tema2')||'aurora'}

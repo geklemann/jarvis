@@ -1,7 +1,7 @@
 'use strict';
 // Venda direta (B2B, atacado, lojistas) e Contas a receber. A venda nasce como rascunho com o cliente
 // preenchido pelo CNPJ (Receita/CNPJá), itens do cadastro, frete, desconto e parcelas; ao faturar emite a
-// NF-e pelo EcomBalance (contribuinte: CFOP de revenda, sem DIFAL) e gera um título a receber por parcela.
+// NF-e pelo Jarvis (contribuinte: CFOP de revenda, sem DIFAL) e gera um título a receber por parcela.
 (()=>{
 Object.assign(paths,{handshake:'M3 12l4-4 4 3 3-3 7 7 M3 12l6 6 M14 11l3 3 M11 14l3 3',coins:'M8 8a5 3 0 1 0 10 0 5 3 0 1 0-10 0z M8 8v8c0 1.7 2.2 3 5 3s5-1.3 5-3V8 M8 12c0 1.7 2.2 3 5 3s5-1.3 5-3'});
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
@@ -71,7 +71,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-vd],
  if(d.vdSalvar){lerModal(v);await up('vendas_diretas',v);closeModal();toast('Rascunho salvo.');render();return}
  if(d.vdCancelar){if(!confirm('Cancelar esta venda?'))return;v.status='cancelado';await up('vendas_diretas',v);closeModal();render();return}
  const valida=()=>{if(!v.itens.length)throw Error('Adicione pelo menos um item.');if(!dig(v.cliente.doc))throw Error('Informe o CPF/CNPJ do cliente.');const e=v.cliente.endereco;if(!e.logradouro||!e.municipio||!e.uf||!dig(e.cep))throw Error('Endereço completo do cliente é obrigatório (rua, município, UF e CEP).')};
- if(d.vdSemnota){lerModal(v);valida();if(!confirm('Faturar sem emitir nota pelo EcomBalance (a nota foi ou será emitida em outro sistema)? Os títulos a receber serão gerados.'))return;const ref=prompt('Número da nota emitida em outro sistema (opcional):')||null;v.status='faturado';v.nfe_ref=ref;await up('vendas_diretas',v);await gerarTitulos(v,ref);audit('Venda direta faturada',`nº ${v.numero} · ${money(v.total)} · sem nota pelo EcomBalance`);closeModal();await carregar();toast('Venda faturada e títulos gerados.');return}
+ if(d.vdSemnota){lerModal(v);valida();if(!confirm('Faturar sem emitir nota pelo Jarvis (a nota foi ou será emitida em outro sistema)? Os títulos a receber serão gerados.'))return;const ref=prompt('Número da nota emitida em outro sistema (opcional):')||null;v.status='faturado';v.nfe_ref=ref;await up('vendas_diretas',v);await gerarTitulos(v,ref);audit('Venda direta faturada',`nº ${v.numero} · ${money(v.total)} · sem nota pelo Jarvis`);closeModal();await carregar();toast('Venda faturada e títulos gerados.');return}
  if(d.vdFaturar){lerModal(v);valida();await up('vendas_diretas',v);const s=await fn('fiscal_status',{}),prod=s.config?.ambiente==='producao';
   if(!confirm(prod?`Emitir NF-e COM VALOR FISCAL de ${money(v.total)} para ${v.cliente.nome}?`:`Ambiente de TESTE: emitir nota de homologação (sem valor fiscal) para validar a venda nº ${v.numero}?`))return;b.disabled=true;b.textContent='Emitindo…';
   const r=await fn('fiscal_emitir_venda',{venda:v.id,producao:prod});if(r.status==='erro'){toast('Recusada: '+r.mensagem);b.disabled=false;b.textContent='Faturar e emitir NF-e';return}
@@ -79,7 +79,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-vd],
   if(c.status==='autorizado'){if(prod){v.status='faturado';await up('vendas_diretas',v);await gerarTitulos(v,`NF ${c.numero}/${c.serie}`)}audit('Venda direta — NF-e',`nº ${v.numero} · ${c.status} · ${prod?'produção':'homologação'}`);closeModal();await carregar();toast(prod?`NF-e ${c.numero} autorizada. Títulos gerados.`:`Nota de teste ${c.numero} autorizada — em produção a venda seria faturada.`);if(c.danfe_url)window.open(c.danfe_url,'_blank')}
   else{toast(`${c.status||r.status}: ${c.mensagem||r.mensagem||'consulte em Faturamento › Emissão'}`);closeModal();await carregar()}return}
  }catch(x){toast(x.message||String(x));b.disabled=false}});
-addPage('vendadireta','handshake','Venda direta',vendasView,'Vendas para lojistas e atacado: cliente pelo CNPJ, itens, condições e NF-e emitida pelo EcomBalance.','',()=>{});
+addPage('vendadireta','handshake','Venda direta',vendasView,'Vendas para lojistas e atacado: cliente pelo CNPJ, itens, condições e NF-e emitida pelo Jarvis.','',()=>{});
 addPage('receber','coins','Contas a receber',receberView,'Títulos de vendas diretas e outros créditos, vencidos e a vencer, com baixa pelo extrato.','',()=>{});
 async function baixar(id,valor,data,sinal=1){const r=(st.rec||[]).find(x=>x.id===id);if(!r)return;r.valor_recebido=Math.max(0,Math.round((Number(r.valor_recebido||0)+sinal*valor)*100)/100);r.recebido_em=sinal>0?data:(r.valor_recebido?r.recebido_em:null);r.status=r.valor_recebido>=Number(r.valor)-0.009?'recebido':r.valor_recebido>0?'parcial':'aberto';await up('recebiveis',r)}
 window.VendaDireta={carregar,titulos:()=>st.rec||[],vendas:()=>st.vendas||[],baixar};

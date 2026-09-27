@@ -1,5 +1,5 @@
 'use strict';
-// Contabilidade automática (partidas dobradas) gerada a partir do que já existe no EcomBalance:
+// Contabilidade automática (partidas dobradas) gerada a partir do que já existe no Jarvis:
 // vendas, tarifas e fretes (pedidos), custo das mercadorias vendidas (itens × custo), notas e títulos
 // (competência), extrato bancário (caixa), aplicações e transferências. Saídas: diário, razão, balancete,
 // DRE e balanço — por competência — com exportação para o escritório contábil.
@@ -229,11 +229,11 @@ function conferencia(){const meses=[...new Set(db.orders.map(o=>o.date.slice(0,7
   <tr class="n3"><td>Diferença</td>${cols.map(c=>{if(!c.e)return '<td></td>';const d=c.a[k]-c.e[k],rel=Math.abs(c.e[k])>1?Math.abs(d/c.e[k]):0;return `<td class="num"><span class="${rel>0.1?'red':rel>0.03?'gold':'green'}">${money(d)}</span>${Math.abs(c.e[k])>1?`<br><span class="caption">${(d/c.e[k]*100).toFixed(1).replace('.',',')}%</span>`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>`}
 function view(){const abas=[['balancete','Balancete'],['dre','DRE'],['balanco','Balanço'],['conferencia','Conferência com o escritório'],['diario','Diário'],['plano','Plano de contas']];
  const {L}=diario();
- return `<div class="notice"><strong>Contabilidade automática.</strong> ${L.length.toLocaleString('pt-BR')} lançamentos em partidas dobradas gerados a partir de vendas, tarifas, CMV, notas, títulos e extrato — sem digitação. É a visão gerencial do EcomBalance; a escrituração oficial continua com o escritório (exporte o diário para ele).</div>
+ return `<div class="notice"><strong>Contabilidade automática.</strong> ${L.length.toLocaleString('pt-BR')} lançamentos em partidas dobradas gerados a partir de vendas, tarifas, CMV, notas, títulos e extrato — sem digitação. É a visão gerencial do Jarvis; a escrituração oficial continua com o escritório (exporte o diário para ele).</div>
  <div class="crmbar"><div class="segtabs">${abas.map(([k,t])=>`<button class="${ui.aba===k?'active':''}" data-ct-aba="${k}">${t}</button>`).join('')}</div><label class="check-l" style="margin:0"><input type="checkbox" class="check" id="ctAcum" ${ui.acumulado?'checked':''}> Acumulado no ano</label></div>
  ${ui.aba==='balancete'?balancete():ui.aba==='dre'?dre():ui.aba==='balanco'?balanco():ui.aba==='conferencia'?conferencia():ui.aba==='diario'?diarioView():planoView()}`}
 function planoView(){const {plano}=diario(),inv={};for(const [k,c] of Object.entries(CAT))(inv[c]=inv[c]||[]).push(k);
- return `<div class="tablebox"><div class="tabletop"><div><h2>Plano de contas</h2><p class="caption">Estruturado para e-commerce. As categorias do financeiro caem nas contas indicadas.</p></div></div><div class="tablewrap"><table><thead><tr><th>Código</th><th>Conta</th><th>Categorias do EcomBalance</th></tr></thead><tbody>
+ return `<div class="tablebox"><div class="tabletop"><div><h2>Plano de contas</h2><p class="caption">Estruturado para e-commerce. As categorias do financeiro caem nas contas indicadas.</p></div></div><div class="tablewrap"><table><thead><tr><th>Código</th><th>Conta</th><th>Categorias do Jarvis</th></tr></thead><tbody>
  ${[...plano.values()].sort((a,b)=>a.c.localeCompare(b.c,undefined,{numeric:true})).map(x=>`<tr class="${x.c.split('.').length<=2?'ctbgrupo':''}"><td class="mono">${x.c}</td><td>${esc(x.n)}</td><td class="caption">${esc((inv[x.c]||[]).join(', '))}</td></tr>`).join('')}</tbody></table></div></div>`}
 function csv(tipo){const {ini,fim:f}=periodo();let cab,linhas;
  if(tipo==='diario'){const {L,plano}=diario();cab=['data','lote','historico','conta','nome_conta','debito','credito'];linhas=[];let n=0;for(const e of L){if(e.d<ini||e.d>f)continue;n++;for(const [c,v] of e.l)linhas.push([e.d,n,e.hist,c,plano.get(c)?.n||'',v>0?v.toFixed(2).replace('.',','):'',v<0?(-v).toFixed(2).replace('.',','):''])}}

@@ -49,7 +49,7 @@ export async function lancarEstoqueBling(db: SupabaseClient, ws: string, d: any)
   const j = await b("POST", "/estoques", {
     produto: { id: Number(d.produto) }, deposito: { id: deposito }, operacao: op, quantidade: qtd,
     ...(custo !== undefined && !isNaN(custo) ? { custo, preco: custo } : {}),
-    observacoes: String(d.observacao ?? "").slice(0, 200) || `Lançado pelo EcomBalance (${d.quem ?? ""})`,
+    observacoes: String(d.observacao ?? "").slice(0, 200) || `Lançado pelo Jarvis (${d.quem ?? ""})`,
   });
   // Saldo atualizado direto do Bling.
   const p = await b("GET", `/produtos/${Number(d.produto)}`).catch(() => null);

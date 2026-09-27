@@ -1,10 +1,10 @@
 'use strict';
-// Obrigações acessórias e guias do mês: agenda com prazo, o que o EcomBalance já tem calculado para cada uma,
+// Obrigações acessórias e guias do mês: agenda com prazo, o que o Jarvis já tem calculado para cada uma,
 // marcação de entregue/pago (quem e quando) e pacote do mês para a contabilidade. A lista e os prazos são uma
 // SUGESTÃO para empresa do Lucro Presumido, comércio, em SC — a contabilidade confirma e ajusta aqui mesmo.
 (()=>{
 const ui={ed:false};
-// [id, nome, o que é, periodicidade, regra de prazo, responsável padrão, dados do EcomBalance]
+// [id, nome, o que é, periodicidade, regra de prazo, responsável padrão, dados do Jarvis]
 // regra: {dia:N,m:meses depois} | {util:N,m} (N-ésimo dia útil) | {ultimoUtil:true,m} | {texto}
 const PADRAO=[
  ['icms','ICMS próprio · DARE-SC','Imposto estadual das vendas internas e interestaduais, menos os créditos das compras.','mensal',{dia:10,m:1},'Financeiro (paga) / Escoben (apura)','icms'],
@@ -45,7 +45,7 @@ function view(m){const l=lista(),ent=cfg().entregas||{},h=new Date().toLocaleDat
  return `<div class="notice">Lista e prazos sugeridos para <strong>Lucro Presumido · comércio · SC</strong>. A contabilidade confirma, ajusta prazos e responsáveis em <em>Editar agenda</em>. Os valores vêm da contabilidade automática da competência.</div>
  <div class="tablebox"><div class="tabletop"><div><h2>Obrigações e guias · competência ${m.slice(5)}/${m.slice(0,4)}</h2><p class="caption">${linhas.length} item(ns) · ${pend.length} pendente(s)${atras.length?` · <span class="red">${atras.length} com prazo vencido</span>`:''}</p></div>
   <div class="row"><button class="small" data-ob="pacote">${icon('download')} Pacote do mês (CSV)</button><button class="small quiet" data-ob="editar">${icon('filter')} ${ui.ed?'Fechar edição':'Editar agenda'}</button></div></div>
- <div class="tablewrap"><table><thead><tr><th>Obrigação</th><th>Prazo</th><th>Responsável</th><th>O que o EcomBalance já tem</th><th>Situação</th></tr></thead><tbody>
+ <div class="tablewrap"><table><thead><tr><th>Obrigação</th><th>Prazo</th><th>Responsável</th><th>O que o Jarvis já tem</th><th>Situação</th></tr></thead><tbody>
  ${linhas.map(({o,p,e})=>`<tr><td><strong>${esc(o.n)}</strong><br><small class="caption">${esc(o.d)}</small></td><td>${ui.ed?regraEdit(o):`<span class="${!e&&p.d&&p.d<h?'red':''}">${esc(p.txt)}</span>`}</td><td>${ui.ed?`<input data-ob-resp="${o.id}" value="${esc(o.resp)}" style="width:170px">`:esc(o.resp)}</td><td class="caption">${esc(dado(o,m))||'—'}</td>
   <td>${e?`<span class="badge ok">entregue</span><br><small class="caption">${esc(e.por)} · ${new Date(e.em).toLocaleDateString('pt-BR')}</small> <button class="small quiet" data-ob="desfaz" data-id="${o.id}">desfazer</button>`:`<button class="small" data-ob="feito" data-id="${o.id}">${icon('check')} Marcar entregue</button>`}</td></tr>`).join('')}</tbody></table></div>
  ${ui.ed?`<div class="tabletop"><span class="caption">Prazos: dia do mês seguinte, N-ésimo dia útil, último dia útil ou texto livre. Ocultar remove a obrigação da agenda.</span><button class="small primary" data-ob="salvar">${icon('check')} Salvar agenda</button></div>`:''}</div>`}

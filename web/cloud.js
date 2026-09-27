@@ -1,6 +1,6 @@
 'use strict';
 // Modo nuvem (Supabase): login, carregamento do workspace e gravação incremental.
-// Sem config.js preenchido, o EcomBalance continua no modo local (dados neste navegador).
+// Sem config.js preenchido, o Jarvis continua no modo local (dados neste navegador).
 (()=>{
 const cfg=window.CONCILIA_CONFIG||{};
 const Cloud=window.Cloud={workspaces:[],enabled:!!(cfg.supabaseUrl&&cfg.supabaseAnonKey&&window.supabase),client:null,session:null,ws:null,wsName:'',role:'',state:'idle',error:'',localBackup:null};
@@ -132,7 +132,7 @@ Cloud.paintStatus=paintStatus;
 
 // ───────── Tela de acesso ─────────
 function loginView(msg=''){window.Assistant?.sync();
- $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="authhead"><img class="authlogo" src="brand/comprastore-logo.png" alt="Compra Store"><div class="authname">EcomBalance</div><div class="authslogan">Do pedido ao balancete, sem perder um centavo.</div></div>
+ $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="authhead"><img class="authlogo" src="brand/comprastore-logo.png" alt="Compra Store"><div class="authname">Jarvis</div><div class="authslogan">Você vende. O Jarvis cuida do resto.</div></div>
  <h1 style="font-size:24px">Entre na sua operação</h1><p>Seus dados ficam protegidos na nuvem e sincronizam entre computadores. Primeiro acesso? Informe e-mail e senha e clique em <strong>Criar conta</strong>: o administrador recebe o pedido e libera.</p>
  <form id="authForm" autocomplete="on"><div id="authNomeBox" hidden><label for="authNome">Seu nome</label><input id="authNome" autocomplete="name" style="width:100%" placeholder="Nome e sobrenome"></div><label for="authEmail">E-mail</label><input id="authEmail" type="email" required autocomplete="email" style="width:100%">
  <label for="authPass">Senha</label><input id="authPass" type="password" minlength="8" autocomplete="current-password" style="width:100%" placeholder="Mínimo de 8 caracteres">
@@ -152,7 +152,7 @@ function loginView(msg=''){window.Assistant?.sync();
 
 // Quem criou a conta e ainda não foi liberado pelo administrador.
 async function aguardandoView(session){const {data:req}=await sb.from('access_requests').select('status,created_at,decided_at').eq('user_id',session.user.id).order('created_at',{ascending:false}).limit(1);const r=req?.[0];const recusado=r?.status==='recusado';
- $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="brand" style="padding:0;margin-bottom:22px"><span class="mark">${icon('marca')}</span><div>EcomBalance<small>CONCILIAÇÃO E RESULTADO</small></div></div>
+ $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="brand" style="padding:0;margin-bottom:22px"><span class="mark">${icon('marca')}</span><div>Jarvis<small>CONCILIAÇÃO E RESULTADO</small></div></div>
  <h1 style="font-size:23px">${recusado?'Acesso não liberado':'Aguardando liberação'}</h1><p>${recusado?'O administrador não liberou o acesso para':'Sua conta foi criada e o pedido de acesso foi enviado ao administrador.'} <strong>${esc(session.user.email)}</strong>${recusado?'. Se foi engano, fale com ele.':'. Assim que ele liberar, é só entrar de novo (ou clicar em Verificar).'}</p>
  ${r&&!recusado?`<p class="caption" style="margin-top:10px">Pedido feito em ${new Date(r.created_at).toLocaleString('pt-BR')}.</p>`:''}
  <div class="row wrap" style="margin-top:20px">${recusado?'':'<button class="primary" id="accCheck">Verificar agora</button>'}<button class="quiet" id="accOut">Sair</button></div></div></div>`;
@@ -160,7 +160,7 @@ async function aguardandoView(session){const {data:req}=await sb.from('access_re
 
 // Verificação em duas etapas: com autenticador cadastrado, os dados só abrem depois do código (o banco exige aal2).
 function pedirCodigo(session){return new Promise(res=>{
- $('#app').innerHTML=`<div class="auth"><div class="authcard"><h2>Verificação em duas etapas</h2><p class="caption">Abra o app autenticador (Google Authenticator, Microsoft Authenticator, 1Password…) e digite o código de 6 dígitos do EcomBalance.</p>
+ $('#app').innerHTML=`<div class="auth"><div class="authcard"><h2>Verificação em duas etapas</h2><p class="caption">Abra o app autenticador (Google Authenticator, Microsoft Authenticator, 1Password…) e digite o código de 6 dígitos do Jarvis.</p>
   <label for="mfaCod">Código</label><input id="mfaCod" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="width:100%;font-size:22px;letter-spacing:6px;text-align:center" autofocus>
   <p class="caption red" id="mfaErro"></p><div class="row" style="margin-top:12px"><button class="primary" id="mfaOk">Entrar</button><button class="quiet" id="mfaSair">Sair</button></div></div></div>`;
  const ir=async()=>{const code=$('#mfaCod').value.replace(/D/g,'');if(code.length!==6){$('#mfaErro').textContent='Digite os 6 dígitos.';return}
