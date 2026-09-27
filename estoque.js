@@ -2,7 +2,7 @@
 // Estoque pensado para e-commerce: posição com cobertura em dias (pelo ritmo real de vendas de cada canal),
 // ruptura, excesso e parado, curva ABC, sugestão de compras por fornecedor e ficha do produto com kardex
 // (entradas pelas notas, saídas pelas vendas, ajustes). Saldo e custo vêm do Bling enquanto ele for o
-// sistema de estoque; parâmetros de reposição são da equipe e ficam no EcomBalance.
+// sistema de estoque; parâmetros de reposição são da equipe e ficam no Jarvis.
 (()=>{
 Object.assign(paths,{box:paths.box||'M3 7l9-4 9 4v10l-9 4-9-4z M3 7l9 4 9-4 M12 11v10',cart:'M3 4h2l2.4 11h11L21 7H6.2 M9 20h.01 M18 20h.01',
  truck:'M3 6h11v10H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'});

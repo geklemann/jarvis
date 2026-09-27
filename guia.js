@@ -1,5 +1,5 @@
 'use strict';
-// Guia do EcomBalance: "para que serve" de cada tela (botão ? no título) e o Mapa do ERP com todas as telas.
+// Guia do Jarvis: "para que serve" de cada tela (botão ? no título) e o Mapa do ERP com todas as telas.
 (()=>{
 // id: [para que serve, quando usar, o que fazer nela]
 const G={
@@ -67,7 +67,7 @@ function mapaView(){const q=normalized(st.q),M=(window.ERP?.MODS||[]).filter(m=>
  <div class="mapa">${[...M,extra].map(m=>{const ids=m.grupos.flatMap(([,l])=>l).filter(id=>navItems.some(n=>n[0]===id)&&(!q||normalized(nome(id)+' '+(G[id]||[]).join(' ')).includes(q)));if(!ids.length)return '';
   return `<section class="mapamod"><h2>${icon(m.ic)} ${m.t}</h2>${ids.map(id=>`<button class="mapaitem" data-nav="${id}"><strong>${nome(id)}</strong><small>${(G[id]||['—'])[0]}</small></button>`).join('')}</section>`}).join('')||'<div class="empty">Nada encontrado.</div>'}</div>`}
 function bindMapa(){const i=$('#mapaQ');if(!i)return;i.oninput=e=>{st.q=e.target.value;const p=e.target.selectionStart;render();const n=$('#mapaQ');n.focus();n.setSelectionRange(p,p)}}
-addPage('mapa','folder','Mapa do ERP',mapaView,'Todas as telas do EcomBalance e para que serve cada uma.','',bindMapa);
+addPage('mapa','folder','Mapa do ERP',mapaView,'Todas as telas do Jarvis e para que serve cada uma.','',bindMapa);
 // Botão ? ao lado do título de cada tela.
 const shell1=shell;shell=function(){const r=shell1.apply(this,arguments);const h=document.querySelector('.pagehead h1');if(h&&G[page]&&!h.querySelector('.guiabtn'))h.insertAdjacentHTML('beforeend',`<button class="guiabtn" data-guia="${page}" aria-label="Para que serve esta tela" title="Para que serve esta tela">?</button>`);return r};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-guia]');if(b){e.stopPropagation();abrir(b.dataset.guia)}},true);

@@ -152,5 +152,5 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-crm-contat
   else if(d.crmCsv==='estados')out=[['uf','regiao','pedidos','itens','clientes','receita'],...Object.values(porUF(rows)).map(s=>[s.uf,REG[s.uf]||'',s.pedidos,s.itens,s.clientes.size,round(s.receita)])];
   else if(d.crmCsv==='cidades'){const c={};for(const o of rows){if(!cidadeDe(o))continue;const k=cidadeDe(o)+'|'+ufDe(o);const x=c[k]||(c[k]=[cidadeDe(o),ufDe(o),0,0]);x[2]++;x[3]=round(x[3]+o.gross)}out=[['cidade','uf','pedidos','receita'],...Object.values(c)]}
   else{const lista=d.crmCsv==='acao'?clientes().filter(ACOES[ui.acao][2]):clientes();out=[['cliente','documento','apelido','cidade','uf','pedidos','itens','total','ticket','primeira_compra','ultima_compra','proxima_prevista','segmento','rfm','brinquedo_favorito','canal'],...lista.map(c=>[c.nome,c.doc,c.apelido,c.cidade,c.uf,c.n,c.itens,c.total,c.ticket,c.primeira,c.ultima,c.proxima||'',c.seg,c.rfm,c.fav,c.canal])]}
-  download(`EcomBalance_CRM_${d.crmCsv}.csv`,csv(out))}});
+  download(`Jarvis_CRM_${d.crmCsv}.csv`,csv(out))}});
 })();

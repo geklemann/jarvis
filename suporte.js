@@ -23,7 +23,7 @@ function view(){if(!window.Cloud?.ws)return '<div class="empty">Entre no portal 
  const n=dono()?pendentesDono().length:respostasNovas().length;
  const head=`<div class="crmbar"><div class="segtabs">${abas.map(([k,t])=>`<button class="${st.aba===k?'active':''}" data-sp-aba="${k}">${t}${k===(dono()?'todos':'meus')&&n?` <small>${n}</small>`:''}</button>`).join('')}</div></div>`;
  if(st.aba==='manual'){if(!st.manualUrl&&!st.manualErro)carregarManual();
-  return head+(st.manualErro?`<div class="notice warnbox">${esc(st.manualErro)}</div>`:st.manualUrl?`<div class="spmanual"><iframe src="${st.manualUrl}" title="Manual do EcomBalance"></iframe></div><p class="caption">Dica: cada tela também tem o botão ? no título, e o Mapa do ERP lista todas as telas.</p>`:'<div class="empty">Carregando o manual…</div>')}
+  return head+(st.manualErro?`<div class="notice warnbox">${esc(st.manualErro)}</div>`:st.manualUrl?`<div class="spmanual"><iframe src="${st.manualUrl}" title="Manual do Jarvis"></iframe></div><p class="caption">Dica: cada tela também tem o botão ? no título, e o Mapa do ERP lista todas as telas.</p>`:'<div class="empty">Carregando o manual…</div>')}
  if(st.aba==='abrir')return head+`<section class="card spform"><h2>Abrir um chamado</h2><p class="caption">Descreva o que aconteceu ou o que você precisa. O chamado vai para ${dono()?'você (dono do sistema)':'o responsável pelo sistema'}, e a resposta aparece em Meus chamados.</p>
   <div class="grid two"><div class="field"><label for="spTipo">Tipo</label><select id="spTipo">${Object.entries(TIPOS).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select></div>
   <div class="field"><label for="spUrg">Urgência</label><select id="spUrg">${Object.entries(URG).map(([k,[t]])=>`<option value="${k}" ${k==='normal'?'selected':''}>${t}</option>`).join('')}</select></div></div>
@@ -63,7 +63,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-sp],
   Object.assign(c,upd);closeModal();toast(souDono?'Resposta enviada.':'Mensagem enviada.');render();return}});
 // Chegada de chamados novos (dono) e de respostas (autor): contador no menu, aviso no sino e notificação do navegador.
 let vistos=null;setInterval(async()=>{if(!window.Cloud?.ws||!Cloud.client)return;await carregar();const ids=new Set((dono()?pendentesDono():respostasNovas()).map(c=>c.id));
- if(vistos){const novos=[...ids].filter(x=>!vistos.has(x));if(novos.length){const txt=dono()?`${novos.length} chamado(s) de suporte novo(s)`:'Seu chamado de suporte foi respondido';toast(txt);try{if(Notification?.permission==='granted')new Notification('EcomBalance · suporte',{body:txt})}catch{}}}vistos=ids},120000);
+ if(vistos){const novos=[...ids].filter(x=>!vistos.has(x));if(novos.length){const txt=dono()?`${novos.length} chamado(s) de suporte novo(s)`:'Seu chamado de suporte foi respondido';toast(txt);try{if(Notification?.permission==='granted')new Notification('Jarvis · suporte',{body:txt})}catch{}}}vistos=ids},120000);
 setTimeout(()=>{if(window.Cloud?.ws)carregar()},4000);
 // Guarda a tela de onde a pessoa veio, para preencher o campo "Tela" do chamado.
 const nav0=navigate;navigate=function(p){if(p==='suporte'&&page!=='suporte'){const n=navItems.find(x=>x[0]===page);st.origem=n?n[2]:page}return nav0.apply(this,arguments)};

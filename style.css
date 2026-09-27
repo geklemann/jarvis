@@ -128,7 +128,7 @@ table.dre tr.conta td:first-child{padding-left:30px}
 .complogo{background:none;padding:0;margin:0 6px 18px;justify-content:flex-start}.complogo img{height:64px;filter:drop-shadow(0 2px 10px #0006)}.complogo.login img{height:72px}
 body.light .complogo img{filter:none}
 
-/* ═════════ EcomBalance ERP: estrutura, tipografia e espaçamento ═════════ */
+/* ═════════ Jarvis ERP: estrutura, tipografia e espaçamento ═════════ */
 body{font-family:Manrope,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 .num,.mono,.kpiv,.bankval{font-variant-numeric:tabular-nums}.mono{font-family:'JetBrains Mono',Consolas,monospace;font-size:13px}
 .erp{display:grid;grid-template-columns:78px 252px minmax(0,1fr);min-height:100vh}
