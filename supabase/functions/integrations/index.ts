@@ -7,6 +7,7 @@ import { persist, provider, providers, validSecret } from "../_shared/store.ts";
 import { importShopeeIncome } from "../_shared/shopee_central.ts";
 import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml.ts";
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
+import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
@@ -327,6 +328,13 @@ Deno.serve(handler(async (req) => {
       const r = await responderML(db, ws, id, String(body.texto ?? ""));
       await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), action: "Resposta enviada ao cliente", detail: `${id} · ${String(body.texto ?? "").slice(0, 300)}`, actor: user.email ?? user.id });
       return json(r);
+    }
+    // Conta a pagar por foto, print, PDF ou voz: só lê e devolve os campos; quem salva é a pessoa, na tela.
+    case "ler_conta": {
+      if (!Deno.env.get("ANTHROPIC_API_KEY")) throw new HttpError(400, "A chave da IA não está configurada no servidor.");
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro", "contador"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não permite lançar contas a pagar.");
+      return json(await lerContaPagar(db, ws, user.id, body.dados ?? {}));
     }
     case "atendimento_ia": {
       if (!Deno.env.get("ANTHROPIC_API_KEY")) throw new HttpError(400, "A chave da IA não está configurada no servidor.");

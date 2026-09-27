@@ -253,6 +253,7 @@ function lancamentoView(){const forns=[...new Set([...C('forn').map(c=>c.dados.f
  const sel=(k,ops,ph='—')=>`<select data-lan="${k}"><option value="">${ph}</option>${ops.map(o=>`<option ${lan[k]===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
  return `<div class="toolbar"><button class="primary" data-lan-salvar="1">${ico('check',16)} Salvar lançamento</button><button data-lan-salvar="novo">Salvar e novo</button><button class="quiet" data-lan-limpar="1">Limpar</button><span style="flex:1"></span><button class="quiet" data-nav="pagar">${ico('wallet',16)} Contas a pagar</button></div>
  <div class="formhead"><div class="formicon">${ico('wallet',26)}</div><div><div class="crumb">Contas a pagar · novo lançamento</div><h2>Lançamento de título a pagar</h2></div></div>
+ ${window.ContaIA?.card()||''}
  <div class="lancgrid"><div class="formcard">
   <fieldset><legend>Fornecedor e documento</legend><div class="formgrid">
    <div class="field" style="grid-column:span 2"><label for="lanForn">Fornecedor <span class="red">*</span></label><input id="lanForn" data-lan="fornecedor" list="lanForns" value="${esc(lan.fornecedor)}" placeholder="Digite ou escolha um fornecedor cadastrado"><datalist id="lanForns">${forns.map(f=>`<option value="${esc(f)}">`).join('')}</datalist></div>
@@ -278,12 +279,12 @@ addPage('lancamento','plus','Novo lançamento',lancamentoView,'Títulos a pagar 
  $$('[data-lan]').forEach(el=>{const k=el.dataset.lan;el.onchange=()=>{lan[k]=el.type==='checkbox'?el.checked:el.value;if(['valor','parcelas','intervalo','primeiro','recorrente'].includes(k))lan.grade=null;
   if(k==='fornecedor'){const c=C('forn').find(c=>[c.dados.fantasia,c.dados.razao].includes(lan.fornecedor));if(c){lan.doc=c.dados.doc||lan.doc;lan.categoria=lan.categoria||c.dados.categoria||'';lan.centro=lan.centro||c.dados.centro||'';lan.forma=lan.forma||c.dados.forma||'';if(c.dados.prazo){lan.primeiro=addDias(lan.emissao||hoje(),Number(c.dados.prazo));lan.grade=null}}}render()}});
  $$('[data-lan-venc]').forEach(el=>el.onchange=()=>{lan.grade[+el.dataset.lanVenc].venc=el.value;render()});$$('[data-lan-val]').forEach(el=>el.onchange=()=>{lan.grade[+el.dataset.lanVal].valor=round(TableImport.num(el.value));render()})});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-lan-salvar],[data-lan-limpar]');if(!b)return;if(b.dataset.lanLimpar){lanReset();render();return}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-lan-salvar],[data-lan-limpar]');if(!b)return;if(b.dataset.lanLimpar){lanReset();window.ContaIA?.limpar();render();return}
  if(!lan.fornecedor.trim())return toast('Informe o fornecedor.');if(!lan.categoria)return toast('Escolha a categoria.');const grade=gradeParcelas();if(!lan.valor||!grade.length||grade.some(g=>!(g.valor>0)||!g.venc))return toast('Confira valor e vencimentos.');
  const grupo=uid(),n=grade.length;db.payables=db.payables||[];
  grade.forEach((g,i)=>db.payables.push({id:`MAN-${grupo}-${i+1}`,origem:lan.recorrente?'recorrente':'manual',fornecedor:lan.fornecedor.trim(),fornecedorDoc:lan.doc,descricao:`${lan.tipoDoc}${lan.numero?' '+lan.numero:''} · ${lan.fornecedor.trim()}`,documento:lan.numero,parcela:i+1,parcelas:n,emissao:lan.emissao,vencimento:g.venc,valor:g.valor,juros:0,desconto:0,valorPago:0,status:'aberto',categoria:lan.categoria,centroCusto:lan.centro,conta:lan.conta,observacao:[lan.forma?`Forma: ${lan.forma}`:'',lan.competencia?`Competência: ${lan.competencia}`:'',lan.obs].filter(Boolean).join(' · '),createdBy:window.Cloud?.session?.user?.email||'local'}));
  audit('Título a pagar lançado',`${lan.fornecedor} · ${n}× · total ${money(round(grade.reduce((a,g)=>a+g.valor,0)))} · 1º venc. ${dataBR(grade[0].venc)}`);toast(`${n} título(s) lançado(s).`);
- if(b.dataset.lanSalvar==='novo'){lanReset();render()}else{lanReset();navigate('pagar')}});
+ window.ContaIA?.limpar();if(b.dataset.lanSalvar==='novo'){lanReset();render()}else{lanReset();navigate('pagar')}});
 
 // ═════════════════ Relatórios financeiros ═════════════════
 const rel={id:'aberto',de:month+'-01',ate:new Date(new Date(month+'-15T12:00:00').getFullYear(),new Date(month+'-15T12:00:00').getMonth()+1,0).toLocaleDateString('sv-SE'),conta:'',regime:'caixa'};
@@ -320,7 +321,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-rel],[data
 addPage('central','home','Central do dia',centralView,'O que entra, o que sai e o que precisa da sua atenção hoje.','',bindGrafico);
 // Abre na Central do dia quando não há tela no endereço.
 if(!location.hash&&page==='dashboard')page='central';
-window.ERP={busca,projecao,cadUI,centralView,avisos,contagens,graficoCaixa,bindGrafico,MODS,saudacao,nomeUsuario,abertos,saldoT,modDe,resultados};
+window.ERP={lan,catNomes,fornNomes:()=>[...new Set([...C('forn').map(c=>c.dados.fantasia||c.dados.razao),...P().map(t=>t.fornecedor).filter(Boolean)])].filter(Boolean).sort(),busca,projecao,cadUI,centralView,avisos,contagens,graficoCaixa,bindGrafico,MODS,saudacao,nomeUsuario,abertos,saldoT,modDe,resultados};
 })();
 
 // ── CNPJá: busca na ficha e complemento em lote (a consulta roda no servidor, com a chave guardada lá) ──
