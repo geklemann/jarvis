@@ -119,5 +119,5 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-pf-s
  if(d.pfLerbling){b.disabled=true;b.textContent='Lendo as notas do Bling…';try{ui.regras=await fn('fiscal_regras_bling',{});toast(`${ui.regras.notas_lidas} nota(s) lida(s).`)}catch(x){toast(x.message)}render();return}
  if(d.pfReceita){b.disabled=true;try{const r=await fn('cnpj',{cnpj:cfg().cnpj});salvarCfg({razao:r.razao,ie:String(r.ie||'').replace(/\D/g,''),municipio:r.cidade,uf:r.uf,cnae:r.atividade},'Dados da Receita preenchidos.')}catch(x){toast(x.message)}render();return}});
 document.addEventListener('change',e=>{const s=e.target.closest('[data-sim]');if(s){ui.sim[s.dataset.sim]=s.dataset.sim==='uf'||s.dataset.sim==='doc'?s.value:Number(String(s.value).replace(',','.'))||0;render()}});
-addPage('parametros','sliders','Parametrização fiscal e contábil',view,'Regras fiscais e contábeis sugeridas, simulador de nota e aprovação da contabilidade.','',()=>{});
+addPage('parametros','sliders','Regras fiscais',view,'Regras fiscais e contábeis sugeridas, simulador de nota e aprovação da contabilidade.','',()=>{});
 })();
