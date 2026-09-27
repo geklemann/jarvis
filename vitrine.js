@@ -19,22 +19,37 @@ const TOYS={
  cavalinho:'<path d="M14 50c10 4 26 4 36 0M20 46l4-14h16l4 14M24 32l-4-12 8 4h8l6 6"/><circle cx="38" cy="22" r="1.5"/>'};
 const CORES=['#5fe0cc','#ff9a7a','#8fbfff','#f5cf7a','#c3b0ff','#7ef0a8'];
 
-// Recorte: apaga o fundo branco a partir das bordas (preenchimento por inundação), suaviza a borda, corta no
-// contorno do produto e mede a cor dominante (vira o brilho em volta dele).
+// Recorte: tira o fundo branco do estúdio. 1) inunda a partir das bordas tudo que é quase branco; 2) apaga também
+// os "buracos" brancos fechados (entre rodas, alças, vãos) quando são branco puro de fundo; 3) nas bordas do
+// produto, transforma o branco em transparência ("cor para alfa"), sem halo; 4) corta no contorno e mede a cor
+// dominante (vira o brilho em volta do produto).
 function recortar(src){return new Promise(ok=>{const img=new Image();img.crossOrigin='anonymous';img.decoding='async';
- img.onload=()=>{try{const S=300,k=S/Math.max(img.width,img.height),w=Math.max(1,Math.round(img.width*k)),h=Math.max(1,Math.round(img.height*k));
-  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0,w,h);
-  const d=g.getImageData(0,0,w,h),p=d.data,fundo=new Uint8Array(w*h),fila=new Int32Array(w*h);let ini=0,fim=0;
-  const claro=i=>{const r=p[i*4],gg=p[i*4+1],b=p[i*4+2],mx=Math.max(r,gg,b),mn=Math.min(r,gg,b);return mx>226&&mx-mn<26};
-  const semear=i=>{if(!fundo[i]&&claro(i)){fundo[i]=1;fila[fim++]=i}};
+ img.onload=()=>{try{const S=440,k=S/Math.max(img.width,img.height),w=Math.max(1,Math.round(img.width*k)),h=Math.max(1,Math.round(img.height*k)),N=w*h;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(img,0,0,w,h);
+  const d=g.getImageData(0,0,w,h),p=d.data,fundo=new Uint8Array(N),fila=new Int32Array(N);
+  const mx=i=>Math.max(p[i*4],p[i*4+1],p[i*4+2]),mn=i=>Math.min(p[i*4],p[i*4+1],p[i*4+2]);
+  const quaseBranco=i=>mn(i)>214&&mx(i)-mn(i)<30;
+  let ini=0,fim=0;const semear=i=>{if(!fundo[i]&&quaseBranco(i)){fundo[i]=1;fila[fim++]=i}};
   for(let x=0;x<w;x++){semear(x);semear((h-1)*w+x)}for(let y=0;y<h;y++){semear(y*w);semear(y*w+w-1)}
-  while(ini<fim){const i=fila[ini++],x=i%w,y=(i/w)|0;if(x>0)semear(i-1);if(x<w-1)semear(i+1);if(y>0)semear(i-w);if(y<h-1)semear(i+w)}
+  const inundar=marca=>{while(ini<fim){const i=fila[ini++],x=i%w;if(x>0)marca(i-1);if(x<w-1)marca(i+1);if(i>=w)marca(i-w);if(i<N-w)marca(i+w)}};
+  inundar(semear);
+  // Buracos brancos fechados: componentes de branco puro que não tocam a borda.
+  const visto=new Uint8Array(N),puro=i=>mn(i)>242&&mx(i)-mn(i)<14;
+  for(let s=0;s<N;s++){if(fundo[s]||visto[s]||!puro(s))continue;ini=0;fim=0;visto[s]=1;fila[fim++]=s;let soma=0;
+   const m=i=>{if(!visto[i]&&!fundo[i]&&puro(i)){visto[i]=1;fila[fim++]=i}};
+   while(ini<fim){const i=fila[ini++],x=i%w;soma+=mn(i);if(x>0)m(i-1);if(x<w-1)m(i+1);if(i>=w)m(i-w);if(i<N-w)m(i+w)}
+   if(fim>N*.0015&&soma/fim>247)for(let t=0;t<fim;t++)fundo[fila[t]]=1}
+  // Distância (até 3 px) de cada pixel do produto ao fundo, para suavizar só a faixa da borda.
+  const dist=new Uint8Array(N).fill(9);for(let i=0;i<N;i++)if(fundo[i])dist[i]=0;
+  for(let r=1;r<=3;r++)for(let i=0;i<N;i++){if(dist[i]!==9)continue;const x=i%w;if((x>0&&dist[i-1]===r-1)||(x<w-1&&dist[i+1]===r-1)||(i>=w&&dist[i-w]===r-1)||(i<N-w&&dist[i+w]===r-1))dist[i]=r}
   let x0=w,y0=h,x1=0,y1=0,n=0,R=0,G=0,B=0,cn=0;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(fundo[i]){p[i*4+3]=0;continue}n++;
-   if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
-   const borda=(x>0&&fundo[i-1])||(x<w-1&&fundo[i+1])||(y>0&&fundo[i-w])||(y<h-1&&fundo[i+w]);if(borda)p[i*4+3]=120;
-   const r=p[i*4],gg=p[i*4+1],b=p[i*4+2],sat=Math.max(r,gg,b)-Math.min(r,gg,b);if(sat>60){R+=r;G+=gg;B+=b;cn++}}
-  if(n<w*h*.04)return ok(null);
+  for(let i=0;i<N;i++){const o=i*4;if(fundo[i]){p[o+3]=0;continue}
+   if(dist[i]<=3){// cor para alfa: quanto mais perto do branco, mais transparente; desfaz a mistura com o branco.
+    const a=Math.max(0,Math.min(1,(255-mn(i))/255*2.2+(dist[i]-1)*.25));if(a<.04){p[o+3]=0;fundo[i]=1;continue}
+    for(let q=0;q<3;q++)p[o+q]=Math.max(0,Math.min(255,(p[o+q]-255*(1-a))/a));p[o+3]=Math.round(a*255)}
+   n++;const x=i%w,y=(i/w)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+   const sat=mx(i)-mn(i);if(sat>60&&p[o+3]>200){R+=p[o];G+=p[o+1];B+=p[o+2];cn++}}
+  if(n<N*.04)return ok(null);
   g.putImageData(d,0,0);const cw=x1-x0+1,ch=y1-y0+1,o=document.createElement('canvas');o.width=cw;o.height=ch;o.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,cw,ch);
   ok({el:o,cor:cn?`rgb(${R/cn|0},${G/cn|0},${B/cn|0})`:'#5fe0cc',ar:cw/ch})}catch{ok(null)}};
  img.onerror=()=>ok(null);img.src=src})}
