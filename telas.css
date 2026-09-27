@@ -273,3 +273,9 @@ td.comfoto::after{content:'';display:block;clear:both}
 }
 @keyframes vtLado{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media (prefers-reduced-motion:reduce){.vt-faixatrack{animation:none}}
+
+/* Menu: título abre a visão geral; a setinha só abre/fecha a lista */
+.mhead .mchev{font-style:normal;margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border-radius:8px;flex:none;opacity:.7}
+.mhead .mchev:hover{background:rgb(var(--ar) / 14%);opacity:1}
+.mhead .mchev .icon{transition:transform .15s}
+.mgroup.open>.mhead .mchev .icon{transform:rotate(90deg)}

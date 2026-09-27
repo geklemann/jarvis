@@ -27,6 +27,8 @@ const MODS=[
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Contabilidade',['contabauto','fechcontab','contabil']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['precos']]]},
  {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
+// Visão geral de cada seção: abre ao clicar no título da seção no menu.
+const VISAO={ven:'dashboard',est:'estoque',fin:'fluxo',crm:'crm',res:'contabauto'};
 const GERAL=['equipe','ai','history','auditoria','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
 const modDe=p=>platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
@@ -54,9 +56,9 @@ shell=function(){{const mp=modDe(page);if(mp&&window.Perfis&&!Perfis.moduloVisiv
  const emp=esc(window.Cloud?.wsName||'Minha empresa');
  $('#app').innerHTML=`<div class="erp">
  <aside class="side"><button class="sidebrand" data-nav="central" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>EcomBalance · ERP</small></span></button>
-  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false).map(m=>{const ids=m.grupos.flatMap(([,l])=>l).filter(id=>navItems.some(n=>n[0]===id)),unico=ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
+  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
    if(unico)return `<button class="mhead ${page===ids[0]?'active':''}" data-nav="${ids[0]}">${ico(m.ic,20)}<span>${m.t}</span></button>`;
-   return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead" data-mtoggle="${m.id}" aria-expanded="${aberto}">${ico(m.ic,20)}<span>${m.t}</span>${ico('chev',15)}</button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
+   return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead ${ov&&page===ov?'active':''}" data-mtoggle="${m.id}" aria-expanded="${aberto}" ${ov?`title="Visão geral de ${m.t}"`:''}>${ico(m.ic,20)}<span>${m.t}</span><i class="mchev" data-mchev="1">${ico('chev',15)}</i></button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
  <main><header><button class="quiet mobilemenu" data-action="menu" aria-label="Abrir navegação">${icon('menu')}</button>
   <button class="searchbox" data-erp="busca">${ico('search',16)}<span>Buscar pedido, nota, fornecedor, título…</span><kbd>Ctrl K</kbd></button>
   <div class="row hdrright" style="margin-left:auto"><button class="primary newbtn" data-erp="novo">${ico('plus',16)} Novo</button><button class="quiet iconbtn" data-erp="avisos" aria-label="Avisos">${ico('bell',19)}${av.length?`<i class="belldot">${av.length}</i>`:''}</button><span class="demo">BASE OPERACIONAL</span><button class="userbtn" data-erp="usuario" aria-label="Menu do usuário"><span class="avatar">GK</span>${contagens().acessos?'<i class="userdot"></i>':''}${ico('chev',14)}</button></div></header>
@@ -114,7 +116,10 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 document.addEventListener('click',e=>{const b=e.target.closest('[data-cad-abrir]');if(!b)return;const [pg,id]=b.dataset.cadAbrir.split(':');closeModal();const u=cadUI(pg);u.modo='ficha';u.id=id;navigate(pg)},true);
 document.addEventListener('click',e=>{if(e.target.closest('#bgRes [data-nav],#bgRes [data-order],#bgRes [data-pg-nota]'))setTimeout(()=>{if(!e.target.closest('[data-order],[data-pg-nota]'))closeModal()},0)});
 // Troca de módulo pela barra: abre a primeira tela do módulo.
-document.addEventListener('click',e=>{const b=e.target.closest('[data-mtoggle]');if(!b)return;e.stopImmediatePropagation();const id=b.dataset.mtoggle,g=b.closest('.mgroup');menuSel=g.classList.contains('open')?'__nenhum':id;shell();$('#view').innerHTML='';render()},true);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mtoggle]');if(!b)return;e.stopImmediatePropagation();const id=b.dataset.mtoggle,g=b.closest('.mgroup'),ov=VISAO[id];
+ // Clique no título: abre a visão geral da seção (e a lista). Clique na setinha: só abre/fecha a lista.
+ if(ov&&!e.target.closest('[data-mchev]')){menuSel=id;navigate(ov);return}
+ menuSel=g.classList.contains('open')?'__nenhum':id;shell();$('#view').innerHTML='';render()},true);
 
 // ═════════════════ Central do dia ═════════════════
 function projecao(dias=30){const h=hoje(),s=window.Tesouraria?.saldos()||{total:0,contas:[]};let saldo=s.total;const serie=[];
