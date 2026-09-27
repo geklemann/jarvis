@@ -6,7 +6,7 @@
 (()=>{
 Object.assign(paths,{box:paths.box||'M3 7l9-4 9 4v10l-9 4-9-4z M3 7l9 4 9-4 M12 11v10',cart:'M3 4h2l2.4 11h11L21 7H6.2 M9 20h.01 M18 20h.01',
  truck:'M3 6h11v10H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'});
-const st={lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'todos',busca:'',abc:'',ordem:'status',pag:0,alvo:45,seguranca:7,prazoPadrao:20};
+const st={modo:(()=>{try{return localStorage.getItem('eb_est_modo')||'galeria'}catch{return 'galeria'}})(),lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'todos',busca:'',abc:'',ordem:'status',pag:0,alvo:45,seguranca:7,prazoPadrao:20};
 try{Object.assign(st,JSON.parse(localStorage.getItem('eb_estoque_param')||'{}'))}catch{}
 const salvarParam=()=>{try{localStorage.setItem('eb_estoque_param',JSON.stringify({alvo:st.alvo,seguranca:st.seguranca,prazoPadrao:st.prazoPadrao}))}catch{}};
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
@@ -17,7 +17,7 @@ const dataBR=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 async function carregar(){if(!window.Cloud?.ws||st.carregando)return;st.carregando=true;
  try{const [p,i]=await Promise.all([Cloud.client.from('produtos').select('*').eq('workspace_id',Cloud.ws).limit(5000),Cloud.client.from('integrations').select('settings').eq('workspace_id',Cloud.ws).eq('provider','bling').maybeSingle()]);
   if(p.error)throw p.error;st.lista=p.data||[];st.info=i.data?.settings?.estoque||null;st.erro='';st.carregado=true;cache=null}catch(e){st.erro=e.message||String(e);st.carregado=true}finally{st.carregando=false}
- if(['estoque','estcompras'].includes(page)&&!document.querySelector('.modalback'))render()}
+ if(['estoque','estcompras','central','dashboard','painel'].includes(page)&&!document.querySelector('.modalback'))render()}
 async function fn(action,body){const r=await Cloud.client.functions.invoke('integrations',{body:{workspace_id:Cloud.ws,action,...body}});if(r.error){let msg=r.error.message;try{msg=(await r.error.context.json()).error||msg}catch{}throw Error(msg)}return r.data}
 
 // ─────────── Vendas por SKU (dos pedidos) e compras (das notas de entrada) ───────────
@@ -60,12 +60,18 @@ function posicaoView(){if(!window.Cloud?.ws)return '<div class="empty">Entre no 
   <div class="searchin">${icon('search')}<input type="search" id="estBusca" placeholder="SKU, produto ou fornecedor…" value="${esc(st.busca)}"></div>
   <select data-est="abc" aria-label="Curva ABC"><option value="">Curva ABC: todas</option>${['A','B','C'].map(x=>`<option ${st.abc===x?'selected':''}>${x}</option>`).join('')}</select>
   <select data-est="ordem" aria-label="Ordenar">${[['status','Ordenar: prioridade'],['cobertura','Menor cobertura'],['valor','Maior valor parado'],['vendas','Mais vendidos'],['nome','Nome']].map(([k,t])=>`<option value="${k}" ${st.ordem===k?'selected':''}>${t}</option>`).join('')}</select>
-  <button class="small" data-est="sync">${icon('refresh')} Atualizar do Bling</button><button class="small quiet" data-est="params">${icon('filter')} Parâmetros</button><button class="small quiet" data-est="csv">${icon('download')} Exportar</button></div>
+  <div class="segtabs estmodo"><button class="${st.modo==='galeria'?'active':''}" data-est-modo="galeria" aria-label="Galeria">${icon('grid')}</button><button class="${st.modo==='lista'?'active':''}" data-est-modo="lista" aria-label="Lista">${icon('menu')}</button></div><button class="small" data-est="sync">${icon('refresh')} Atualizar do Bling</button><button class="small quiet" data-est="params">${icon('filter')} Parâmetros</button><button class="small quiet" data-est="csv">${icon('download')} Exportar</button></div>
  <p class="caption" style="margin:-6px 0 14px">Saldo e custo do Bling${st.info?.fim?` · atualizado ${new Date(st.info.fim).toLocaleString('pt-BR')}`:''} (a cada hora). Ritmo de venda = média dos últimos 30 dias com peso dobrado + 60 dias. Cobertura alvo ${st.alvo} dias, segurança ${st.seguranca} dias, prazo de reposição padrão ${st.prazoPadrao} dias.</p>
  ${st.erro?`<div class="notice warnbox">${esc(st.erro)}</div>`:''}
- <div class="tablebox"><div class="tablewrap"><table class="esttable"><thead><tr><th>Produto</th><th>Situação</th><th class="num">Saldo</th><th class="num">Vendas 30d</th><th>12 semanas</th><th class="num">Ritmo/dia</th><th class="num">Cobertura</th><th class="num">Comprar</th><th class="num">Custo</th><th class="num">Valor</th><th>ABC</th></tr></thead><tbody>
+ ${st.modo==='galeria'?`<div class="estgal">${l.slice(st.pag*POR,st.pag*POR+POR).map(x=>{const [t,tom]=STATUS[x.status],cb=x.cobertura===Infinity?100:Math.min(100,x.cobertura/(st.alvo*1.5)*100);return `<button class="estcard ${x.status}" data-est-ficha="${esc(x.sku)}">
+  <span class="estfoto">${x.p.imagem?`<img src="${esc(x.p.imagem)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('semfoto');this.remove()">`:icon('box')}<span class="badge ${tom}">${t}</span><em class="estabc abc${x.abc}">${x.abc}</em></span>
+  <span class="estinfo"><strong>${esc(x.nome)}</strong><small class="mono">${esc(x.sku)}</small>
+  <span class="estnums"><span><b class="${x.saldo<=0?'red':''}">${nf(x.saldo)}</b><small>em estoque</small></span><span><b>${nf(x.v.q30)}</b><small>vendas 30d</small></span><span><b>${cob(x)}</b><small>cobertura</small></span></span>
+  <span class="estcob" title="Cobertura ${cob(x)} · alvo ${st.alvo} dias"><i style="width:${cb}%"></i></span>
+  <span class="estfoot">${spark(x.v.semanas)}${x.sugerida&&['ruptura','comprar'].includes(x.status)?`<span class="estbuy">comprar ${nf(x.sugerida)}</span>`:`<span class="caption">${money(x.valor)}</span>`}</span></span></button>`}).join('')||'<div class="empty">Nenhum produto neste filtro.</div>'}</div>
+ ${pags>1?`<div class="tabletop"><span class="caption">${l.length} produto(s)</span><div class="row"><button class="small" data-est-pag="-1" ${st.pag?'':'disabled'}>‹</button><span class="caption">página ${st.pag+1} de ${pags}</span><button class="small" data-est-pag="1" ${st.pag<pags-1?'':'disabled'}>›</button></div></div>`:''}`:`<div class="tablebox"><div class="tablewrap"><table class="esttable"><thead><tr><th>Produto</th><th>Situação</th><th class="num">Saldo</th><th class="num">Vendas 30d</th><th>12 semanas</th><th class="num">Ritmo/dia</th><th class="num">Cobertura</th><th class="num">Comprar</th><th class="num">Custo</th><th class="num">Valor</th><th>ABC</th></tr></thead><tbody>
  ${l.slice(st.pag*POR,st.pag*POR+POR).map(x=>{const [t,tom]=STATUS[x.status];return `<tr class="clickrow" data-est-ficha="${esc(x.sku)}"><td><div class="estprod">${x.p.imagem?`<img src="${esc(x.p.imagem)}" alt="" loading="lazy">`:`<span class="estimg">${icon('box')}</span>`}<span><strong>${esc(x.nome)}</strong><br><span class="caption mono">${esc(x.sku)}</span></span></div></td><td><span class="badge ${tom}">${t}</span></td><td class="num ${x.saldo<=0?'red':''}">${nf(x.saldo)}</td><td class="num">${nf(x.v.q30)}</td><td>${spark(x.v.semanas)}</td><td class="num">${nf(x.media,1)}</td><td class="num">${cob(x)}</td><td class="num">${x.sugerida&&['ruptura','comprar'].includes(x.status)?`<strong>${nf(x.sugerida)}</strong>`:'—'}</td><td class="num">${x.custo?money(x.custo):'—'}</td><td class="num">${money(x.valor)}</td><td><span class="badge ${x.abc==='A'?'ok':x.abc==='B'?'info':''}">${x.abc}</span></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Nenhum produto neste filtro.</td></tr>'}</tbody></table></div>
- ${pags>1?`<div class="tabletop"><span class="caption">${l.length} produto(s)</span><div class="row"><button class="small" data-est-pag="-1" ${st.pag?'':'disabled'}>‹</button><span class="caption">página ${st.pag+1} de ${pags}</span><button class="small" data-est-pag="1" ${st.pag<pags-1?'':'disabled'}>›</button></div></div>`:''}</div>`}
+ ${pags>1?`<div class="tabletop"><span class="caption">${l.length} produto(s)</span><div class="row"><button class="small" data-est-pag="-1" ${st.pag?'':'disabled'}>‹</button><span class="caption">página ${st.pag+1} de ${pags}</span><button class="small" data-est-pag="1" ${st.pag<pags-1?'':'disabled'}>›</button></div></div>`:''}</div>`}`}
 
 // ─────────── Sugestão de compras ───────────
 function comprasView(){if(!window.Cloud?.ws)return '<div class="empty">Entre no portal.</div>';if(!st.carregado){carregar();return '<div class="empty">Carregando produtos…</div>'}
@@ -97,7 +103,8 @@ function parametros(){modal('Parâmetros de reposição',`<p class="caption" sty
  <div class="modalfoot"><button data-action="close">Cancelar</button><button class="primary" data-est="salvar-params">${icon('check')} Aplicar</button></div>`)}
 function csv(nome,cab,linhas){const txt=[cab,...linhas].map(l=>l.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+txt],{type:'text/csv'}));a.download=nome;a.click()}
 
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-est],[data-est-filtro],[data-est-ficha],[data-est-salvar],[data-est-pag],[data-est-pedido]');if(!b)return;const d=b.dataset;
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-est],[data-est-modo],[data-est-filtro],[data-est-ficha],[data-est-salvar],[data-est-pag],[data-est-pedido]');if(!b)return;const d=b.dataset;
+ if(d.estModo){st.modo=d.estModo;try{localStorage.setItem('eb_est_modo',st.modo)}catch{}render();return}
  if(d.estFiltro){st.filtro=d.estFiltro;st.pag=0;if(page!=='estoque')navigate('estoque');else render();return}
  if(d.estFicha){ficha(d.estFicha);return}
  if(d.estPag){st.pag+=Number(d.estPag);render();return}

@@ -29,7 +29,7 @@ function dados(){const h=hoje(),m=h.slice(0,7),dia=+h.slice(8),ant=new Date(+m.s
  return {h,m,dia,ant,porDia,vh,vo,mes,mesAnt,spark,ab,venc,vhj,sem,somaT,pr,menor,receberMk,receberVd,recVd,avisos}}
 
 // ─────────── Assistente local: responde com os dados, ou encaminha ───────────
-function responder(q){const n=normalized(q),d=dados(),bt=(nav,t)=>`<button class="small" data-nav="${nav}">${t} →</button>`;
+function responder(q,soRegra){const n=normalized(q),d=dados(),bt=(nav,t)=>`<button class="small" data-nav="${nav}">${t} →</button>`;
  const R=[
   [/vend|fatur|pedido|faturei|vendi/,()=>{const var_=d.mesAnt.v?((d.mes.v/d.mesAnt.v-1)*100):0;return `<strong>Hoje: ${money(d.vh.v)} em ${d.vh.n} pedido(s)</strong> (ontem ${money(d.vo.v)}). No mês, ${money(d.mes.v)} em ${d.mes.n} pedidos — ${var_>=0?'▲':'▼'} ${Math.abs(var_).toFixed(1).replace('.',',')}% contra o mesmo período do mês passado.<div class="row wrap">${bt('dashboard','Visão geral')}${bt('margem','Margem')}</div>`}],
   [/venc|pagar|boleto|conta(s)? a pagar|devo/,()=>`<strong>${d.vhj.length} título(s) vencem hoje (${money(d.somaT(d.vhj))})</strong>${d.venc.length?`, <span class="red">${d.venc.length} vencido(s) somando ${money(d.somaT(d.venc))}</span>`:', nada vencido'}. Nos próximos 7 dias: ${d.sem.length} título(s), ${money(d.somaT(d.sem))}.<ul class="hj-list">${[...d.venc,...d.vhj,...d.sem].slice(0,5).map(t=>`<li><span>${esc(t.fornecedor||t.descricao)}</span><small>${dataBR(t.vencimento)}</small><b>${money(E().saldoT?.(t)??t.valor)}</b></li>`).join('')}</ul><div class="row wrap">${bt('pagar','Contas a pagar')}${bt('fluxo','Fluxo de caixa')}</div>`],
@@ -42,7 +42,7 @@ function responder(q){const n=normalized(q),d=dados(),bt=(nav,t)=>`<button class
   [/atendim|reclama|cliente|devoluc/,()=>`<strong>${window.Atendimento?.abertos?.()||0} atendimento(s) em aberto.</strong><div class="row wrap">${bt('atendimento','Atendimento')}${bt('devolucoes','Devoluções')}${bt('crm','CRM')}</div>`],
   [/lanc|nova despesa|novo titulo|cadastrar conta/,()=>`<strong>Lançar um título a pagar.</strong><div class="row wrap">${bt('lancamento','Novo lançamento')}</div>`],
   [/venda direta|atacado|orcamento/,()=>`<strong>Venda direta com nota e parcelas.</strong><div class="row wrap">${bt('vendadireta','Nova venda direta')}</div>`]];
- const r=R.find(([re])=>re.test(n));if(r)return r[1]();
+ const r=R.find(([re])=>re.test(n));if(r)return r[1]();if(soRegra)return null;
  const res=seguro(()=>E().resultados?.(q),'');
  return `<strong>Não encontrei uma resposta pronta para “${esc(q)}”.</strong>${res?`<div class="hj-res">${res}</div>`:''}<div class="row wrap"><button class="small primary" data-hj="ia" data-q="${esc(q)}">${ico('spark',15)} Perguntar à IA</button></div>`}
 
@@ -61,7 +61,7 @@ function hero(d){const dt=new Date(),pend=d.avisos.length,emp=esc(window.Cloud?.
   <div class="hj-chips">${chips.map(([t,i])=>`<button type="button" data-hj="chip" data-q="${esc(t)}">${ico(i,15)}${t}</button>`).join('')}</div>
   <div class="hj-answer ${ui.resposta?'on':''}" id="hjAns" aria-live="polite">${ui.resposta}</div></div>
  <div class="hj-side"><button class="hj-orb ${pend?'alert':'calm'} ${ui.ouvindo?'listen':''}" data-hj="orb" aria-label="Falar com o EcomBalance"><span class="hj-orb-core"></span><span class="hj-orb-ring"></span><b>eb</b></button>
-  <p class="hj-status">${ui.ouvindo?'Ouvindo… pode falar':pend?`${pend} ponto(s) pedem atenção`:'Tudo em dia'}<br><small>toque no orbe para falar</small></p></div></section>`}
+  <p class="hj-status">${ui.ouvindo?'Ouvindo… pode falar':pend?`${pend} ponto(s) pedem atenção`:'Tudo em dia'}<br><small>toque no orbe para falar</small></p><button class="small" data-hj="painel">${ico('grid',15)} Modo painel</button></div></section>`}
 function linhaMes(d){const [y,mo]=d.m.split('-').map(Number),n=new Date(y,mo,0).getDate(),vals=[],pag=new Map();
  for(const t of d.ab)if(t.vencimento?.startsWith(d.m)){const x=pag.get(t.vencimento)||{n:0,v:0};x.n++;x.v+=E().saldoT?.(t)??t.valor;pag.set(t.vencimento,x)}
  for(let i=1;i<=n;i++){const k=`${d.m}-${String(i).padStart(2,'0')}`;vals.push({k,i,v:(d.porDia.get(k)||{v:0}).v,q:(d.porDia.get(k)||{n:0}).n,p:pag.get(k)})}
@@ -108,6 +108,7 @@ function estadoVoz(){$('.hj-orb')?.classList.toggle('listen',ui.ouvindo);$('.hj-
 document.addEventListener('click',e=>{const b=e.target.closest('[data-hj]');if(!b)return;const k=b.dataset.hj;
  if(k==='chip'){const q=b.dataset.q;if(/novo lan/i.test(q)){page='lancamento';render();return}perguntar(q);return}
  if(k==='voz'||k==='orb'){ouvir();return}
+ if(k==='painel'){entrarPainel();return}if(k==='sairpainel'){sairPainel();return}
  if(k==='ia'){window.Assistant?.open?.(b.dataset.q);return}
  if(k==='fav'){const f=new Set(ler('eb_favmods')||[]),id=b.dataset.mod;f.has(id)?f.delete(id):f.add(id);gravar('eb_favmods',[...f]);render()}});
 document.addEventListener('keydown',e=>{if(e.key==='/'&&page==='central'&&!/input|textarea|select/i.test(document.activeElement?.tagName||'')){e.preventDefault();$('#hjQ')?.focus()}});
@@ -117,9 +118,28 @@ Object.assign(paths,{mic:'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z M
  chat:'M4 5h16v11H8l-4 4z',user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21a8 8 0 0 1 16 0'});
 for(const [k,v] of Object.entries({wallet:'M3 7h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 7l12-4v4 M16 13h2',box:'M3 7l9-4 9 4v10l-9 4-9-4z M3 7l9 4 9-4 M12 11v10',receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6',swap:'M7 7h13l-4-4 M17 17H4l4 4',calendar:'M4 6h16v14H4z M4 10h16 M8 3v5 M16 3v5',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'}))if(!paths[k])paths[k]=v;
 
+// ─────────── Modo painel: tela cheia para TV, atualiza sozinho ───────────
+function painelView(){const d=dados(),mesTxt=new Date().toLocaleDateString('pt-BR',{month:'long'}),tk=d.vh.n?d.vh.v/d.vh.n:0;
+ const ult=[...db.orders].filter(o=>o.date>=addDias(d.h,-2)).sort((a,b)=>b.date.localeCompare(a.date)||String(b.external?.bling_numero||b.id).localeCompare(String(a.external?.bling_numero||a.id),undefined,{numeric:true})).slice(0,9);
+ const COR={'Mercado Livre':'#e6b800','Shopee':'#ee4d2d','Magalu':'#0086ff'},sig=p=>p==='Mercado Livre'?'ML':p.slice(0,2).toUpperCase();
+ const dias14=[...Array(14)].map((_,i)=>{const k=addDias(d.h,i-13);return {k,v:(d.porDia.get(k)||{v:0}).v}}),mx=Math.max(1,...dias14.map(x=>x.v));
+ const kp=(t,v,s)=>`<div class="pn-kpi"><small>${t}</small><b>${v}</b><em>${s}</em></div>`;
+ return `<div class="pn"><div class="pn-top"><img src="brand/comprastore-logo-240.png" alt="" style="height:56px"><div><h1>${esc(window.Cloud?.wsName||'Compra Store')}</h1><span class="caption">EcomBalance ao vivo · atualiza a cada minuto</span></div><div class="pn-clock"><b id="pnHora">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><small>${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</small></div></div>
+ <div class="pn-kpis">${kp('Vendas de hoje',fmtC(d.vh.v),`${d.vh.n} pedido(s) · ticket ${money(tk)}`)}${kp(`Vendas de ${mesTxt}`,fmtC(d.mes.v),`${d.mes.n} pedidos${d.mesAnt.v?` · ${d.mes.v>=d.mesAnt.v?'▲':'▼'} ${Math.abs((d.mes.v/d.mesAnt.v-1)*100).toFixed(0)}% vs mês anterior`:''}`)}${kp('Caixa',fmtC(d.pr.inicial),`menor em 30 dias ${fmtC(d.menor.saldo)}`)}${kp('Atenção',String(d.avisos.length),d.avisos[0]?.[2]||'tudo em dia')}</div>
+ <div class="pn-mid"><section class="card"><div class="cardhead"><h2>Últimos 14 dias</h2><span class="caption">${fmtC(dias14.reduce((s,x)=>s+x.v,0))}</span></div><div class="pn-bars" style="height:calc(100% - 60px)">${dias14.map(x=>`<span class="${x.k===d.h?'now':''}" style="height:${Math.max(2,x.v/mx*100)}%" title="${x.k} · ${money(x.v)}"><small>${x.k.slice(8)}</small></span>`).join('')}</div></section>
+ <section class="card"><div class="cardhead"><h2>Pedidos recentes</h2><span class="badge ok">ao vivo</span></div><div class="pn-feed">${ult.map((o,i)=>`<div class="pn-order" style="animation-delay:${i*.06}s"><span class="plogo" style="background:${COR[o.platform]||'#667'}">${sig(o.platform)}</span><span><strong>${esc(o.items?.[0]?.title||'Pedido '+o.id)}</strong><small>${esc(o.platform)} · ${esc(o.customer?.city||'')}${o.state?'/'+esc(o.state):''} · ${new Date(o.date+'T12:00:00').toLocaleDateString('pt-BR')}</small></span><b>${money(o.gross)}</b></div>`).join('')||'<p class="caption">Sem pedidos nos últimos dias.</p>'}</div></section></div>
+ <button class="small pn-exit" data-hj="sairpainel">${ico('arrow',14)} Sair do painel (Esc)</button></div>`}
+let pnTimer=null;
+function painelBind(){clearInterval(pnTimer);let n=0;pnTimer=setInterval(()=>{if(page!=='painel'){clearInterval(pnTimer);return}const h=$('#pnHora');if(h)h.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});if(++n%60===0)render()},1000)}
+function entrarPainel(){try{closeModal()}catch{}try{history.replaceState(null,'',location.pathname+location.search+'#painel')}catch{}navigate('painel');try{document.documentElement.requestFullscreen?.()}catch{}}
+function sairPainel(){try{if(document.fullscreenElement)document.exitFullscreen()}catch{}try{history.replaceState(null,'',location.pathname+location.search+'#central')}catch{}navigate('central')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&page==='painel')sairPainel()});
+addPage('painel','grid','Modo painel',painelView,'Painel ao vivo para TV.','',painelBind);
+// Fica na lista de páginas (o roteador exige), mas fora do menu: só abre pelo botão, pelo Ctrl K ou pelo chip.
+
 // Registra a tela no lugar da Central do dia.
 addPage('central','home','Hoje',view,'Seu dia no EcomBalance: o que entrou, o que sai e o que precisa de você.','',bind);
 {const ids=navItems.map(n=>n[0]);const ult=ids.lastIndexOf('central');if(ids.indexOf('central')!==ult)navItems.splice(ult,1);const n=navItems.find(x=>x[0]==='central');if(n)n[2]='Hoje'}
-const shell0=shell;shell=function(){const r=shell0.apply(this,arguments);document.body.classList.toggle('pg-home',page==='central');return r};
-window.Hoje={perguntar,responder};
+const shell0=shell;shell=function(){const r=shell0.apply(this,arguments);document.body.classList.toggle('pg-home',page==='central');document.body.classList.toggle('painel',page==='painel');return r};
+window.Hoje={perguntar,responder,regra:q=>String(q||'').trim().length>3?seguro(()=>responder(q,true),null):null};
 })();
