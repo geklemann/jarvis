@@ -25,7 +25,7 @@ function colunas(itens,n){const cols=[...Array(n)].map(()=>[]);itens.forEach((x,
  return cols.map((c,i)=>`<div class="vt-col" style="--t:${46+i*9}s;--dir:${i%2?'reverse':'normal'}"><div class="vt-track">${c.join('')}${c.join('')}</div></div>`).join('')}
 async function montar(auth){if(auth.querySelector('.vitrine'))return;const v=document.createElement('div');v.className='vitrine';v.setAttribute('aria-hidden','true');auth.prepend(v);
  const prods=await buscar();const itens=prods.length>=6?prods.map(cartaoProd):[...Object.keys(TOYS),...Object.keys(TOYS)].map(cartaoToy);
- v.innerHTML=`<div class="vt-lado vt-esq">${colunas(itens.slice(0,Math.ceil(itens.length/2)),2)}</div><div class="vt-lado vt-dir">${colunas(itens.slice(Math.ceil(itens.length/2)),2)}</div>`;
+ v.innerHTML=`<div class="vt-faixa"><div class="vt-faixatrack">${itens.slice(0,12).join('')}${itens.slice(0,12).join('')}</div></div><div class="vt-lado vt-esq">${colunas(itens.slice(0,Math.ceil(itens.length/2)),2)}</div><div class="vt-lado vt-dir">${colunas(itens.slice(Math.ceil(itens.length/2)),2)}</div>`;
  requestAnimationFrame(()=>v.classList.add('on'))}
 new MutationObserver(()=>{const a=document.querySelector('#app .auth');if(a&&a.querySelector('#authForm'))montar(a)}).observe(document.documentElement,{childList:true,subtree:true});
 })();
