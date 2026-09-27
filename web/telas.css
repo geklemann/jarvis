@@ -278,7 +278,26 @@ body.light .jv-p{background:linear-gradient(155deg,rgba(255,255,255,.86),rgba(24
 body.light .jv-barra i,body.light .jv-trilho{background:rgba(15,40,60,.07);stroke:rgba(15,40,60,.08)}
 body.light .jv-uf span{color:rgba(15,40,60,.55)}body.light .jv-grade line{stroke:rgba(15,40,60,.08)}body.light .jv-cursor{stroke:rgba(15,40,60,.3)}
 body.light .jv-eventos li{border-color:rgba(15,40,60,.07)}
-@media (max-width:1079px){.jv-lado{display:none}}
+/* Celular e telas estreitas: carrossel 3D de painéis no topo, cartão logo abaixo */
+.jv-trilha{display:none}
+@media (max-width:1079px){
+ .jv-lado{display:none}
+ .auth{align-items:start;padding-top:214px}
+ .vitrine{position:absolute;perspective:none}
+ .jv-fundo{position:fixed}
+ .jv-trilha{display:block;position:absolute;top:16px;left:0;right:0;height:184px;overflow:hidden;perspective:900px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+ .jv-trilho-in{display:flex;gap:14px;align-items:flex-start;height:100%;transition:transform .9s cubic-bezier(.3,.8,.2,1);transform-style:preserve-3d}
+ .vitrine .jv-trilha .jv-p{flex:none;width:min(300px,72vw);height:176px;overflow:hidden;padding:13px 15px;
+  transition:opacity .9s ease,transform .9s cubic-bezier(.3,.8,.2,1),filter .9s ease;
+  transform:rotateY(calc(var(--d,0) * -28deg)) scale(calc(1 - min(1,max(var(--d,0),-1 * var(--d,0))) * .12));opacity:.5;filter:saturate(.7)}
+ .vitrine.on .jv-trilha .jv-p{animation:none}
+ .vitrine .jv-trilha .jv-p.jv-ativo{opacity:1;filter:none;box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgb(var(--ar) / 25%),inset 0 1px 0 rgba(255,255,255,.08)}
+ .jv-trilha .jv-eventos{min-height:0}
+ .jv-trilha .jv-spark{height:56px}
+ .jv-trilha .jv-fx{height:88px}
+}
+@media (max-width:1079px) and (prefers-reduced-motion:reduce){.jv-trilho-in,.jv-trilha .jv-p{transition:none}}
 @media (max-height:820px){.jv-mapa,.jv-fluxo{display:none}}
 @media (prefers-reduced-motion:reduce){.auth .authcard::before,.vitrine.on .jv-p,.jv-p::after,.jv-dot{animation:none}}
 
