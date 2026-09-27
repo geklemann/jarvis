@@ -5,20 +5,31 @@
 // ─────────────── Aparência ───────────────
 const TEMAS=[['violeta','Violeta','#a88aff','#7550d4','Roxo original do EcomBalance'],['aqua','Verde-água','#3dd6c3','#0f8f80','Combina com a logo da Compra Store'],['grafite','Grafite','#c3cad6','#3d434d','Neutro e sóbrio, cinza chumbo'],['oceano','Oceano','#5aa9ff','#1f6fd1','Azul profundo, cara de ERP clássico'],['esmeralda','Esmeralda','#4ade80','#15803d','Verde vivo, foco em resultado'],['coral','Coral','#ff8a73','#d4533b','Quente e acolhedor'],['ambar','Âmbar','#f2b544','#a86d00','Dourado, alto contraste'],['rose','Rosé','#f47fb4','#c23f7f','Suave e moderno']];
 const ler=k=>{try{return localStorage.getItem(k)}catch{return null}};
-function temaAtual(){return window.Cloud?.session?.user?.user_metadata?.tema||ler('eb_tema')||'violeta'}
-function aplicar(t){t=TEMAS.some(x=>x[0]===t)?t:'violeta';for(const [id] of TEMAS)document.body.classList.toggle('tema-'+id,id===t&&id!=='violeta');document.querySelector('meta[name=theme-color]')?.setAttribute('content',getComputedStyle(document.body).getPropertyValue('--bg').trim()||'#090c13')}
-aplicar(ler('eb_tema'));
-let temaSessao=null;setInterval(()=>{const t=temaAtual();if(t!==temaSessao){temaSessao=t;aplicar(t)}},1000);
-async function escolher(t){try{localStorage.setItem('eb_tema',t)}catch{}aplicar(t);temaSessao=t;
- if(window.Cloud?.client&&Cloud.session){const {data}=await Cloud.client.auth.updateUser({data:{tema:t}}).catch(()=>({}));if(data?.user)Cloud.session.user=data.user}}
-function aparencia(){const t=temaAtual(),claro=db.theme==='light';
- modal('Aparência',`<p class="caption" style="margin-top:-10px">O tema vale para o seu usuário, em qualquer computador. O modo claro/escuro vale para a empresa.</p>
- <div class="temagrid">${TEMAS.map(([id,nome,esc1,cla,desc])=>`<button class="temacard ${t===id?'on':''}" data-tema="${id}"><span class="temaprev" style="--c1:${esc1};--c2:${cla}"><i></i><i></i><i></i></span><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div>
- <div class="navlabel" style="margin:18px 0 8px">Modo</div><div class="segtabs"><button class="${claro?'':'active'}" data-modo="dark">${icon('moon')} Escuro</button><button class="${claro?'active':''}" data-modo="light">${icon('sun')} Claro</button></div>
+// Aurora (vidro): variações de cor. "classico" volta ao visual sólido antigo, com o tema escolhido lá.
+const VIDRO=[['aurora','Aurora','Petróleo, água-marinha e coral','#5fe0cc','#0f6f7c','#ff7a59','#0d1b29'],['ametista','Ametista','Violeta e rosa, herança do EcomBalance','#b7a2ff','#5b3fd0','#ff6fa8','#151329'],
+ ['oceano','Oceano','Azul profundo com turquesa','#7cb4ff','#1b4fb8','#20c4b0','#0b1830'],['esmeralda','Esmeralda','Verde de resultado com âmbar','#7fe0a8','#0f6b43','#f0a53a','#0b1d16'],
+ ['terracota','Terracota','Quente, areia e coral','#ffab8f','#b2432a','#ffd08a','#1f1410'],['grafite','Grafite','Sóbrio, cinza e dourado','#c9d3df','#2b3441','#e0a93b','#12161c']];
+function temaAtual(){const m=window.Cloud?.session?.user?.user_metadata||{};return m.tema2||ler('eb_tema2')||'aurora'}
+function classicoAtual(){return window.Cloud?.session?.user?.user_metadata?.tema||ler('eb_tema')||'violeta'}
+function aplicar(t){const vd=VIDRO.some(x=>x[0]===t),b=document.body;b.classList.toggle('vidro',vd);for(const [id] of VIDRO)b.classList.toggle('vd-'+id,vd&&id===t&&id!=='aurora');
+ const c=vd?'violeta':classicoAtual();for(const [id] of TEMAS)b.classList.toggle('tema-'+id,!vd&&id===c&&id!=='violeta');
+ document.querySelector('meta[name=theme-color]')?.setAttribute('content',vd?(b.classList.contains('light')?'#eef3f6':'#0a1420'):(getComputedStyle(b).getPropertyValue('--bg').trim()||'#090c13'))}
+aplicar(ler('eb_tema2')||'aurora');
+let temaSessao=null;setInterval(()=>{const t=temaAtual()+'|'+classicoAtual()+'|'+db.theme;if(t!==temaSessao){temaSessao=t;aplicar(temaAtual())}},1000);
+async function escolher(t,classico){try{localStorage.setItem('eb_tema2',classico?'classico':t);if(classico)localStorage.setItem('eb_tema',t)}catch{}
+ const dados=classico?{tema2:'classico',tema:t}:{tema2:t};if(window.Cloud?.session?.user)Cloud.session.user.user_metadata={...(Cloud.session.user.user_metadata||{}),...dados};aplicar(classico?'classico':t);
+ if(window.Cloud?.client&&Cloud.session){const {data}=await Cloud.client.auth.updateUser({data:dados}).catch(()=>({}));if(data?.user)Cloud.session.user=data.user}}
+function aparencia(){const t=temaAtual(),claro=db.theme==='light',cl=t==='classico'?classicoAtual():null;
+ modal('Aparência',`<p class="caption" style="margin-top:-10px">A cor vale para o seu usuário, em qualquer computador. O modo claro/noite vale para a empresa.</p>
+ <div class="navlabel" style="margin:6px 0 10px">Aurora · vidro</div>
+ <div class="vdgrid">${VIDRO.map(([id,nome,desc,c1,c2,c3,c0])=>`<button class="vdcard ${t===id?'on':''}" data-tema="${id}" style="--c1:${c1};--c2:${c2};--c3:${c3};--c0:${c0}"><i></i><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div>
+ <div class="navlabel" style="margin:20px 0 8px">Modo</div><div class="segtabs"><button class="${claro?'':'active'}" data-modo="dark">${icon('moon')} Noite</button><button class="${claro?'active':''}" data-modo="light">${icon('sun')} Claro</button></div>
+ <details style="margin-top:16px"><summary class="caption" style="cursor:pointer">Visual clássico (sólido)</summary><div class="temagrid" style="margin-top:10px">${TEMAS.map(([id,nome,esc1,cla,desc])=>`<button class="temacard ${cl===id?'on':''}" data-tema="${id}" data-classico="1"><span class="temaprev" style="--c1:${esc1};--c2:${cla}"><i></i><i></i><i></i></span><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div></details>
  <div class="modalfoot"><button class="primary" data-action="close">${icon('check')} Pronto</button></div>`)}
 document.addEventListener('click',e=>{if(e.target.closest('[data-erp-tema]')){$('#erpdrop')&&($('#erpdrop').innerHTML='');aparencia();return}
- const b=e.target.closest('[data-tema]');if(b){escolher(b.dataset.tema);$$('.temacard').forEach(x=>x.classList.toggle('on',x===b));return}
+ const b=e.target.closest('[data-tema]');if(b){escolher(b.dataset.tema,!!b.dataset.classico);$$('.vdcard,.temacard').forEach(x=>x.classList.toggle('on',x===b));return}
  const m=e.target.closest('[data-modo]');if(m){db.theme=m.dataset.modo;document.body.classList.toggle('light',db.theme==='light');save();aplicar(temaAtual());$$('[data-modo]').forEach(x=>x.classList.toggle('active',x===m))}});
+window.Aparencia={abrir:aparencia,alternarModo(){db.theme=db.theme==='light'?'dark':'light';document.body.classList.toggle('light',db.theme==='light');save();aplicar(temaAtual())}};
 
 // ─────────────── Log e auditoria ───────────────
 const AREAS={payables:'Contas a pagar',bank_accounts:'Contas bancárias',bank_transactions:'Extrato bancário',cadastros:'Cadastros',closures:'Fechamentos',workspace_settings:'Configurações',crm_contacts:'CRM',workspace_members:'Equipe',access_requests:'Pedidos de acesso',accounting_lines:'Contabilidade (linhas)',account_map:'Plano de contas (mapa)',accounting_docs:'Contabilidade (documentos)',pricing_products:'Preços (produtos)',pricing_scenarios:'Preços (cenários)',atendimentos:'Atendimento',imports:'Importações',orders:'Pedidos',receipts:'Liberações/repasses',ledger:'Vínculos',integrations:'Integrações',purchase_invoices:'Notas de entrada'};

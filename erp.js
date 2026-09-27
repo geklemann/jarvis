@@ -304,7 +304,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-rel],[data
 addPage('central','home','Central do dia',centralView,'O que entra, o que sai e o que precisa da sua atenção hoje.','',bindGrafico);
 // Abre na Central do dia quando não há tela no endereço.
 if(!location.hash&&page==='dashboard')page='central';
-window.ERP={busca,projecao,cadUI};
+window.ERP={busca,projecao,cadUI,centralView,avisos,contagens,graficoCaixa,bindGrafico,MODS,saudacao,nomeUsuario,abertos,saldoT,modDe,resultados};
 })();
 
 // ── CNPJá: busca na ficha e complemento em lote (a consulta roda no servidor, com a chave guardada lá) ──
