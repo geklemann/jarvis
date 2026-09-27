@@ -41,7 +41,7 @@ const G={
  cadprodutos:['Cadastro de produtos (vem do Bling): código, custo, preço, NCM e foto.','Ao conferir dados de um produto.','Busque e abra o produto.'],
  parametros:['Regras fiscais e contábeis da empresa (ICMS, DIFAL por estado, PIS/COFINS, natureza, CFOP) — área para a contabilidade configurar.','Na implantação e quando a lei mudar.','A contabilidade revisa as sugestões e aprova.'],
  contabauto:['Contabilidade feita sozinha a partir das vendas, notas, extrato e títulos: diário, balancete, DRE e balanço.','Mensalmente, ou para ver o resultado do mês.','Compare com o escritório na aba Conferência.'],
- fechcontab:['Fechamento contábil do mês para enviar ao escritório: checklist, tributos a recolher, de-para de contas e lote para importar.','No começo de cada mês.','Resolva o checklist, gere o lote e feche a competência.'],
+ fechcontab:['Fechamento contábil do mês para enviar ao escritório: checklist, tributos a recolher, agenda de obrigações acessórias e guias, de-para de contas e lote para importar.','No começo de cada mês.','Resolva o checklist, gere o lote e feche a competência.'],
  contabil:['DRE e balancete que o escritório de contabilidade enviou, com gráficos por mês.','Quando o escritório mandar o balancete.','Importe o arquivo e compare os meses.'],
  precos:['Formação de preço: quanto cobrar em cada canal para ter a margem desejada, com tarifas, frete e impostos.','Ao lançar produto ou mudar preço.','Simule o preço e veja a margem por canal.'],
  relfin:['Relatórios financeiros prontos para imprimir ou exportar (contas, fluxo, extrato).','Quando precisar mandar para alguém.','Escolha o relatório e o período.'],
