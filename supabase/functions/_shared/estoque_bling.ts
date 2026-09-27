@@ -32,6 +32,8 @@ export async function sincronizarEstoqueBling(db: SupabaseClient, ws: string, de
     if (lista.length < 100) break;
   }
   const uniq = [...new Map(rows.map((r) => [r.id as string, r])).values()];
+  // Fotos com endereço permanente (o link do Bling expira em 30 minutos): copia cada foto uma vez para o bucket.
+  const fotosInfo = await fotosPermanentes(db, ws, uniq, deadline).catch((e) => ({ copiadas: 0, erros: 1, erro: String(e) }));
   for (let k = 0; k < uniq.length; k += 200) {
     const { error } = await db.from("produtos").upsert(uniq.slice(k, k + 200), { onConflict: "workspace_id,id" });
     if (error) throw error;
@@ -40,7 +42,47 @@ export async function sincronizarEstoqueBling(db: SupabaseClient, ws: string, de
   const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
   const fotos = uniq.filter((r) => r.saldo != null).map((r) => ({ workspace_id: ws, data: hoje, sku: r.id, saldo: r.saldo, custo: r.custo }));
   for (let k = 0; k < fotos.length; k += 300) await db.from("estoque_fotos").upsert(fotos.slice(k, k + 300), { onConflict: "workspace_id,data,sku" });
-  return { produtos: uniq.length, paginas, com_saldo: uniq.filter((r) => Number(r.saldo) > 0).length };
+  await gravarVitrine(db, ws, uniq).catch(() => null);
+  return { produtos: uniq.length, paginas, com_saldo: uniq.filter((r) => Number(r.saldo) > 0).length, fotos: fotosInfo };
+}
+
+const PUBLICO = () => `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/produtos/`;
+/** Copia para o bucket público as fotos que ainda não estão lá (ou que mudaram no Bling) e troca o link do produto. */
+async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<string, unknown>[], deadline: number) {
+  const { data: atuais } = await db.from("produtos").select("id,imagem").eq("workspace_id", ws);
+  const atual = new Map((atuais ?? []).map((r: any) => [r.id, r.imagem]));
+  let copiadas = 0, erros = 0, mantidas = 0;
+  for (const r of rows) {
+    const u = r.imagem as string | null;
+    if (!u) continue;
+    // O caminho do arquivo no Bling identifica a foto; muda quando a foto é trocada.
+    const nome = u.split("?")[0].split("/").filter(Boolean).slice(-2).join("-").replace(/[^A-Za-z0-9._-]/g, "");
+    const chave = `${ws}/${nome}`, pub = PUBLICO() + chave;
+    if (atual.get(r.id as string) === pub) { r.imagem = pub; mantidas++; continue; }
+    if (Date.now() > deadline - 15_000) continue; // sem tempo: fica o link do Bling até a próxima rodada
+    try {
+      const resp = await fetch(u);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const tipo = resp.headers.get("content-type") || "image/jpeg";
+      const { error } = await db.storage.from("produtos").upload(chave, new Uint8Array(await resp.arrayBuffer()), { contentType: tipo, upsert: true, cacheControl: "31536000" });
+      if (error) throw error;
+      r.imagem = pub; copiadas++;
+    } catch { erros++; }
+  }
+  return { copiadas, mantidas, erros };
+}
+
+/** Vitrine da tela de login: os produtos mais vendidos nos últimos 30 dias que têm foto permanente. Só nome e foto. */
+async function gravarVitrine(db: SupabaseClient, ws: string, rows: Record<string, unknown>[]) {
+  const desde = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const { data } = await db.from("orders").select("items").eq("workspace_id", ws).gte("date", desde).limit(20000);
+  const qtd = new Map<string, number>();
+  for (const o of data ?? []) for (const it of (o as any).items ?? []) { const k = String(it.sku ?? "").trim(); if (k) qtd.set(k, (qtd.get(k) ?? 0) + (Number(it.qty) || 0)); }
+  const lista = rows.filter((r) => String(r.imagem ?? "").startsWith(PUBLICO()))
+    .sort((a, b) => (qtd.get(b.id as string) ?? 0) - (qtd.get(a.id as string) ?? 0)).slice(0, 18)
+    .map((r) => ({ nome: String(r.nome ?? "").slice(0, 60), img: r.imagem }));
+  if (!lista.length) return;
+  await db.storage.from("produtos").upload("vitrine.json", new TextEncoder().encode(JSON.stringify({ atualizado: new Date().toISOString(), produtos: lista })), { contentType: "application/json", upsert: true, cacheControl: "300" });
 }
 
 /** Dados fiscais (NCM, CEST, origem, GTIN) de cada produto, pelo detalhe do Bling. Poucos por rodada. */
