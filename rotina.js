@@ -55,7 +55,7 @@ function tour(i){document.querySelectorAll('.tour-spot,.tour-tip').forEach(x=>x.
  tip.onclick=ev=>{const a=ev.target.closest('[data-tour]');if(!a)return;if(a.dataset.tour==='fim')fechar();else tour(i+1)}}
 setInterval(posicionar,300);addEventListener('scroll',posicionar,{passive:true});
 // Primeira visita à tela Hoje: abre o tour sozinho.
-setInterval(()=>{if(page==='central'&&document.querySelector('.hj-ask')&&!ler('eb_tour1',false)&&!document.querySelector('.tour-tip,.modalback')){gravar('eb_tour1',true);tour(0)}},3000);
+setInterval(()=>{if(!/notour/.test(location.search)&&page==='central'&&document.querySelector('.hj-ask')&&!ler('eb_tour1',false)&&!document.querySelector('.tour-tip,.modalback')){gravar('eb_tour1',true);tour(0)}},3000);
 addEventListener('resize',posicionar);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tourI>=0)fechar()});
 window.Rotina={html,passos,tour};
 })();
