@@ -51,7 +51,7 @@ const PUBLICO = () => `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/
 async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<string, unknown>[], deadline: number) {
   const { data: atuais } = await db.from("produtos").select("id,imagem").eq("workspace_id", ws);
   const atual = new Map((atuais ?? []).map((r: any) => [r.id, r.imagem]));
-  let copiadas = 0, erros = 0, mantidas = 0;
+  let copiadas = 0, erros = 0, mantidas = 0, primeiroErro = "";
   for (const r of rows) {
     const u = r.imagem as string | null;
     if (!u) continue;
@@ -63,13 +63,15 @@ async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<str
     try {
       const resp = await fetch(u);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const tipo = resp.headers.get("content-type") || "image/jpeg";
-      const { error } = await db.storage.from("produtos").upload(chave, new Uint8Array(await resp.arrayBuffer()), { contentType: tipo, upsert: true, cacheControl: "31536000" });
+      const bytes = new Uint8Array(await resp.arrayBuffer());
+      // O Bling entrega a foto com tipo genérico: o formato vem dos primeiros bytes do arquivo.
+      const tipo = bytes[0] === 0x89 && bytes[1] === 0x50 ? "image/png" : bytes[0] === 0x52 && bytes[8] === 0x57 ? "image/webp" : "image/jpeg";
+      const { error } = await db.storage.from("produtos").upload(chave, bytes, { contentType: tipo, upsert: true, cacheControl: "31536000" });
       if (error) throw error;
       r.imagem = pub; copiadas++;
-    } catch { erros++; }
+    } catch (e) { erros++; if (!primeiroErro) primeiroErro = String((e as any)?.message ?? e).slice(0, 200); }
   }
-  return { copiadas, mantidas, erros };
+  return { copiadas, mantidas, erros, ...(primeiroErro ? { primeiroErro } : {}) };
 }
 
 /** Vitrine da tela de login: os produtos mais vendidos nos últimos 30 dias que têm foto permanente. Só nome e foto. */
