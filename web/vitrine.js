@@ -97,7 +97,7 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
  const lados=[...v.querySelectorAll('.jv-lado')];
  // Celular e telas estreitas: os painéis viram um carrossel em 3D no topo (um em destaque, os vizinhos inclinados),
  // trocando sozinho. Em tela larga, voltam para as duas colunas em volta do cartão.
- const estreita=matchMedia('(max-width:1079px)'),ORDEM=['jv-kpi','jv-feed','jv-conc','jv-canais','jv-fluxo'];let trilha=null,idx=0,tCar=0;
+ const estreita=matchMedia('(max-width:1079px)'),ORDEM=['jv-kpi','jv-feed','jv-mapa','jv-conc','jv-canais','jv-fluxo'];let trilha=null,idx=0,tCar=0;
  function arrumar(){const ps=[...v.querySelectorAll('.jv-p')];
   if(estreita.matches){if(!trilha){trilha=document.createElement('div');trilha.className='jv-trilha';trilha.innerHTML='<div class="jv-trilho-in"></div>';v.appendChild(trilha)}
    const dentro=trilha.firstChild;for(const c of ORDEM){const p=ps.find(x=>x.classList.contains(c));if(p)dentro.appendChild(p)}carrossel()}

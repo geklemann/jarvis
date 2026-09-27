@@ -282,13 +282,13 @@ body.light .jv-eventos li{border-color:rgba(15,40,60,.07)}
 .jv-trilha{display:none}
 @media (max-width:1079px){
  .jv-lado{display:none}
- .auth{align-items:start;padding-top:214px}
+ .auth{align-items:start;padding-top:224px}
  .vitrine{position:absolute;perspective:none}
  .jv-fundo{position:fixed}
- .jv-trilha{display:block;position:absolute;top:16px;left:0;right:0;height:184px;overflow:hidden;perspective:900px;
+ .jv-trilha{display:block;position:absolute;top:16px;left:0;right:0;height:194px;overflow:hidden;perspective:900px;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
  .jv-trilho-in{display:flex;gap:14px;align-items:flex-start;height:100%;transition:transform .9s cubic-bezier(.3,.8,.2,1);transform-style:preserve-3d}
- .vitrine .jv-trilha .jv-p{flex:none;width:min(300px,72vw);height:176px;overflow:hidden;padding:13px 15px;
+ .vitrine .jv-trilha .jv-p{flex:none;width:min(300px,72vw);height:186px;overflow:hidden;padding:13px 15px;
   transition:opacity .9s ease,transform .9s cubic-bezier(.3,.8,.2,1),filter .9s ease;
   transform:rotateY(calc(var(--d,0) * -28deg)) scale(calc(1 - min(1,max(var(--d,0),-1 * var(--d,0))) * .12));opacity:.5;filter:saturate(.7)}
  .vitrine.on .jv-trilha .jv-p{animation:none}
@@ -296,9 +296,12 @@ body.light .jv-eventos li{border-color:rgba(15,40,60,.07)}
  .jv-trilha .jv-eventos{min-height:0}
  .jv-trilha .jv-spark{height:56px}
  .jv-trilha .jv-fx{height:88px}
+ .jv-trilha .jv-mapa .jv-uf{grid-template-columns:repeat(8,17px);grid-auto-rows:14px;gap:2px;justify-content:start}
+ .jv-trilha .jv-mapa .jv-uf span{font-size:6px;border-radius:4px}
+ .jv-trilha .jv-mapa .jv-sub{position:absolute;right:15px;bottom:14px;margin:0!important;text-align:right;max-width:40%}
 }
 @media (max-width:1079px) and (prefers-reduced-motion:reduce){.jv-trilho-in,.jv-trilha .jv-p{transition:none}}
-@media (max-height:820px){.jv-mapa,.jv-fluxo{display:none}}
+@media (min-width:1080px) and (max-height:820px){.jv-mapa,.jv-fluxo{display:none}}
 @media (prefers-reduced-motion:reduce){.auth .authcard::before,.vitrine.on .jv-p,.jv-p::after,.jv-dot{animation:none}}
 
 /* ─── Produtos e anúncios ─── */
