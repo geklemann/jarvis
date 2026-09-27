@@ -60,7 +60,7 @@ function hero(d){const dt=new Date(),pend=d.avisos.length,emp=esc(window.Cloud?.
    <input id="hjQ" placeholder="Pergunte, busque ou peça algo…  ( / )" aria-label="Pergunte ao Jarvis"><button class="hj-send" aria-label="Enviar">${ico('arrow',20)}</button></form>
   <div class="hj-chips">${chips.map(([t,i])=>`<button type="button" data-hj="chip" data-q="${esc(t)}">${ico(i,15)}${t}</button>`).join('')}</div>
   <div class="hj-answer ${ui.resposta?'on':''}" id="hjAns" aria-live="polite">${ui.resposta}</div></div>
- <div class="hj-side"><button class="hj-orb ${pend?'alert':'calm'} ${ui.ouvindo?'listen':''}" data-hj="orb" aria-label="Falar com o Jarvis"><span class="hj-orb-core"></span><span class="hj-orb-ring"></span><b>eb</b></button>
+ <div class="hj-side"><button class="hj-orb ${pend?'alert':'calm'} ${ui.ouvindo?'listen':''}" data-hj="orb" aria-label="Falar com o Jarvis"><span class="hj-orb-core"></span><span class="hj-orb-ring"></span><b>J</b></button>
   <p class="hj-status">${ui.ouvindo?'Ouvindo… pode falar':pend?`${pend} ponto(s) pedem atenção`:'Tudo em dia'}<br><small>toque no orbe para falar</small></p><div class="row wrap" style="justify-content:center;gap:8px"><button class="small" data-hj="painel">${ico('grid',15)} Modo painel</button><button class="small" data-nav="mapa">${ico('folder',15)} Mapa do ERP</button></div></div></section>`}
 function linhaMes(d){const [y,mo]=d.m.split('-').map(Number),n=new Date(y,mo,0).getDate(),vals=[],pag=new Map();
  for(const t of d.ab)if(t.vencimento?.startsWith(d.m)){const x=pag.get(t.vencimento)||{n:0,v:0};x.n++;x.v+=E().saldoT?.(t)??t.valor;pag.set(t.vencimento,x)}
