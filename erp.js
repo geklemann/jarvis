@@ -28,9 +28,10 @@ const MODS=[
  {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
- {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
+ {id:'pes',ic:'clock',t:'Jornada',grupos:[['Ponto',['ponto']]]},
+{id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
-const VISAO={ini:'central',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
+const VISAO={ini:'central',pes:'ponto',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
 const GERAL=['equipe','ai','history','auditoria','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
 const modDe=p=>p==='lancamento'?'fin':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
@@ -47,7 +48,7 @@ function avisos(){const c=contagens(),s=l=>money(round(l.reduce((a,t)=>a+saldoT(
  if(c.extrato)out.push(['info','swap',`${c.extrato} movimento(s) do extrato a conciliar`,'Conciliação bancária','concbanco']);
  if(c.notas)out.push(['info','receipt',`${c.notas} nota(s) de entrada nova(s)`,'Confira categorias e vencimentos','compras']);
  if(c.acessos)out.push(['warn','users',`${c.acessos} pedido(s) de acesso`,'Equipe e acessos','equipe']);
- out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]),...(window.Resumo?.avisos?.()||[]));
+ out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]),...(window.Resumo?.avisos?.()||[]),...(window.Ponto?.avisos?.()||[]));
  return out}
 
 let paginaAnterior=null;
@@ -58,7 +59,7 @@ shell=function(){{const mp=modDe(page);if(mp&&window.Perfis&&!Perfis.moduloVisiv
  const emp=esc(window.Cloud?.wsName||'Minha empresa');
  $('#app').innerHTML=`<div class="erp">
  <aside class="side"><button class="sidebrand" data-nav="central" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>Jarvis · ERP</small></span></button>
-  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
+  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
    if(unico)return `<button class="mhead ${page===ids[0]?'active':''}" data-nav="${ids[0]}">${ico(m.ic,20)}<span>${m.t}</span></button>`;
    return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead ${ov&&page===ov?'active':''}" data-mtoggle="${m.id}" aria-expanded="${aberto}" ${ov?`title="Visão geral de ${m.t}"`:''}>${ico(m.ic,20)}<span>${m.t}</span><i class="mchev" data-mchev="1">${ico('chev',15)}</i></button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
  <main><header><button class="quiet mobilemenu" data-action="menu" aria-label="Abrir navegação">${icon('menu')}</button>
