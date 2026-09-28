@@ -39,7 +39,7 @@ const EVENTOS=[
 // Mapa real do Brasil (contornos do IBGE, em mapa-br.js): estados acendem com os pedidos, onda no destino e rota
 // de entrega saindo de Santa Catarina (onde a loja está). Sem o arquivo do mapa, cai no ranking só com texto.
 const ORIGEM='SC';
-function mapaHTML(){const M=window.MapaBR||{};return `<div class="jv-mapabox"><svg class="jv-br" viewBox="8 0 384 400" role="img" aria-label="Mapa do Brasil"><g class="jv-ufs">${Object.entries(M).map(([u,d])=>`<path data-uf="${u}" d="${d}"/>`).join('')}</g><g class="jv-rotas"></g><circle class="jv-origem" r="4.5" cx="${(window.MapaBRCentro?.[ORIGEM]||[0,0])[0]}" cy="${(window.MapaBRCentro?.[ORIGEM]||[0,0])[1]}"/></svg><div class="jv-top"><ol data-k="top"></ol><div class="jv-sub">último pedido<br><b data-k="uf">SP</b></div></div></div>`}
+function mapaHTML(){return `<div class="jv-mapabox"><div class="jv-globobox"><canvas class="jv-globo" aria-label="Globo terrestre com o Brasil"></canvas><small>Terra: NASA Blue Marble</small></div><div class="jv-top"><ol data-k="top"></ol><div class="jv-sub">último pedido<br><b data-k="uf">SP</b></div></div></div>`}
 function painel(cls,titulo,corpo){return `<section class="jv-p ${cls}"><div class="jv-h"><span class="jv-dot"></span>${titulo}</div>${corpo}</section>`}
 function montar(auth){if(auth.querySelector('.vitrine'))return;
  const v=document.createElement('div');v.className='vitrine';v.setAttribute('aria-hidden','true');
@@ -89,12 +89,8 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
   const d=curva(s.map((y,i)=>[X(i),Y(y)]));$('.jv-flinha').setAttribute('d',d);$('.jv-farea').setAttribute('d',d+'L300,110L0,110Z');return {X,Y,s}}
  let fxGeo=fluxoCaixa();
  const feed=$('.jv-eventos');
- const porUF={};
- function pedidoNoMapa(u){porUF[u]=(porUF[u]||0)+1;const el=v.querySelector(`.jv-br [data-uf="${u}"]`),C=window.MapaBRCentro||{};
-  if(el)el.style.setProperty('--h',Math.min(1,(parseFloat(el.style.getPropertyValue('--h'))||0)+.35).toFixed(2));
-  const g=v.querySelector('.jv-rotas'),ns='http://www.w3.org/2000/svg';
-  if(g&&C[u]){const [x,y]=C[u];const onda=document.createElementNS(ns,'circle');onda.setAttribute('class','jv-onda');onda.setAttribute('cx',x);onda.setAttribute('cy',y);onda.setAttribute('r',3);g.appendChild(onda);setTimeout(()=>onda.remove(),1500);
-   if(u!==ORIGEM&&C[ORIGEM]){const [sx,sy]=C[ORIGEM],mx=(sx+x)/2,my=(sy+y)/2-Math.hypot(x-sx,y-sy)*.35,r=document.createElementNS(ns,'path');r.setAttribute('class','jv-rota');r.setAttribute('d',`M${sx} ${sy}Q${mx.toFixed(1)} ${my.toFixed(1)} ${x} ${y}`);r.setAttribute('pathLength','100');g.appendChild(r);setTimeout(()=>r.remove(),1900)}}
+ const porUF={};let globo=null,tGl=0;
+ function pedidoNoMapa(u){porUF[u]=(porUF[u]||0)+1;globo?.pedido(u);
   const tot=Object.values(porUF).reduce((a,b)=>a+b,0),top=Object.entries(porUF).sort((a,b)=>b[1]-a[1]).slice(0,5),ol=K('top');
   if(ol)ol.innerHTML=top.map(([uf,n])=>`<li><span>${uf}</span><i><b style="width:${(n/top[0][1]*100).toFixed(0)}%"></b></i><em>${Math.round(n/tot*100)}%</em></li>`).join('')}
  // Começa com o mapa já movimentado (distribuição típica), para não abrir vazio.
@@ -107,7 +103,7 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
 
  let tEv=0,tFx=0,tBr=0,ult=performance.now(),vivo=true,mx=0,my=0,tmx=0,tmy=0,cursor=0;
  addEventListener('pointermove',e=>{tmx=e.clientX/W-.5;tmy=e.clientY/H-.5},{passive:true});
- medir();addEventListener('resize',medir);spark();canais();{const mx=Math.max(...Object.values(porUF));v.querySelectorAll(".jv-br path").forEach(p=>p.style.setProperty("--h",(Math.sqrt((porUF[p.dataset.uf]||0)/mx)*.8).toFixed(2)))}pedidoNoMapa(sorteiaUF());
+ medir();addEventListener('resize',medir);spark();canais();globo=window.Globo?Globo(v.querySelector('.jv-globo'),{cor:getComputedStyle(document.body).getPropertyValue('--ar').trim().split(/\s+/).join(',')||'95,224,204'}):null;globo?.aquecer(porUF);pedidoNoMapa(sorteiaUF());addEventListener('resize',()=>globo?.medir());
  const lados=[...v.querySelectorAll('.jv-lado')];
  // Celular e telas estreitas: os painéis viram um carrossel em 3D no topo (um em destaque, os vizinhos inclinados),
  // trocando sozinho. Em tela larga, voltam para as duas colunas em volta do cartão.
@@ -129,7 +125,9 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
   tEv+=dt;if(tEv>2300){tEv=0;evento()}
   if(trilha){tCar+=dt;if(tCar>3200){tCar=0;idx++;carrossel()}}
   tFx+=dt;if(tFx>5200){tFx=0;est.fxi=(est.fxi+1)%29;fxGeo=fluxoCaixa()||fxGeo}
-  tBr+=dt;if(tBr>900){tBr=0;v.querySelectorAll('.jv-br path').forEach(s=>{const h=parseFloat(s.style.getPropertyValue('--h'))||0;if(h>0)s.style.setProperty('--h',Math.max(0,h-.04).toFixed(2))})}}
+  tBr+=dt;if(tBr>900){tBr=0;globo?.esfriar()}
+  // Globo a ~30 quadros/s, só quando o painel do mapa está na tela.
+  tGl+=dt;if(tGl>32&&globo){tGl=0;const gc=v.querySelector('.jv-globo');if(gc&&gc.offsetParent&&gc.getBoundingClientRect().bottom>0)globo.quadro(performance.now())}}
  function passo(agora){if(!vivo)return;const dt=Math.min(64,agora-ult);ult=agora;
   if(!document.body.contains(v)){vivo=false;removeEventListener('resize',medir);return}
   if(!document.hidden){fundo(dt);atualizar(dt)}
