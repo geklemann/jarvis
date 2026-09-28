@@ -4,6 +4,7 @@
 // então fechar a página não interrompe nada.
 import { admin, authorize, env, handler, HttpError, json, signState } from "../_shared/common.ts";
 import { persist, provider, providers, validSecret } from "../_shared/store.ts";
+import { liberacoesML } from "../_shared/ml_liberacoes.ts";
 import { importShopeeIncome } from "../_shared/shopee_central.ts";
 import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml.ts";
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
@@ -227,6 +228,15 @@ Deno.serve(handler(async (req) => {
         }
         report.push({ workspace_id: i.workspace_id, provider: i.provider, ...(await advanceJob(db, i.workspace_id, i.provider, slot)) });
       } catch (e) { report.push({ workspace_id: i.workspace_id, provider: i.provider, error: String(e) }); }
+    }
+    // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
+    for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {
+      if (Date.now() > deadline - 12_000) break;
+      try {
+        const r = await liberacoesML(db, i.workspace_id, Math.min(deadline - 8_000, Date.now() + 50_000));
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.liberacoes = { ...r, fim: new Date().toISOString() }; });
+        report.push({ workspace_id: i.workspace_id, liberacoes: r });
+      } catch (e) { report.push({ workspace_id: i.workspace_id, liberacoes_erro: String(e).slice(0, 200) }); }
     }
     // Conciliação automática das correspondências exatas (só nos workspaces que ligaram a opção).
     for (const w of new Set(list.map((i) => i.workspace_id))) {
