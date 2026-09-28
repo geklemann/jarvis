@@ -354,8 +354,20 @@ Deno.serve(handler(async (req) => {
     }
     case "atendimento_responder": {
       const id = String(body.id ?? "");
-      if (!id.startsWith("ML-")) throw new HttpError(400, "Por enquanto só respondo atendimentos do Mercado Livre.");
-      const r = await responderML(db, ws, id, String(body.texto ?? ""));
+      let r: { ok: boolean; mensagens: unknown[] };
+      if (id.startsWith("portal-")) {
+        // Pedido de ajuda da Central do Cliente: a resposta fica no atendimento e o comprador a lê na própria Central.
+        const texto = String(body.texto ?? "").trim().slice(0, 2000);
+        if (!texto) throw new HttpError(400, "Escreva a resposta.");
+        const { data: a } = await db.from("atendimentos").select("mensagens").eq("workspace_id", ws).eq("id", id).maybeSingle();
+        if (!a) throw new HttpError(404, "Atendimento não encontrado.");
+        const agora = new Date().toISOString(), mensagens = [...(a.mensagens ?? []), { de: "vendedor", nome: user.user_metadata?.nome ?? "Equipe", texto, em: agora }];
+        await db.from("atendimentos").update({ mensagens, status: "aberto", atualizado_em: agora, updated_at: agora }).eq("workspace_id", ws).eq("id", id);
+        r = { ok: true, mensagens };
+      } else {
+        if (!id.startsWith("ML-")) throw new HttpError(400, "Por enquanto só respondo atendimentos do Mercado Livre e da Central do Cliente.");
+        r = await responderML(db, ws, id, String(body.texto ?? ""));
+      }
       await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), action: "Resposta enviada ao cliente", detail: `${id} · ${String(body.texto ?? "").slice(0, 300)}`, actor: user.email ?? user.id });
       return json(r);
     }
