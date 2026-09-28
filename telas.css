@@ -305,7 +305,7 @@ body.light .jv-eventos li{border-color:rgba(15,40,60,.07)}
  .jv-trilha .jv-mapabox{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:6px}
 }
 @media (max-width:1079px) and (prefers-reduced-motion:reduce){.jv-trilho-in,.jv-trilha .jv-p{transition:none}}
-@media (min-width:1080px) and (max-height:820px){.jv-mapa,.jv-fluxo{display:none}}
+@media (min-width:1080px) and (max-height:820px){.jv-canais,.jv-fluxo{display:none}}
 @media (prefers-reduced-motion:reduce){.auth .authcard::before,.vitrine.on .jv-p,.jv-p::after,.jv-dot{animation:none}}
 
 /* ─── Produtos e anúncios ─── */
@@ -477,3 +477,4 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .orctab td{vertical-align:middle}
 
 .rstexto{white-space:pre-wrap;font:12.5px/1.5 'DM Sans',sans-serif;background:rgba(127,127,127,.08);border-radius:12px;padding:12px;margin:0;max-height:380px;overflow:auto}
+.alertlist{margin:6px 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:4px}
