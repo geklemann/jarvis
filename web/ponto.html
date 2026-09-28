@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111b">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jarvis Ponto"><meta name="robots" content="noindex">
+<title>Jarvis Ponto</title>
+<link rel="manifest" href="ponto.webmanifest"><link rel="icon" href="brand/ponto-192.png"><link rel="apple-touch-icon" href="brand/ponto-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07111b;--card:rgba(255,255,255,.055);--line:rgba(255,255,255,.09);--txt:#eaf2f6;--mut:#8ea3b3;--acc:#5fe0cc;--acc2:#2f7fe0;--ok:#38d39f;--warn:#f0c060;--bad:#ff7a6b;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--txt);font:500 15px/1.45 Manrope,'Segoe UI',system-ui,sans-serif}
+body{background:radial-gradient(900px 520px at 85% -10%,rgba(47,127,224,.28),transparent 60%),radial-gradient(700px 480px at -10% 30%,rgba(95,224,204,.16),transparent 60%),var(--bg);background-attachment:fixed}
+.wrap{max-width:480px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(28px + env(safe-area-inset-bottom,0px))}
+header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.logo{width:38px;height:38px;border-radius:12px;background:conic-gradient(from 200deg,#5fe0cc,#2f7fe0,#a88aff,#5fe0cc);display:grid;place-items:center;box-shadow:0 0 18px rgba(95,224,204,.35)}
+.logo span{width:30px;height:30px;border-radius:9px;background:#0b1622;display:grid;place-items:center;font-weight:800;color:var(--acc)}
+header b{display:block;font-size:16px;letter-spacing:.2px}header small{color:var(--mut);font-size:12px}header .sp{flex:1}
+.ibtn{background:var(--card);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;border-radius:12px;font-size:20px;line-height:1;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin-bottom:14px}
+h1{font-size:24px;margin:0 0 2px;letter-spacing:-.3px}h2{font-size:16px;margin:0 0 10px}.mut{color:var(--mut)}.small{font-size:12.5px}
+.relogio{text-align:center;padding:22px 18px 20px}
+.hora{font:700 54px/1 'JetBrains Mono',monospace;letter-spacing:-1px;background:linear-gradient(180deg,#fff,#b9fff3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hora small{font-size:24px;opacity:.7}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;font-size:13px;font-weight:700;background:rgba(255,255,255,.07);margin-top:12px}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--mut)}.pill.ok i{background:var(--ok);box-shadow:0 0 10px var(--ok)}.pill.warn i{background:var(--warn)}.pill.bad i{background:var(--bad)}
+.botao{position:relative;display:block;margin:22px auto 6px;width:188px;height:188px;border-radius:50%;border:0;cursor:pointer;color:#06201c;font:800 17px/1.2 Manrope,sans-serif;
+ background:radial-gradient(circle at 35% 30%,#9ff5e8,#5fe0cc 45%,#27b3a0);box-shadow:0 18px 40px rgba(95,224,204,.35),inset 0 -8px 18px rgba(0,0,0,.18),inset 0 6px 14px rgba(255,255,255,.35);transition:transform .12s}
+.botao:active{transform:scale(.96)}.botao small{display:block;font-size:12px;font-weight:600;opacity:.75;margin-top:6px}
+.botao::before{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(95,224,204,.35);animation:pulso 2.4s ease-out infinite}
+@keyframes pulso{0%{transform:scale(.94);opacity:.9}100%{transform:scale(1.12);opacity:0}}
+.botao.saida{background:radial-gradient(circle at 35% 30%,#ffe2a6,#f0c060 45%,#c98f23);box-shadow:0 18px 40px rgba(240,192,96,.3),inset 0 -8px 18px rgba(0,0,0,.18),inset 0 6px 14px rgba(255,255,255,.35)}.botao.saida::before{border-color:rgba(240,192,96,.35)}
+.botao:disabled{filter:grayscale(1) brightness(.7);cursor:default}.botao:disabled::before{display:none}
+.botao.gira::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:4px solid transparent;border-top-color:#fff;animation:gira .8s linear infinite}@keyframes gira{to{transform:rotate(360deg)}}
+.passos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;position:relative}
+.passos::before{content:'';position:absolute;top:9px;left:12%;right:12%;height:2px;background:var(--line)}
+.passos div{text-align:center;position:relative}.passos i{display:block;width:20px;height:20px;border-radius:50%;margin:0 auto 6px;background:#0f1d2a;border:2px solid var(--line)}
+.passos .on i{background:var(--acc);border-color:var(--acc);box-shadow:0 0 12px rgba(95,224,204,.6)}.passos .prox i{border-color:var(--acc)}
+.passos b{display:block;font:700 15px 'JetBrains Mono',monospace}.passos small{font-size:11px;color:var(--mut)}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.nums div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+.nums small{display:block;color:var(--mut);font-size:11.5px}.nums b{font:700 18px 'JetBrains Mono',monospace}.pos{color:var(--ok)}.neg{color:var(--bad)}
+.dias{display:flex;flex-direction:column}.dias div{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}.dias div:first-child{border-top:0}
+.dias span:last-child{font-family:'JetBrains Mono',monospace;color:var(--mut);text-align:right}
+button.sec,a.sec{display:inline-flex;justify-content:center;align-items:center;gap:8px;width:100%;padding:13px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--txt);font:700 15px Manrope,sans-serif;cursor:pointer;text-decoration:none}
+button.pri{width:100%;padding:14px;border-radius:14px;border:0;background:linear-gradient(135deg,#5fe0cc,#2fb5a4);color:#06201c;font:800 15px Manrope,sans-serif;cursor:pointer}
+input,textarea{width:100%;font:inherit;color:var(--txt);background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin:6px 0 10px}
+input:focus,textarea:focus{outline:none;border-color:var(--acc)}
+.codigo{text-transform:uppercase;letter-spacing:4px;text-align:center;font:700 22px 'JetBrains Mono',monospace}
+.ped{border-top:1px solid var(--line);padding:10px 0;font-size:14px}.ped:first-child{border-top:0}.tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;margin-left:6px}
+.tag.pendente{background:rgba(240,192,96,.15);color:var(--warn)}.tag.aprovada{background:rgba(56,211,159,.15);color:var(--ok)}.tag.recusada{background:rgba(255,122,107,.15);color:var(--bad)}
+.veu{position:fixed;inset:0;background:rgba(3,8,14,.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;z-index:20;animation:in .2s}
+@keyframes in{from{opacity:0}}
+.folha{width:100%;max-width:480px;background:#0d1a26;border:1px solid var(--line);border-radius:24px 24px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));animation:sobe .25s ease}
+@keyframes sobe{from{transform:translateY(40px)}}
+.recibo{text-align:center}.recibo .ok{width:74px;height:74px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;background:rgba(56,211,159,.15);color:var(--ok);font-size:38px;animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(.4)}70%{transform:scale(1.1)}}
+.recibo dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;text-align:left;background:rgba(0,0,0,.25);border-radius:14px;padding:12px 14px;margin:14px 0;font-size:13.5px}.recibo dt{color:var(--mut)}.recibo dd{margin:0;font-family:'JetBrains Mono',monospace;word-break:break-all}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#12212f;border:1px solid var(--line);padding:12px 16px;border-radius:14px;max-width:calc(100% - 32px);z-index:30;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.bad{border-color:rgba(255,122,107,.5)}
+.dica{display:flex;gap:10px;align-items:flex-start;font-size:13.5px}.dica b{color:var(--acc)}
+[hidden]{display:none!important}
+</style></head>
+<body><div class="wrap">
+<header><div class="logo"><span>J</span></div><div><b>Jarvis Ponto</b><small id="empresa">Registro de jornada</small></div><span class="sp"></span><button class="ibtn" id="bMenu" aria-label="Opções" hidden>⋯</button></header>
+
+<section id="telaAtivar" hidden>
+ <div class="card"><h1>Ative o seu ponto</h1><p class="mut">Abra o link que o responsável mandou para você, ou cole o link ou o código de ativação aqui.</p>
+  <input id="cod" class="codigo" placeholder="CÓDIGO" autocomplete="one-time-code" autocapitalize="characters"><button class="pri" id="bAtivar">Ativar este celular</button>
+  <p class="mut small" style="margin-top:12px">Depois de ativado, este celular fica ligado ao seu cadastro. Se trocar de aparelho, peça um novo link.</p></div>
+</section>
+
+<section id="telaApp" hidden>
+ <h1 id="ola"></h1><p class="mut" id="dataHoje" style="margin:0 0 14px"></p>
+ <div class="card relogio"><div class="hora" id="hora">--:--<small>:--</small></div><div class="mut small">Horário oficial · Brasília</div><div class="pill" id="status"><i></i><span></span></div>
+  <button class="botao" id="bMarcar"><span id="bRot">Registrar</span><small id="bSub">toque para registrar</small></button>
+  <div class="passos" id="passos"></div></div>
+ <div class="nums"><div><small>Hoje</small><b id="nHoje">00:00</b></div><div><small>Saldo do mês</small><b id="nMes">+00:00</b></div><div><small>Banco de horas</small><b id="nBanco">+00:00</b></div></div>
+ <div class="card" style="margin-top:14px"><h2>Este mês</h2><div class="dias" id="dias"></div></div>
+ <div class="card"><h2>Precisa corrigir algo?</h2><p class="mut small" style="margin-top:-4px">Esqueceu de marcar ou marcou errado? Peça o ajuste: o responsável confere e corrige.</p><button class="sec" id="bPedir">Pedir ajuste</button><div id="pedidos" style="margin-top:10px"></div></div>
+ <div class="card dica" id="dicaInstalar" hidden><span style="font-size:22px">📲</span><div><b>Deixe o Jarvis Ponto na tela inicial.</b> <span id="dicaTxt"></span><button class="sec" id="bInstalar" style="margin-top:10px" hidden>Instalar agora</button></div></div>
+ <p class="mut small" style="text-align:center">Cada marcação usa o horário do servidor e gera um comprovante com número sequencial (NSR).</p>
+</section>
+</div>
+<script src="config.js"></script>
+<script>
+(()=>{'use strict';
+const $=s=>document.querySelector(s),CFG=window.CONCILIA_CONFIG||{},URL_FN=(CFG.supabaseUrl||'')+'/functions/v1/ponto',KEY=CFG.supabaseAnonKey||'';
+const PASSOS=['Entrada','Saída p/ intervalo','Volta do intervalo','Saída'],TIPO={trabalho:'',feriado:'Feriado',folga:'Folga',falta:'Falta',compensacao:'Compensação',atestado:'Atestado',ferias:'Férias',desconsiderado:'Desconsiderado'};
+const pad=n=>String(n).padStart(2,'0'),dur=m=>`${pad(Math.floor(Math.abs(m)/60))}:${pad(Math.abs(m)%60)}`,sin=m=>`${m<0?'−':'+'}${dur(m)}`,esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const aparelho=()=>{const u=navigator.userAgent;return (/iPhone|iPad/.test(u)?'iPhone':/Android/.test(u)?'Android':'Navegador')+' · '+(u.match(/\(([^)]{0,60})/)?.[1]||'')};
+let S=null,off=0,ocupado=false,instalar=null;
+const tok={get:()=>{try{return localStorage.getItem('jp_token')}catch{return null}},set:v=>{try{v?localStorage.setItem('jp_token',v):localStorage.removeItem('jp_token')}catch{}}};
+function toast(t,bad){const d=document.createElement('div');d.className='toast'+(bad?' bad':'');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),4200)}
+async function api(corpo){const r=await fetch(URL_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify(corpo)});const j=await r.json().catch(()=>({}));if(!r.ok||j.error){const e=Error(j.error||'Sem conexão. Verifique a internet e tente de novo.');e.status=r.status;throw e}return j}
+function mostrar(j){S=j;off=new Date(j.agora.iso).getTime()-Date.now();$('#telaAtivar').hidden=true;$('#telaApp').hidden=false;$('#bMenu').hidden=false;$('#empresa').textContent=j.empresa||'Registro de jornada';
+ const h=new Date(Date.now()+off).getHours();$('#ola').textContent=`${h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}, ${j.nome.split(' ')[0]}`;
+ $('#dataHoje').textContent=new Date(j.agora.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+ const m=j.hoje.marcacoes||[],n=m.filter(Boolean).length,bloq=j.hoje.tipo!=='trabalho'||j.hoje.conferido||n>=4;
+ $('#passos').innerHTML=PASSOS.map((p,i)=>`<div class="${m[i]?'on':i===n&&!bloq?'prox':''}"><i></i><b>${m[i]||'--:--'}</b><small>${p}</small></div>`).join('');
+ const b=$('#bMarcar');b.disabled=bloq;b.classList.toggle('saida',n%2===1);$('#bRot').textContent=bloq?(n>=4?'Dia completo':'Dia fechado'):`Registrar ${PASSOS[n].toLowerCase()}`;$('#bSub').textContent=bloq?(j.hoje.tipo!=='trabalho'?TIPO[j.hoje.tipo]:'bom descanso!'):'toque para registrar';
+ const st=$('#status'),ult=m.filter(Boolean).pop();st.className='pill '+(j.hoje.tipo!=='trabalho'?'':n===0?'warn':n%2?'ok':n>=4?'':'warn');
+ st.querySelector('span').textContent=j.hoje.tipo!=='trabalho'?`Hoje: ${TIPO[j.hoje.tipo]}`:n===0?`Jornada ${j.jornada.entrada} às ${j.jornada.saida}`:n===1?`Trabalhando desde ${m[0]}`:n===2?`Em intervalo desde ${ult}`:n===3?`Trabalhando · voltou ${ult}`:`Encerrado às ${ult}`;
+ const cor=(el,v)=>{el.textContent=sin(v);el.className=v>0?'pos':v<0?'neg':''};cor($('#nMes'),j.mes.resumo.saldo);cor($('#nBanco'),j.banco);tick();
+ const dias=[...j.mes.dias].sort((a,b)=>b.data.localeCompare(a.data));$('#dias').innerHTML=dias.length?dias.map(d=>`<div><span>${new Date(d.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit'})}</span><span>${d.tipo!=='trabalho'?TIPO[d.tipo]:(d.marcacoes||[]).filter(Boolean).join(' · ')||'—'}</span></div>`).join(''):'<p class="mut small">Os seus registros do mês aparecem aqui.</p>';
+ $('#pedidos').innerHTML=(j.solicitacoes||[]).map(p=>`<div class="ped">${p.data?`<b>${new Date(p.data+'T12:00:00').toLocaleDateString('pt-BR')}</b> · `:''}${esc(p.texto)}<span class="tag ${p.status}">${p.status}</span>${p.resposta?`<div class="mut small">Resposta: ${esc(p.resposta)}</div>`:''}</div>`).join('');
+ dicaInstalar()}
+function tick(){const a=new Date(Date.now()+off),hh=pad(a.getHours()),mm=pad(a.getMinutes()),ss=pad(a.getSeconds());$('#hora').innerHTML=`${hh}:${mm}<small>:${ss}</small>`;
+ if(S){const m=(S.hoje.marcacoes||[]).filter(Boolean),agora=a.getHours()*60+a.getMinutes(),mi=h=>Number(h.slice(0,2))*60+Number(h.slice(3,5));let t=0;for(let i=0;i<m.length;i+=2)t+=Math.max(0,(m[i+1]?mi(m[i+1]):agora)-mi(m[i]));$('#nHoje').textContent=dur(t)}}
+setInterval(tick,1000);
+function local(){return new Promise(ok=>{if(!navigator.geolocation)return ok(null);navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,precisao:Math.round(p.coords.accuracy)}),()=>ok(null),{enableHighAccuracy:true,timeout:7000,maximumAge:60000})})}
+async function marcar(){if(ocupado||!S)return;ocupado=true;const b=$('#bMarcar');b.classList.add('gira');try{const g=await local();if(S.exigirLocal&&!g)throw Error('Ative a localização do celular (e permita para este app) para registrar o ponto.');
+  const j=await api({acao:'marcar',token:tok.get(),aparelho:aparelho(),...(g||{})});navigator.vibrate?.([30,40,60]);mostrar(j);recibo(j.comprovante,!!g)}
+ catch(e){if(e.status===401){tok.set(null);ativarTela()}toast(e.message,true)}finally{ocupado=false;b.classList.remove('gira')}}
+function folha(html){const v=document.createElement('div');v.className='veu';v.innerHTML=`<div class="folha">${html}</div>`;v.onclick=e=>{if(e.target===v||e.target.closest('[data-fecha]'))v.remove()};document.body.appendChild(v);return v}
+function recibo(c,g){const n=c.passo-1;folha(`<div class="recibo"><div class="ok">✓</div><h1>${PASSOS[n]||'Marcação'} registrada</h1><div class="hora" style="font-size:44px;margin-top:6px">${c.hora}</div>
+ <dl><dt>Colaborador</dt><dd>${esc(S.nome)}</dd><dt>Empresa</dt><dd>${esc(S.empresa)}</dd><dt>Data</dt><dd>${new Date(c.data+'T12:00:00').toLocaleDateString('pt-BR')}</dd><dt>NSR</dt><dd>${c.nsr}</dd><dt>Autenticação</dt><dd>${String(c.hash).slice(0,24)}</dd><dt>Local</dt><dd>${g?'registrado':'não informado'}</dd></dl>
+ <button class="pri" data-fecha>Pronto</button></div>`)}
+function pedir(){const f=folha(`<h1>Pedir ajuste</h1><p class="mut small">Diga o dia, o horário certo e o motivo. Ex.: "esqueci de marcar a volta do intervalo, voltei às 13h".</p><label class="small mut">Dia</label><input type="date" id="pData" value="${S.agora.data}" max="${S.agora.data}"><label class="small mut">O que aconteceu</label><textarea id="pTxt" rows="4"></textarea><button class="pri" id="pEnviar">Enviar pedido</button><button class="sec" data-fecha style="margin-top:8px">Cancelar</button>`);
+ f.querySelector('#pEnviar').onclick=async e=>{e.target.disabled=true;try{const j=await api({acao:'solicitar',token:tok.get(),data:f.querySelector('#pData').value,texto:f.querySelector('#pTxt').value});f.remove();mostrar(j);toast('Pedido enviado. Você verá a resposta aqui.')}catch(x){toast(x.message,true);e.target.disabled=false}}}
+function menu(){const f=folha(`<h2>Opções</h2><button class="sec" id="mAtualizar">Atualizar</button>${instalar?'<button class="sec" id="mInstalar" style="margin-top:8px">Instalar na tela inicial</button>':''}<button class="sec" id="mSair" style="margin-top:8px">Desativar este celular</button><p class="mut small" style="margin-top:12px">Desativar apaga o acesso deste aparelho. Para voltar, será preciso um novo link.</p><button class="sec" data-fecha style="margin-top:8px">Fechar</button>`);
+ f.querySelector('#mAtualizar').onclick=()=>{f.remove();carregar()};f.querySelector('#mInstalar')?.addEventListener('click',()=>{f.remove();instalar.prompt()});
+ f.querySelector('#mSair').onclick=()=>{f.querySelector('.folha').innerHTML=`<h2>Desativar este celular?</h2><p class="mut">Você não conseguirá registrar o ponto aqui até receber um novo link.</p><button class="pri" id="mSim">Sim, desativar</button><button class="sec" data-fecha style="margin-top:8px">Cancelar</button>`;f.querySelector('#mSim').onclick=()=>{tok.set(null);f.remove();ativarTela()}}}
+function dicaInstalar(){const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;if(standalone)return;const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+ $('#dicaInstalar').hidden=false;$('#dicaTxt').textContent=ios?'No Safari, toque em Compartilhar (quadrado com a seta) e depois em "Adicionar à Tela de Início". Ao abrir pelo ícone, cole o mesmo link se ele pedir.':'Assim você registra o ponto com um toque, como um aplicativo.';$('#bInstalar').hidden=!instalar}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();instalar=e;if(S)dicaInstalar()});
+$('#bInstalar').onclick=()=>instalar?.prompt();
+function ativarTela(){$('#telaApp').hidden=true;$('#bMenu').hidden=true;$('#telaAtivar').hidden=false}
+async function ativar(codigo){codigo=String(codigo||'').trim();const m=codigo.match(/ativar=([A-Za-z0-9]+)/);if(m)codigo=m[1];codigo=codigo.toUpperCase().replace(/[^A-Z0-9]/g,'');if(codigo.length<8)return toast('Cole o link completo ou o código de ativação.',true);
+ const b=$('#bAtivar');b.disabled=true;b.textContent='Ativando…';try{const j=await api({acao:'ativar',codigo,aparelho:aparelho()});tok.set(j.token);mostrar(j);toast('Pronto! Este celular está ativado.')}catch(e){toast(e.message,true)}finally{b.disabled=false;b.textContent='Ativar este celular'}}
+async function carregar(){try{mostrar(await api({acao:'estado',token:tok.get()}))}catch(e){if(e.status===401){tok.set(null);ativarTela()}toast(e.message,true)}}
+$('#bMarcar').onclick=marcar;$('#bPedir').onclick=pedir;$('#bMenu').onclick=menu;$('#bAtivar').onclick=()=>ativar($('#cod').value);
+$('#cod').addEventListener('paste',e=>{setTimeout(()=>{if(/ativar=/.test($('#cod').value))ativar($('#cod').value)},50)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&tok.get())carregar()});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+const h=location.hash.match(/ativar=([A-Za-z0-9]+)/);
+if(tok.get())carregar();else if(h)ativar(h[1]);else ativarTela();
+})();
+</script>
+</body></html>

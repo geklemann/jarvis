@@ -1,0 +1,18 @@
+{
+  "id": "./ponto.html",
+  "name": "Jarvis Ponto",
+  "short_name": "Ponto",
+  "description": "Registro de ponto e jornada pelo celular.",
+  "start_url": "./ponto.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07111b",
+  "theme_color": "#07111b",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "brand/ponto-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "brand/ponto-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "brand/ponto-512-mask.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

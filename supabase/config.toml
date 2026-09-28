@@ -21,3 +21,7 @@ additional_redirect_urls = ["https://jaarvis.com.br/**", "https://www.jaarvis.co
 # Central do Cliente: pública (comprador sem login); protegida por número do pedido + 4 dígitos do CPF.
 [functions.portal]
 verify_jwt = false
+
+# Jarvis Ponto: app do colaborador (sem login do ERP); identificado por aparelho ativado com código de uso único.
+[functions.ponto]
+verify_jwt = false
