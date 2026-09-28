@@ -8,6 +8,7 @@ import { importShopeeIncome } from "../_shared/shopee_central.ts";
 import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml.ts";
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
+import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
 import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
@@ -277,6 +278,16 @@ Deno.serve(handler(async (req) => {
     }
     case "fiscal_ler_produtos": return json(await detalhesFiscaisBling(db, ws, 150));
     // Fiscal › Emitir NF-e: simulação (só cálculo), nota avulsa e carta de correção. Emissão só para dono, gestão e financeiro.
+    // Notas de compra direto da SEFAZ: sincronizar, manifestar e baixar a nota completa (financeiro, contabilidade e dono).
+    case "nfr_sync": case "nfr_manifestar": case "nfr_detalhe": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro", "contador"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa as notas de compra.");
+      if (action === "nfr_sync") return json(await sincronizarRecebidas(db, ws));
+      if (action === "nfr_detalhe") return json(await detalheRecebida(db, ws, String(body.chave ?? "")));
+      const r = await manifestar(db, ws, String(body.chave ?? ""), String(body.tipo ?? ""), body.justificativa ? String(body.justificativa) : undefined);
+      await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Manifestação do destinatário", actor: user.email ?? user.id, detail: JSON.stringify(r).slice(0, 900) }).then(() => null, () => null);
+      return json(r);
+    }
     case "fiscal_simular": return json(await simularNota(db, ws, { pedido: body.pedido ? String(body.pedido) : undefined, dados: body.dados }));
     case "fiscal_emitir_avulsa": case "fiscal_cce": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
