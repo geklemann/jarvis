@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Central do Cliente · Compra Store</title>
+<meta name="description" content="Acompanhe seu pedido Compra Store, peça ajuda com troca, defeito ou montagem e avalie sua compra.">
+<link rel="icon" type="image/png" href="brand/comprastore-logo-240.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f8fb;--card:#fff;--ink:#16303f;--muted:#5d7383;--line:#dfe8ee;--pri:#12a08c;--pri2:#0f7f70;--sun:#ffb938;--coral:#ff6f59;--sky:#4aa3ff;--ok:#1fb589}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'DM Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Nunito','DM Sans',sans-serif;margin:0;line-height:1.2}
+.topo{background:linear-gradient(135deg,#0f7f70,#12a08c 55%,#4aa3ff);color:#fff;padding:22px 16px 90px;position:relative;overflow:hidden}
+.topo::after{content:'';position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08)}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+.marca{display:flex;align-items:center;gap:12px}.marca img{width:54px;height:54px;background:#fff;border-radius:16px;padding:4px}
+.marca b{font:900 20px 'Nunito'}.marca span{opacity:.85;font-size:14px}
+.topo h1{font-size:clamp(26px,5vw,38px);margin:26px 0 6px;font-weight:900}.topo p{margin:0;opacity:.92;max-width:560px}
+.card{background:var(--card);border-radius:22px;box-shadow:0 18px 40px rgba(20,60,80,.1);padding:22px;margin-bottom:18px}
+.busca{margin-top:-64px;position:relative;z-index:2}
+.form{display:grid;grid-template-columns:1.5fr 1fr auto;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px}
+input,textarea,select{font:inherit;padding:13px 14px;border:1.5px solid var(--line);border-radius:14px;background:#fbfdfe;color:var(--ink);width:100%}
+input:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 4px rgba(18,160,140,.15)}
+button{font:700 15px 'DM Sans';border:0;border-radius:14px;padding:13px 20px;cursor:pointer;background:var(--pri);color:#fff;transition:.15s}
+button:hover{background:var(--pri2)}button.sec{background:#eef5f8;color:var(--ink)}button.sec:hover{background:#e0edf3}
+.dica{font-size:13px;color:var(--muted);margin:10px 0 0}
+.erro{background:#fff1ef;color:#b43a2a;border-radius:14px;padding:12px 14px;margin-top:12px}
+.ola{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}.ola h2{font-size:24px}.badge{display:inline-block;padding:4px 10px;border-radius:99px;background:#eef5f8;font-size:13px;font-weight:700;color:var(--muted)}
+.linha{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:22px 0 6px;position:relative}
+.linha::before{content:'';position:absolute;top:17px;left:12%;right:12%;height:4px;background:var(--line);border-radius:4px}
+.passo{text-align:center;position:relative}.passo i{display:grid;place-items:center;width:38px;height:38px;margin:0 auto 8px;border-radius:50%;background:#fff;border:3px solid var(--line);font-style:normal;font-weight:900;color:var(--muted);position:relative}
+.passo.ok i{background:var(--ok);border-color:var(--ok);color:#fff}.passo b{display:block;font-size:14px}.passo small{color:var(--muted);font-size:12px}
+.itens{list-style:none;margin:10px 0 0;padding:0}.itens li{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tile{border:1.5px solid var(--line);border-radius:18px;padding:16px;background:#fbfdfe}.tile h3{font-size:18px;margin-bottom:4px}.tile p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chips button{background:#eef5f8;color:var(--ink);padding:9px 14px;font-size:14px}.chips button.on{background:var(--pri);color:#fff}
+.nps{display:grid;grid-template-columns:repeat(11,1fr);gap:5px;margin:10px 0}.nps button{padding:10px 0;background:#eef5f8;color:var(--ink);font-size:14px}.nps button.on{background:var(--sun);color:#3a2800}
+.nps-leg{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.okbox{background:#eafaf5;border-radius:14px;padding:14px;color:#0f6b58;font-weight:700}
+details{border-top:1px solid var(--line);padding:12px 0}details summary{cursor:pointer;font-weight:700;list-style:none}details summary::before{content:'＋ ';color:var(--pri)}details[open] summary::before{content:'－ '}details p{color:var(--muted);margin:8px 0 0}
+.rod{font-size:13px;color:var(--muted);text-align:center;padding:10px 0 40px}
+.conv{display:flex;flex-direction:column;gap:8px;margin:12px 0}.bol{max-width:85%;padding:10px 14px;border-radius:16px;background:#eef5f8;font-size:15px}.bol.loja{align-self:flex-start;background:#e6f7f3}.bol.voce{align-self:flex-end;background:#fff6dc}.bol small{display:block;color:var(--muted);font-size:12px;margin-bottom:2px}
+.aj{border-top:1px solid var(--line);padding:14px 0}.aj:first-of-type{border-top:0}.ajtopo{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}.badge.ok{background:#eafaf5;color:#0f6b58}.badge.resp{background:#fff6dc;color:#7a5600}
+.resp{display:flex;gap:8px}.resp textarea{flex:1}
+[hidden]{display:none!important}
+@media (max-width:680px){.form{grid-template-columns:1fr}.acoes{grid-template-columns:1fr}.linha{grid-template-columns:repeat(2,1fr);row-gap:16px}.linha::before{display:none}.nps{grid-template-columns:repeat(6,1fr)}}
+</style></head>
+<body>
+<header class="topo"><div class="wrap"><div class="marca"><img src="brand/comprastore-logo-240.png" alt=""><div><b>Compra Store</b><br><span>Brinquedos que fazem a infância mais feliz</span></div></div>
+<h1>Central do Cliente</h1><p>Acompanhe seu pedido, peça ajuda com troca, defeito ou montagem e conte como foi a sua experiência.</p></div></header>
+<main class="wrap">
+ <section class="card busca"><form class="form" id="fBusca"><label>Número do pedido<input id="pedido" required placeholder="O número que aparece na sua compra" autocomplete="off"></label><label>4 últimos dígitos do CPF<input id="fim4" required inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="0000" autocomplete="off"></label><button type="submit" id="bBusca">Ver meu pedido</button></form>
+  <p class="dica">Usamos só o número do pedido e 4 dígitos do CPF para proteger os seus dados. Comprou no Mercado Livre, Shopee ou Magalu? O número está em "Minhas compras" no app da loja.</p><div class="erro" id="erro" hidden></div></section>
+
+ <section id="res" hidden>
+  <div class="card"><div class="ola"><h2 id="ola"></h2><span class="badge" id="canal"></span></div>
+   <div class="linha" id="linha"></div><ul class="itens" id="itens"></ul></div>
+  <div class="card" id="ajudas" hidden><h3 style="font-size:18px">Seus atendimentos</h3><div id="ajLista"></div></div>
+  <div class="acoes">
+   <div class="card tile"><h3>Precisa de ajuda?</h3><p>Escolha o assunto e conte o que aconteceu. Respondemos em até 1 dia útil.</p>
+    <div id="ajudaForm"><div class="chips" id="chips"></div><textarea id="texto" rows="4" placeholder="Ex.: a peça do volante veio faltando"></textarea><label style="margin-top:10px">Seu WhatsApp ou e-mail (opcional)<input id="contato" placeholder="Para falarmos com você mais rápido"></label><button style="margin-top:12px;width:100%" id="bAjuda">Enviar pedido de ajuda</button></div>
+    <div class="okbox" id="ajudaOk" hidden></div></div>
+   <div class="card tile"><h3>Avalie sua compra</h3><p>De 0 a 10, quanto você recomendaria a Compra Store a um amigo?</p>
+    <div id="npsForm"><div class="nps" id="nps"></div><div class="nps-leg"><span>Nada provável</span><span>Muito provável</span></div><textarea id="coment" rows="3" style="margin-top:10px" placeholder="Conte o que mais gostou ou o que podemos melhorar (opcional)"></textarea><button style="margin-top:12px;width:100%" id="bNps">Enviar avaliação</button></div>
+    <div class="okbox" id="npsOk" hidden>Obrigado pela avaliação! Ela chega direto para a nossa equipe. 💛</div></div>
+  </div>
+ </section>
+
+ <section class="card"><h2 style="font-size:22px;margin-bottom:6px">Perguntas frequentes</h2>
+  <details><summary>Qual o prazo para trocar ou devolver?</summary><p>Compras pela internet podem ser devolvidas em até 7 dias corridos após o recebimento, por arrependimento. Produto com defeito tem garantia legal de 90 dias. Abra o pedido de ajuda aqui ou pelo chat da loja onde comprou.</p></details>
+  <details><summary>Veio uma peça faltando ou quebrada. E agora?</summary><p>Abra um pedido de ajuda escolhendo "Peça faltando" ou "Defeito" e, se puder, descreva a peça. Enviamos a reposição ou combinamos a troca, sem custo para você.</p></details>
+  <details><summary>Como carregar a bateria do brinquedo elétrico?</summary><p>Antes do primeiro uso, carregue por 8 a 12 horas. Depois, recarregue sempre após o uso e evite deixar a bateria totalmente descarregada por muitos dias. Nunca ultrapasse 20 horas de carga.</p></details>
+  <details><summary>Preciso de ajuda para montar.</summary><p>Siga o manual que vem na caixa. Se ficar alguma dúvida, escolha "Ajuda na montagem" e descreva em que passo parou: nossa equipe responde com o passo a passo.</p></details>
+  <details><summary>Meu pedido está atrasado.</summary><p>A entrega é feita pela transportadora da loja onde você comprou; o rastreio fica no app dela. Se passou do prazo, abra um pedido de ajuda com o assunto "Atraso" que acompanhamos junto com a transportadora.</p></details>
+ </section>
+ <p class="rod">Compra Store · WOLFACH E-COMMERCE LTDA · CNPJ 65.193.225/0001-57 · Timbó/SC<br>Seus dados são usados só para atender o seu pedido, conforme a <a href="privacidade.html">política de privacidade</a>.</p>
+</main>
+<script src="config.js"></script>
+<script>
+const $=s=>document.querySelector(s),URL_FN=(window.CONCILIA_CONFIG?.supabaseUrl||'')+'/functions/v1/portal',KEY=window.CONCILIA_CONFIG?.supabaseAnonKey||'';
+let ctx=null,tipo='duvida',nota=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function chamar(corpo){const r=await fetch(URL_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify(corpo)});const j=await r.json().catch(()=>({}));if(!r.ok||j.error)throw Error(j.error||'Não foi possível agora.');return j}
+$('#fBusca').onsubmit=async e=>{e.preventDefault();$('#erro').hidden=true;const b=$('#bBusca');b.disabled=true;b.textContent='Buscando…';
+ try{ctx={pedido:$('#pedido').value.trim(),fim4:$('#fim4').value.trim()};const j=await chamar({acao:'consultar',...ctx});
+  $('#ola').textContent=`Olá, ${j.nome}! Seu pedido de ${new Date(j.data+'T12:00:00').toLocaleDateString('pt-BR')}`;$('#canal').textContent=j.canal;
+  $('#linha').innerHTML=j.etapas.map((s,i)=>`<div class="passo ${s.ok?'ok':''}"><i>${s.ok?'✓':i+1}</i><b>${esc(s.t)}</b><small>${esc(s.detalhe||(s.quando?new Date(s.quando+'T12:00:00').toLocaleDateString('pt-BR'):''))}</small></div>`).join('');
+  $('#itens').innerHTML=j.itens.map(i=>`<li><span>${esc(i.nome)}</span><b>${i.qtd} un.</b></li>`).join('');ctx.produto=j.itens[0]?.nome;ajudas(j.ajudas||[]);
+  $('#res').hidden=false;$('#ajudaForm').hidden=false;$('#ajudaOk').hidden=true;$('#npsForm').hidden=false;$('#npsOk').hidden=true;$('#res').scrollIntoView({behavior:'smooth'})}
+ catch(x){$('#erro').textContent=x.message;$('#erro').hidden=false;$('#res').hidden=true}b.disabled=false;b.textContent='Ver meu pedido'};
+function ajudas(l){$('#ajudas').hidden=!l.length;$('#ajLista').innerHTML=l.map(a=>`<div class="aj"><div class="ajtopo"><b>${esc(a.motivo||'Atendimento')} · protocolo ${esc(a.protocolo)}</b><span class="badge ${a.situacao==='Resolvido'?'ok':a.situacao.startsWith('Respondido')?'resp':''}">${esc(a.situacao)}</span></div>
+ <div class="conv">${a.mensagens.map(m=>`<div class="bol ${m.de}"><small>${m.de==='loja'?'Compra Store':'Você'} · ${new Date(m.em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</small>${esc(m.texto)}</div>`).join('')}</div>
+ <div class="resp"><textarea rows="2" placeholder="Escreva para a loja" data-prot="${esc(a.protocolo)}"></textarea><button type="button" data-enviar="${esc(a.protocolo)}">Enviar</button></div></div>`).join('')}
+$('#ajLista').onclick=async e=>{const b=e.target.closest('[data-enviar]');if(!b)return;const t=b.parentElement.querySelector('textarea');if(!t.value.trim())return t.focus();b.disabled=true;
+ try{await chamar({acao:'responder',...ctx,protocolo:b.dataset.enviar,texto:t.value});const j=await chamar({acao:'consultar',...ctx});ajudas(j.ajudas||[])}catch(x){alert(x.message);b.disabled=false}};
+const TIPOS=[['duvida','Dúvida'],['peca','Peça faltando'],['defeito','Defeito'],['troca','Troca'],['montagem','Montagem'],['atraso','Atraso']];
+$('#chips').innerHTML=TIPOS.map(([k,t])=>`<button type="button" data-t="${k}" class="${k===tipo?'on':''}">${t}</button>`).join('');
+$('#chips').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;tipo=b.dataset.t;[...$('#chips').children].forEach(x=>x.classList.toggle('on',x===b))};
+$('#nps').innerHTML=[...Array(11)].map((_,i)=>`<button type="button" data-n="${i}">${i}</button>`).join('');
+$('#nps').onclick=e=>{const b=e.target.closest('[data-n]');if(!b)return;nota=+b.dataset.n;[...$('#nps').children].forEach(x=>x.classList.toggle('on',x===b))};
+$('#bAjuda').onclick=async()=>{const b=$('#bAjuda');b.disabled=true;try{const j=await chamar({acao:'ajuda',...ctx,tipo,texto:$('#texto').value,contato:$('#contato').value});$('#ajudaForm').hidden=true;$('#ajudaOk').hidden=false;$('#ajudaOk').textContent=`Recebemos! Protocolo ${j.protocolo}. Respondemos ${j.prazo} — a resposta aparece aqui, em "Seus atendimentos".`;chamar({acao:'consultar',...ctx}).then(r=>ajudas(r.ajudas||[])).catch(()=>{})}catch(x){alert(x.message)}b.disabled=false};
+$('#bNps').onclick=async()=>{if(nota==null)return alert('Escolha uma nota de 0 a 10.');const b=$('#bNps');b.disabled=true;try{await chamar({acao:'avaliar',...ctx,nota,comentario:$('#coment').value});$('#npsForm').hidden=true;$('#npsOk').hidden=false}catch(x){alert(x.message)}b.disabled=false};
+const q=new URLSearchParams(location.search);if(q.get('pedido'))$('#pedido').value=q.get('pedido');
+</script>
+</body></html>
