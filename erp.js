@@ -28,13 +28,13 @@ const MODS=[
  {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
- {id:'pes',ic:'clock',t:'Jornada',grupos:[['Ponto',['ponto']]]},
+ {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Ponto e jornada',['ponto']]]},
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
-const VISAO={ini:'central',pes:'ponto',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
-const GERAL=['equipe','ai','history','auditoria','lancamento','imports'];
+const VISAO={ini:'central',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
+const GERAL=['equipe','ai','history','auditoria','integridade','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
-const modDe=p=>p==='lancamento'?'fin':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
+const modDe=p=>p==='lancamento'?'fin':p==='integridade'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
 let modAtual=modDe(page)||'ini';
 const menuAberto=new Set((()=>{try{return JSON.parse(localStorage.getItem('eb_menu')||'[]')}catch{return []}})());
 const menuFechado=new Set();let menuSel=null;
@@ -89,6 +89,7 @@ document.addEventListener('click',e=>{const dm=e.target.closest('.dropmenu');con
   <button class="dropitem" data-nav="equipe">${ico('users',18)}<span><strong>Equipe e acessos</strong><small>Liberar usuários e papéis</small></span>${n?`<em class="navcount">${n}</em>`:''}</button>
   ${window.Cloud?.ws?`<button class="dropitem" data-erp-nome="1">${ico('edit',18)}<span><strong>Alterar meu nome</strong><small>Como você aparece no portal</small></span></button>`:''}
   <button class="dropitem" data-erp-seg="1">${ico('lock',18)}<span><strong>Segurança da conta</strong><small>Verificação em duas etapas, senha e sessão</small></span></button>
+  <button class="dropitem" data-nav="integridade">${ico('shield',18)}<span><strong>Segurança e integridade</strong><small>Teste agora se os dados estão íntegros e protegidos</small></span></button>
   <button class="dropitem" data-nav="auditoria">${ico('shield',18)}<span><strong>Log e auditoria</strong><small>Cada inclusão, alteração e exclusão, com quem e quando</small></span></button>
   <button class="dropitem" data-nav="integracoes">${ico('plug',18)}<span><strong>Integrações</strong><small>Bling e marketplaces</small></span></button>
   ${wss.length>1?wss.map(w=>`<button class="dropitem" data-erp-ws="${esc(w.id)}">${ico('folder',18)}<span><strong>${esc(w.name)}</strong><small>${w.id===Cloud.ws?'empresa aberta':'trocar para esta empresa'}</small></span></button>`).join(''):''}
