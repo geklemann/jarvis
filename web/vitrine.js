@@ -3,7 +3,7 @@
 // ação (vendas do dia, canais, conciliação, fluxo de caixa, mapa de pedidos e feed de eventos), fluxos de dados
 // correndo das bordas para o centro sobre uma grade em perspectiva e uma borda de luz no cartão.
 // Os números são ILUSTRATIVOS (a tela de login é pública: nenhum dado da empresa aparece aqui).
-// Tudo vetorial (SVG e canvas na densidade da tela): nítido em qualquer monitor. Respeita "reduzir movimento".
+// Tudo vetorial (SVG e canvas na densidade da tela): nítido em qualquer monitor. A animação fica sempre ligada (decisão do dono, 28/09).
 (()=>{
 const calmo=false; // animação sempre ligada no login (decisão do dono, 28/09), mesmo com "reduzir movimento" no sistema
 const rnd=(a,b)=>a+Math.random()*(b-a),escolha=l=>l[Math.floor(Math.random()*l.length)];

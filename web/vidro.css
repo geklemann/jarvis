@@ -27,7 +27,7 @@ body.vidro:before{content:'';position:fixed;inset:-10%;z-index:-1;pointer-events
  radial-gradient(38% 40% at 70% 96%,rgb(var(--b3) / calc(var(--aura) * .7)),transparent 70%),var(--sky);
  animation:aurora 38s ease-in-out infinite alternate}
 @keyframes aurora{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-2%,1.5%,0) scale(1.04)}100%{transform:translate3d(1.5%,-1%,0) scale(1.02)}}
-@media (prefers-reduced-motion:reduce){body.vidro:before{animation:none}}
+
 body.vidro #app{position:relative;isolation:isolate}
 body.vidro h1,body.vidro h2,body.vidro h3,body.vidro .kpiv,body.vidro .metric .value,body.vidro .bankval,body.vidro strong.big{font-family:'Manrope','DM Sans',sans-serif}
 body.vidro ::selection{background:rgb(var(--ar) / 30%)}
@@ -116,7 +116,7 @@ body.vidro .fcbar i,body.vidro .bar i{background:linear-gradient(90deg,var(--g2)
 body.vidro #view>*{animation:vdUp .45s cubic-bezier(.2,.8,.2,1) both}
 body.vidro #view>*:nth-child(2){animation-delay:.04s}body.vidro #view>*:nth-child(3){animation-delay:.08s}body.vidro #view>*:nth-child(4){animation-delay:.12s}
 @keyframes vdUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){body.vidro #view>*,body.vidro .modal{animation:none}}
+
 
 /* ─── Aparência: cartões das variações ─── */
 .vdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
