@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Jarvis</title>
+  <defs>
+    <linearGradient id="jg" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#5fe0cc"/>
+      <stop offset="0.55" stop-color="#2f7fe0"/>
+      <stop offset="1" stop-color="#a88aff"/>
+    </linearGradient>
+    <radialGradient id="jb" cx="0.3" cy="0.18" r="1">
+      <stop offset="0" stop-color="#15304a"/>
+      <stop offset="1" stop-color="#07111b"/>
+    </radialGradient>
+    <radialGradient id="jd" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#eafffb"/>
+      <stop offset="0.45" stop-color="#5fe0cc"/>
+      <stop offset="1" stop-color="#5fe0cc" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#jb)"/>
+  <g transform="translate(34 6)">
+    <path d="M300 122 V292 A100 100 0 0 1 100 292" fill="none" stroke="#5fe0cc" stroke-opacity="0.18" stroke-width="104" stroke-linecap="round"/>
+    <path d="M300 122 V292 A100 100 0 0 1 100 292" fill="none" stroke="url(#jg)" stroke-width="66" stroke-linecap="round"/>
+    <circle cx="382" cy="132" r="58" fill="url(#jd)"/>
+    <circle cx="382" cy="132" r="20" fill="#eafffb"/>
+  </g>
+</svg>

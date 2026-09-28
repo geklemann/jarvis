@@ -10,10 +10,10 @@ const TIPO=Object.fromEntries(TIPOS),PASSOS=['Entrada','Saída p/ intervalo','Vo
 const SEM=['dom','seg','ter','qua','qui','sex','sáb'];
 const pad=n=>String(n).padStart(2,'0'),dur=m=>`${pad(Math.floor(Math.abs(m)/60))}:${pad(Math.abs(m)%60)}`,sin=m=>`${m<0?'−':'+'}${dur(m)}`;
 const hojeISO=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
-const mesAtual=()=>hojeISO().slice(0,7),mesLabel=v=>{const [y,m]=v.split('-').map(Number);return new Date(y,m-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
+const mesAtual=()=>hojeISO().slice(0,7),mesAnt=()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return `${d.getFullYear()}-${pad(d.getMonth()+1)}`},mesLabel=v=>{const [y,m]=v.split('-').map(Number);return new Date(y,m-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
 const mMin=h=>Number(h.slice(0,2))*60+Number(h.slice(3,5)),hm=v=>String(v||'').slice(0,5);
 const quem=()=>window.Cloud?.session?.user?.email||'criador';
-const C=id=>st.colabs.find(c=>c.id===id),curto=n=>{const p=String(n||'').trim().split(/s+/);return p.length>2?p[0]+' '+p[p.length-1]:n};
+const C=id=>st.colabs.find(c=>c.id===id),curto=n=>{const p=String(n||'').trim().split(/\s+/);return p.length>2?p[0]+' '+p[p.length-1]:n};
 
 // ── Cálculo (igual ao servidor) ──
 function trabalhado(m){let t=0;for(let i=0;i<6;i+=2){const a=m[i]||'',b=m[i+1]||'';if(!!a!==!!b)return null;if(a){const n=mMin(b)-mMin(a);if(n<=0)return null;t+=n}}return t||null}
@@ -35,7 +35,7 @@ const banco=(c,ate=mesAtual())=>{const e=evolucao(c,ate);return e.length?e[e.len
 // ── Dados ──
 async function checarAcesso(){if(st.acesso!==null||!window.Cloud?.ws||!Cloud.session)return;st.acesso=false;
  try{const {data}=await Cloud.client.from('workspaces').select('criador').eq('id',Cloud.ws).maybeSingle();st.acesso=!!data?.criador&&data.criador===Cloud.session.user.id}catch{}
- window.Ponto.acesso=st.acesso;if(st.acesso)render()}
+ window.Ponto.acesso=st.acesso;if(st.acesso){render();window.Folha?.acessoLiberado?.()}}
 async function carregar(forca){if(st.carregando||(!forca&&st.ok)||!window.Cloud?.ws)return;st.carregando=true;const c=Cloud.client,ws=Cloud.ws,q=t=>c.from(t).select('*').eq('workspace_id',ws);
  try{const [a,b,d,e,f,g,h]=await Promise.all([q('ponto_colaboradores').order('nome'),q('ponto_dias').order('data'),q('ponto_ajustes').order('created_at'),q('ponto_solicitacoes').order('created_at',{ascending:false}),q('ponto_auditoria').order('em',{ascending:false}).limit(300),q('ponto_anexos').order('competencia'),q('ponto_dispositivos').order('created_at')]);
   for(const r of [a,b,d,e,f,g,h])if(r.error)throw r.error;
@@ -53,10 +53,11 @@ function status(c){const hoje=hojeISO(),r=st.dias.find(d=>d.colaborador_id===c.i
 function trabalhadoAgora(m){let t=0;const agora=new Date().getHours()*60+new Date().getMinutes();for(let i=0;i<m.length;i+=2){if(!m[i])continue;t+=Math.max(0,(m[i+1]?mMin(m[i+1]):agora)-mMin(m[i]))}return t}
 function agoraView(){const pend=st.sol.filter(s=>s.status==='pendente').length,ativos=st.colabs.filter(c=>c.ativo);
  if(!ativos.length)return `<div class="empty">Nenhuma pessoa cadastrada. <button class="small primary" data-pt="nova">Cadastrar a primeira</button></div>`;
- return `${pend?`<div class="notice">${pend} pedido(s) de ajuste aguardando você. <button class="small" data-pt-aba="solic">Ver pedidos</button></div>`:''}<div class="ptcards">${ativos.map(c=>{const s=status(c),hoje=hojeISO(),r=st.dias.find(d=>d.colaborador_id===c.id&&d.data===hoje),reg=r?.registros||[],t=trabalhadoAgora(s.m),rm=resumo(c,mesAtual()),disp=st.disp.filter(d=>d.colaborador_id===c.id&&d.token_hash&&!d.revogado).length;
+ return `${pend?`<div class="notice">${pend} pedido(s) de ajuste aguardando você. <button class="small" data-pt-aba="solic">Ver pedidos</button></div>`:''}<div class="ptcards">${ativos.map(c=>{const s=status(c),hoje=hojeISO(),r=st.dias.find(d=>d.colaborador_id===c.id&&d.data===hoje),reg=r?.registros||[],t=trabalhadoAgora(s.m),rm=resumo(c,mesAtual()),ac=banco(c),ant=mesAnt(),acAnt=banco(c,ant),disp=st.disp.filter(d=>d.colaborador_id===c.id&&d.token_hash&&!d.revogado).length;
   return `<section class="card ptcard"><div class="pthead"><div class="ptav">${esc(c.nome.trim()[0]||'?')}</div><div><b title="${esc(c.nome)}">${esc(curto(c.nome))}</b><small class="caption">${esc(c.cargo||'')}${c.cargo?' · ':''}${hm(c.entrada)}–${hm(c.saida)}</small></div><span class="badge ${s.cls}">${esc(s.t)}</span></div>
    <div class="ptline">${PASSOS.slice(0,Math.max(4,s.m.length)).map((p,i)=>{const g=reg.find(x=>x.i===i+1);return `<div class="${s.m[i]?'on':''}"><i></i><b>${s.m[i]||'--:--'}</b><small>${p}${g?.lat!=null?` · <a href="https://maps.google.com/?q=${g.lat},${g.lng}" target="_blank" rel="noopener" title="Local da marcação">local</a>`:''}${g?.nsr?` · NSR ${g.nsr}`:''}</small></div>`}).join('')}</div>
-   <div class="ptnums"><span>Hoje <b>${dur(t)}</b></span><span>Mês <b class="${cor(rm.saldo)}">${sin(rm.saldo)}</b></span><span>Banco <b class="${cor(banco(c))}">${sin(banco(c))}</b></span><span class="caption">${disp?`${disp} aparelho(s)`:'<a href="#" data-pt-link="'+c.id+'">gerar acesso ao app</a>'}</span></div></section>`}).join('')}</div>`}
+   <div class="ptsaldo"><div><small>Saldo acumulado</small><b class="${cor(ac)}">${sin(ac)}</b><small>até hoje · saldo inicial + todos os meses</small></div><div class="ptmini"><span>${esc(mesLabel(ant).replace(/ de \d{4}$/,''))} fechou em <b class="${cor(acAnt)}">${sin(acAnt)}</b></span><span>Mês atual <b class="${cor(rm.saldo)}">${sin(rm.saldo)}</b></span><span>Hoje <b>${dur(t)}</b></span></div></div>
+   <div class="ptnums"><span class="caption">${disp?`${disp} aparelho(s) ativo(s)`:'<a href="#" data-pt-link="'+c.id+'">gerar acesso ao app</a>'}</span></div></section>`}).join('')}</div>`}
 function seletores(mes=true){return `<div class="row wrap ptsel"><select data-pt-sel="colab">${st.colabs.map(c=>`<option value="${c.id}" ${c.id===st.colab?'selected':''}>${esc(c.nome)}${c.ativo?'':' (inativo)'}</option>`).join('')}</select>${mes?`<input type="month" value="${st.mes}" data-pt-sel="mes">`:''}</div>`}
 function espelhoView(){const c=C(st.colab);if(!c)return '<div class="empty">Cadastre uma pessoa em Equipe.</div>';const L=linhasMes(c,st.mes),r=resumo(c,st.mes),ev=evolucao(c,st.mes),ac=ev.length?ev[ev.length-1].ac:(c.saldo_inicial||0),anx=st.anexos.filter(a=>a.colaborador_id===c.id&&a.competencia===st.mes).length;let acum=ac-r.saldo;
  const SIT={ok:['Conferido','ok'],conferir:['A conferir','warn'],incompleto:['Incompleto','bad'],sem:['Sem registro','bad'],classif:['Classificado','info'],livre:['',''],hoje:['Hoje','info'],futuro:['',''],antes:['','']};
@@ -208,7 +209,7 @@ document.addEventListener('change',e=>{const s=e.target.closest('[data-pt-sel]')
  if(e.target.id==='ptArq'&&e.target.files.length)enviar([...e.target.files])});
 function bind(){const z=$('.ptdrop');if(z){z.ondragover=e=>{e.preventDefault();z.classList.add('on')};z.ondragleave=()=>z.classList.remove('on');z.ondrop=e=>{e.preventDefault();z.classList.remove('on');if(e.dataTransfer.files.length)enviar([...e.dataTransfer.files])}}
  miniaturas();clearInterval(st.timer);st.timer=setInterval(()=>{if(page!=='ponto'){clearInterval(st.timer);return}if(st.aba==='agora'&&!document.querySelector('.modalback'))carregar(true)},60e3)}
-window.Ponto={acesso:null,avisos:()=>{if(!st.acesso||!st.ok)return [];const n=st.sol.filter(s=>s.status==='pendente').length;return n?[['warn','clock',`${n} pedido(s) de ajuste de ponto`,'Colaboradores pediram correção pelo app','ponto']]:[]}};
-addPage('ponto','clock','Jornada',view,'Ponto dos colaboradores pelo app Jarvis Ponto: marcações, espelho, banco de horas, pedidos de ajuste e relatórios. Só quem criou a empresa acessa.','',bind);
+window.Ponto={acesso:null,garantir:()=>{checarAcesso();return carregar()},recarregar:()=>carregar(true),estado:()=>st,linhasMes,resumo,evolucao,trabalhado,curto,SEM,avisos:()=>{if(!st.acesso||!st.ok)return [];const n=st.sol.filter(s=>s.status==='pendente').length;return n?[['warn','clock',`${n} pedido(s) de ajuste de ponto`,'Colaboradores pediram correção pelo app','ponto']]:[]}};
+addPage('ponto','clock','Ponto e jornada',view,'Ponto dos colaboradores pelo app Jarvis Ponto: marcações, espelho, banco de horas, pedidos de ajuste e relatórios. Só quem criou a empresa acessa.','',bind);
 const tenta=()=>{if(window.Cloud?.ws&&Cloud.session)checarAcesso();else setTimeout(tenta,1500)};setTimeout(tenta,1200);
 })();
