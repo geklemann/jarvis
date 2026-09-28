@@ -251,19 +251,14 @@ td.comfoto .pfoto{float:left;margin:0 10px 0 0}
 .jv-barra em{font-style:normal;text-align:right;color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
  background:color-mix(in srgb,var(--accent) calc(10% + var(--h) * 75%),rgba(255,255,255,.03));transition:background 1.2s ease}
 @keyframes jvPing{0%{box-shadow:0 0 0 0 var(--accent);color:#fff}100%{box-shadow:0 0 0 10px transparent}}
+.jv-globobox{position:relative;aspect-ratio:1;width:100%;max-width:230px;border-radius:50%}
+.jv-globo{display:block;width:100%;height:100%}
+.jv-globobox small{position:absolute;left:0;bottom:-2px;font-size:8.5px;color:var(--muted);opacity:.7;white-space:nowrap}
 .jv-mapabox{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px;align-items:center}
-.jv-br{display:block;width:100%;height:auto;max-height:230px;overflow:visible;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
-.jv-br path{--h:0;fill:color-mix(in srgb,var(--accent) calc(14% + var(--h) * 78%),rgba(255,255,255,.05));stroke:rgb(var(--ar) / 70%);stroke-width:1.1;stroke-linejoin:round;transition:fill 1.2s ease}
-.jv-origem{fill:#f5cf7a;filter:drop-shadow(0 0 5px #f5cf7a)}
-.jv-onda{fill:none;stroke:var(--accent);stroke-width:2.2;animation:jvOnda 1.4s ease-out forwards}
-@keyframes jvOnda{from{r:3px;opacity:1}to{r:26px;opacity:0}}
-.jv-rota{fill:none;stroke:#f5cf7a;stroke-width:2;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 4px rgba(245,207,122,.7));animation:jvRota 1.8s cubic-bezier(.3,.7,.3,1) forwards}
-@keyframes jvRota{60%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
 .jv-top ol{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
 .jv-top li{display:grid;grid-template-columns:22px minmax(0,1fr) 30px;gap:6px;align-items:center;font-size:11px}
 .jv-top li span{font-weight:800;color:var(--text)}.jv-top li em{font-style:normal;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 .jv-top li i{height:5px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden}.jv-top li b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--jv2));transition:width .8s ease}
-body.light .jv-br path{stroke:rgba(15,111,124,.4)}body.light .jv-top li i{background:rgba(15,40,60,.07)}
 .jv-eventos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;min-height:188px}
 .jv-eventos li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);
  opacity:0;transform:translateY(-10px);transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.2,1)}
@@ -305,8 +300,8 @@ body.light .jv-eventos li{border-color:rgba(15,40,60,.07)}
  .jv-trilha .jv-eventos{min-height:0}
  .jv-trilha .jv-spark{height:92px}
  .jv-trilha .jv-fx{height:124px}
- .jv-trilha .jv-br{max-height:192px}
  .jv-trilha .jv-top li{grid-template-columns:20px minmax(0,1fr) 28px;font-size:10.5px}
+ .jv-trilha .jv-globobox{max-width:178px}
  .jv-trilha .jv-mapabox{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:6px}
 }
 @media (max-width:1079px) and (prefers-reduced-motion:reduce){.jv-trilho-in,.jv-trilha .jv-p{transition:none}}
