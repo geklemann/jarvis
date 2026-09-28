@@ -475,3 +475,5 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .orcin{width:110px;padding:6px 8px;text-align:right}
 .orcbar{position:relative;height:9px;border-radius:9px;background:rgba(127,127,127,.14);overflow:visible;margin-bottom:3px}.orcbar i{display:block;height:100%;border-radius:inherit;background:#1fb589}.orcbar.atencao i{background:#f0b450}.orcbar.estourou i{background:#e0565b}.orcbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text);opacity:.45;text-decoration:none}
 .orctab td{vertical-align:middle}
+
+.rstexto{white-space:pre-wrap;font:12.5px/1.5 'DM Sans',sans-serif;background:rgba(127,127,127,.08);border-radius:12px;padding:12px;margin:0;max-height:380px;overflow:auto}

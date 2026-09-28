@@ -177,7 +177,7 @@ let fxRes=null;addEventListener('resize',()=>{clearTimeout(fxRes);fxRes=setTimeo
 document.addEventListener('change',e=>{const x=e.target.closest('[data-fx-c]');if(!x)return;const k=x.dataset.fxC,v=x.type==='checkbox'?x.checked:x.type==='number'||x.type==='range'?Number(x.value):x.value;if(k.startsWith('atraso.'))ui.cen.atraso={...ui.cen.atraso,[k.slice(7)]:Number(v)};else ui.cen[k]=v;render()});
 document.addEventListener('input',e=>{const x=e.target.closest('input[type=range][data-fx-c]');if(x){const s=x.parentElement.querySelector('.fxval');if(s)s.textContent=(x.value>0?'+':'')+x.value+'%'}});
 function bind(){if(ui.aba==='diario')desenharGrafico();const f=$('#fxFut');if(f)f.onchange=()=>{ui.futuras=f.checked;render()};const s=$('[data-fx-meses]');if(s)s.onchange=()=>{ui.meses=Number(s.value);render()}}
-window.Fluxo={prazos};
+window.Fluxo={prazos,resumoCaixa:(dias=30)=>{const o=ui.dias;ui.dias=dias;try{const r=linhasDiario(null),fut=r.L.filter(l=>!l.real),min=fut.reduce((m,l)=>l.saldo<m.saldo?l:m,fut[0]);return {hoje:r.hojeSaldo,aplic:r.aplic,min:min.saldo,dataMin:min.d,fim:fut[fut.length-1].saldo,negativos:fut.filter(l=>l.saldo<0).length}}finally{ui.dias=o}}};
 addPage('fluxo','cash','Fluxo de caixa',view,'Saldo dia a dia (extrato real + projeção), realizado mês a mês e projeção de 12 semanas: de onde vem e para onde vai o dinheiro.','',bind);
 if(navItems.filter(n=>n[0]==='fluxo').length>1)navItems.splice(navItems.map(n=>n[0]).lastIndexOf('fluxo'),1);
 })();
