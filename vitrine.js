@@ -5,7 +5,7 @@
 // Os números são ILUSTRATIVOS (a tela de login é pública: nenhum dado da empresa aparece aqui).
 // Tudo vetorial (SVG e canvas na densidade da tela): nítido em qualquer monitor. Respeita "reduzir movimento".
 (()=>{
-const calmo=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const calmo=false; // animação sempre ligada no login (decisão do dono, 28/09), mesmo com "reduzir movimento" no sistema
 const rnd=(a,b)=>a+Math.random()*(b-a),escolha=l=>l[Math.floor(Math.random()*l.length)];
 const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
 const int=v=>Math.round(v).toLocaleString('pt-BR');
