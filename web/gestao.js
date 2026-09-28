@@ -9,7 +9,7 @@ Object.assign(paths,{
  trash:'M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6',
  save:'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8',
 });
-const CANAIS=['Mercado Livre','Shopee','Magalu','Site próprio'];
+const CANAIS=['Mercado Livre','Mercado Livre Clássico','Shopee','Magalu','Site próprio'];
 const pctf=n=>(Number.isFinite(n)?n:0).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
 const n2=v=>Number(v)||0;
 const monthLabel=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
@@ -155,7 +155,7 @@ async function attach(tipo,file){if(!file)return;const id=uid(),doc={id,month,ti
 
 // ═════════════════════════ PREÇOS E SIMULADOR ═════════════════════════
 function defaultsPricing(){return {impostos:8,ads:3,fixos:5,juros:0,margemAlvo:15,
- canais:{'Mercado Livre':{comissao:14,fixa:0,servico:0,frete:0,cupom:0,faixaAte:79,faixaValor:6.75,ativo:true},'Shopee':{comissao:14,fixa:4,servico:6,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:true},
+ canais:{'Mercado Livre':{comissao:16.5,fixa:0,servico:0,frete:0,cupom:0,faixaAte:79,faixaValor:6.75,ativo:true},'Mercado Livre Clássico':{comissao:11.5,fixa:0,servico:0,frete:0,cupom:0,faixaAte:79,faixaValor:6.75,ativo:true},'Shopee':{comissao:14,fixa:4,servico:6,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:true},
   'Magalu':{comissao:16,fixa:5,servico:0,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:true},'Site próprio':{comissao:0,fixa:0,servico:4,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:false}}}}
 // Resultado unitário de um preço num canal. Tudo em R$ por unidade.
 function calc(P,c,{custo=0,embalagem=0}={},g=db.pricing){P=n2(P);const q={preco:P,comissao:P*n2(c.comissao)/100,fixa:n2(c.fixa)+(n2(c.faixaAte)&&P<n2(c.faixaAte)?n2(c.faixaValor):0),servico:P*n2(c.servico)/100,frete:n2(c.frete),cupom:P*n2(c.cupom)/100,
@@ -231,7 +231,7 @@ function setPath(obj,path,val){const k=path.split('.');let o=obj;while(k.length>
 
 // ═════════════════════════ Registro das páginas e eventos ═════════════════════════
 addPage('contabil','book','DRE e Contabilidade',contabilView,'Razão, balancete e PDFs do escritório viram a DRE gerencial do e-commerce.','produtos',bindGestao);
-addPage('precos','tag','Tabela e Simulador',precosView,'Custos, regras de cada canal e margem de cada produto — e um simulador para testar.','produtos',bindGestao);
+addPage('precos','tag','Regras e simulador',precosView,'Custos, regras de cada canal e margem de cada produto — e um simulador para testar.','produtos',bindGestao);
 function bindGestao(){const s=$('#gSearch');if(s)s.oninput=e=>{ui.search=e.target.value;const pos=e.target.selectionStart;render();const a=$('#gSearch');a.focus();try{a.setSelectionRange(pos,pos)}catch{}};
  const mf=$('#gMapFilter');if(mf)mf.onchange=e=>{ui.mapFilter=e.target.value;render()};
  $$('[data-g-map]').forEach(x=>x.onchange=()=>{db.accMap[x.dataset.gMap]={linha:x.value,descricao:x.dataset.desc};save();if(ui.mapFilter==='pendentes')render()});
