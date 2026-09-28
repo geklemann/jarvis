@@ -463,3 +463,15 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .dfobs{border:1px solid #333;padding:8px;margin:0;min-height:40px}
 @media (max-width:1180px){.nfgrid{grid-template-columns:1fr}.nfside{position:static}}
 @media (max-width:760px){.dfcab,.dfgrid,.dfimp{grid-template-columns:1fr 1fr}.dfcab>div+div{border-left:0;border-top:1px solid #333}}
+
+.fxcen{margin-bottom:16px;border-color:rgb(var(--ar) / 40%)}.fxcenh{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.fxcenh h3{margin:0}
+.fxcomp{display:flex;flex-direction:column;gap:4px;font-size:13px;text-align:right}
+.fxcenc{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 16px;margin-top:12px}
+.fxcenc label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600}.fxcenc select,.fxcenc input[type=range]{width:100%}
+.fxcant{grid-column:span 2}.fxcant span{display:flex;align-items:center;gap:6px;color:var(--text)}.fxval{display:inline!important;color:var(--accent)!important}
+@media (max-width:760px){.fxcant{grid-column:auto}.fxcomp{text-align:left}}
+
+/* ─── Orçado × realizado ─── */
+.orcin{width:110px;padding:6px 8px;text-align:right}
+.orcbar{position:relative;height:9px;border-radius:9px;background:rgba(127,127,127,.14);overflow:visible;margin-bottom:3px}.orcbar i{display:block;height:100%;border-radius:inherit;background:#1fb589}.orcbar.atencao i{background:#f0b450}.orcbar.estourou i{background:#e0565b}.orcbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text);opacity:.45;text-decoration:none}
+.orctab td{vertical-align:middle}
