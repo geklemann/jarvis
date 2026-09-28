@@ -18,7 +18,7 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 
 // ═════════════════ Estrutura ═════════════════
 const MODS=[
- {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central']]]},
+ {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','resumo']]]},
  {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['inventario','separacao']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco']],['Caixa e planejamento',['fluxo','orcamento']]]},
@@ -46,7 +46,7 @@ function avisos(){const c=contagens(),s=l=>money(round(l.reduce((a,t)=>a+saldoT(
  if(c.extrato)out.push(['info','swap',`${c.extrato} movimento(s) do extrato a conciliar`,'Conciliação bancária','concbanco']);
  if(c.notas)out.push(['info','receipt',`${c.notas} nota(s) de entrada nova(s)`,'Confira categorias e vencimentos','compras']);
  if(c.acessos)out.push(['warn','users',`${c.acessos} pedido(s) de acesso`,'Equipe e acessos','equipe']);
- out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]));
+ out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]),...(window.Resumo?.avisos?.()||[]));
  return out}
 
 let paginaAnterior=null;
