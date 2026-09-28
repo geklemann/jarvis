@@ -9,6 +9,7 @@ import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
+import { enviarPush, verificarAlertas } from "../_shared/alertas.ts";
 import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
@@ -191,6 +192,14 @@ Deno.serve(handler(async (req) => {
         await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.catalogo_diag_pedido; s.catalogo_diag = { canais: r.canais, porLoja, total: r.vinculos.length, em: r.em }; });
       } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.catalogo_diag_pedido; s.catalogo_diag = { erro: String(e).slice(0, 400), em: new Date().toISOString() }; }); }
     }
+    // Alertas no celular: a cada ~15 min, o que mudou vira notificação para quem ativou.
+    for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.alertas?.em || Date.now() - new Date(x.settings.alertas.em).getTime() > 14 * 60_000))) {
+      try {
+        const r = await verificarAlertas(db, i.workspace_id, i.settings?.alertas);
+        const env = await enviarPush(db, i.workspace_id, r.alertas);
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.alertas = { ...r.estado, ultimos: r.alertas.map((a) => a.titulo).slice(0, 5), enviados: env.enviados }; });
+      } catch (e) { report.push({ workspace_id: i.workspace_id, alertas_erro: String(e).slice(0, 200) }); }
+    }
     // Estoque (Bling): produtos, custo e saldo.
     for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.estoque?.fim || Date.now() - new Date(x.settings.estoque.fim).getTime() > ESTOQUE_MS))) {
       try {
@@ -288,6 +297,7 @@ Deno.serve(handler(async (req) => {
       await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Manifestação do destinatário", actor: user.email ?? user.id, detail: JSON.stringify(r).slice(0, 900) }).then(() => null, () => null);
       return json(r);
     }
+    case "push_teste": return json(await enviarPush(db, ws, [{ titulo: "Jarvis: alertas ligados", corpo: "Você vai receber aqui NF-e rejeitada, reclamação urgente, ruptura, vencimentos do dia e aprovações.", url: "#central", tag: "teste" }]));
     case "fiscal_simular": return json(await simularNota(db, ws, { pedido: body.pedido ? String(body.pedido) : undefined, dados: body.dados }));
     case "fiscal_emitir_avulsa": case "fiscal_cce": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();

@@ -91,6 +91,7 @@ document.addEventListener('click',e=>{const dm=e.target.closest('.dropmenu');con
   <button class="dropitem" data-nav="integracoes">${ico('plug',18)}<span><strong>Integrações</strong><small>Bling e marketplaces</small></span></button>
   ${wss.length>1?wss.map(w=>`<button class="dropitem" data-erp-ws="${esc(w.id)}">${ico('folder',18)}<span><strong>${esc(w.name)}</strong><small>${w.id===Cloud.ws?'empresa aberta':'trocar para esta empresa'}</small></span></button>`).join(''):''}
   <button class="dropitem" data-erp-tema="1">${ico(db.theme==='light'?'moon':'sun',18)}<span><strong>Aparência</strong><small>Temas, cores e modo claro/escuro</small></span></button>
+  <button class="dropitem" data-al="abrir">${ico('bell',18)}<span><strong>Alertas no celular</strong><small>Avisos de NF-e, reclamações, estoque e contas</small></span></button>
   <button class="dropitem" data-nav="suporte">${ico('help',18)}<span><strong>Manual e suporte</strong><small>Manual completo e chamados de suporte</small></span>${(()=>{const a=window.Suporte?.avisos?.()||[];return a.length?`<em class="navcount">${a[0][2].match(/d+/)?.[0]||'!'}</em>`:''})()}</button>
   ${window.Cloud?.ws?`<button class="dropitem" data-cloud="logout">${ico('logout',18)}<span><strong>Sair</strong><small>Encerrar a sessão</small></span></button>`:''}`,b)}
 });
