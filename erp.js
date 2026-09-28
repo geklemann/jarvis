@@ -30,7 +30,7 @@ const MODS=[
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
  {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
-const VISAO={ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
+const VISAO={ini:'central',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};
 const GERAL=['equipe','ai','history','auditoria','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
 const modDe=p=>p==='lancamento'?'fin':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
