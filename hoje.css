@@ -105,3 +105,5 @@ body.pg-home .pagehead{display:none}
 .hj .copiloto .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .hj .copiloto .chips button{border-radius:30px}
 .hj-two>.card{height:100%}
+
+.hj-prod{display:flex;gap:12px;align-items:center;margin-bottom:8px}.hj-prod img{width:56px;height:56px;object-fit:contain;background:#fff;border-radius:12px;flex:none}
