@@ -62,7 +62,22 @@ const filtros=(extra='')=>`<div class="crmbar"><div class="segtabs">${[['mes','M
 const kpi=(l,v,s,tom='')=>`<div class="card kpi"><span class="kpil">${l}</span><span class="kpiv ${tom}">${v}</span><span class="kpis">${s}</span></div>`;
 function barras(l,val,lab,cor='var(--accent)',fmt=money){const max=Math.max(1,...l.map(val));return l.map(x=>`<div class="hrow"><span class="hlab" title="${esc(lab(x))}">${esc(lab(x))}</span><span class="htrack"><i style="width:${val(x)/max*100}%;background:${cor}"></i></span><strong>${fmt(val(x))}</strong></div>`).join('')}
 function porUF(rows){const m={};for(const o of rows){const uf=ufDe(o);if(!uf)continue;const s=m[uf]||(m[uf]={uf,pedidos:0,receita:0,itens:0,clientes:new Set()});s.pedidos++;s.receita+=o.gross;s.itens+=qtdItens(o);const k=chave(o);if(k)s.clientes.add(k)}return m}
-function mapaBrasil(m,sel=''){const max=Math.max(1,...Object.values(m).map(s=>s.receita));
+// Mapa real do Brasil (contornos oficiais do IBGE, os mesmos do globo do login) colorido pela receita de cada estado.
+// Sem a malha carregada, cai na grade de quadrados.
+const MAPA_PEQ=new Set(['DF','SE','AL','PB','RN','ES','RJ','PE']);
+function mapaGeo(m,sel){const G=window.MapaBRGeo,C=window.MapaBRGeoCentro||{},max=Math.max(1,...Object.values(m).map(s=>s.receita)),k=Math.cos(15*Math.PI/180),S=10,L0=-74.2,T0=5.6;
+ const px=(lo,la)=>[((lo-L0)*k*S).toFixed(1),((T0-la)*S).toFixed(1)],fmt=v=>v>=1e6?(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi':v>=1000?(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+'k':String(Math.round(v));
+ const ufs=Object.keys(G).sort((a,b)=>(a===sel)-(b===sel));
+ const estados=ufs.map(uf=>{const s=m[uf],v=s?s.receita:0,a=v?0.14+0.86*Math.sqrt(v/max):0;
+  const d=G[uf].map(p=>{let o='';for(let i=0;i<p.length;i+=2){const [x,y]=px(p[i],p[i+1]);o+=(i?'L':'M')+x+' '+y}return o+'Z'}).join('');
+  const tt=`${uf} · ${s?money(s.receita)+' · '+nf(s.pedidos)+' pedidos · '+nf(s.clientes.size)+' clientes':'sem vendas'}`;
+  return `<path class="${sel===uf?'sel':''}" d="${d}" data-crm-uf="${uf}" style="fill:${v?`rgba(168,138,255,${a.toFixed(2)})`:'var(--panel2)'}"><title>${esc(tt)}</title></path>`}).join('');
+ const rotulos=ufs.map(uf=>{const c=C[uf];if(!c)return '';const [x,y]=px(c[0],c[1]),s=m[uf],peq=MAPA_PEQ.has(uf);
+  return `<g class="rot${peq?' peq':''}" data-crm-uf="${uf}" transform="translate(${x} ${y})"><text class="uf" y="${peq||!s?3:-1}">${uf}</text>${s&&!peq?`<text class="v" y="10">${fmt(s.receita)}</text>`:''}</g>`}).join('');
+ const [w,h]=[((-34.4-L0)*k*S).toFixed(0),((T0+34)*S).toFixed(0)];
+ return `<div class="brgeo"><svg viewBox="-4 -4 ${+w+8} ${+h+8}" role="img" aria-label="Mapa do Brasil por receita"><g class="est">${estados}</g><g class="rots">${rotulos}</g></svg>
+  <div class="brleg"><span>menos</span><i></i><span>mais receita</span><em><b></b>sem vendas</em></div></div>`}
+function mapaBrasil(m,sel=''){if(window.MapaBRGeo)return mapaGeo(m,sel);const max=Math.max(1,...Object.values(m).map(s=>s.receita));
  return `<div class="brmap" role="img" aria-label="Mapa do Brasil por receita">${Object.entries(GRADE).map(([uf,[x,y]])=>{const s=m[uf],v=s?s.receita:0,a=v?0.15+0.85*Math.sqrt(v/max):0;return `<button class="uf ${sel===uf?'sel':''}" style="grid-column:${x+1};grid-row:${y+1};background:${v?`rgba(168,138,255,${a.toFixed(2)})`:'var(--panel2)'};color:${a>0.55?'#170e31':'var(--text)'}" data-crm-uf="${uf}" title="${uf} · ${s?money(s.receita)+' · '+nf(s.pedidos)+' pedidos · '+nf(s.clientes.size)+' clientes':'sem vendas'}"><b>${uf}</b><small>${s?(s.receita>=1000?(s.receita/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+'k':Math.round(s.receita)):''}</small></button>`}).join('')}</div>`}
 function rankProdutos(rows){const m=new Map();for(const o of rows)for(const it of o.items||[]){const k=normalized(it.sku||it.title)||'?';const p=m.get(k)||{sku:it.sku||'',titulo:it.title||it.sku||'Sem descrição',qtd:0,receita:0,pedidos:new Set(),clientes:new Set(),canais:{},ufs:{}};const q=Number(it.qty)||0,v=q*(Number(it.price)||0);p.qtd+=q;p.receita+=v;p.pedidos.add(o.id);const ck=chave(o);if(ck)p.clientes.add(ck);p.canais[o.platform]=(p.canais[o.platform]||0)+v;const uf=ufDe(o);if(uf)p.ufs[uf]=(p.ufs[uf]||0)+q;m.set(k,p)}
  return [...m.values()].map(p=>({...p,qtd:round(p.qtd),receita:round(p.receita),pedidos:p.pedidos.size,clientes:p.clientes.size,uf:Object.entries(p.ufs).sort((a,b)=>b[1]-a[1])[0]?.[0]||''}))}
