@@ -2,7 +2,7 @@
   "name": "concil-ia",
   "version": "3.0.0",
   "private": true,
-  "description": "CONCIL-IA — conciliação de e-commerce (Bling × Mercado Livre, Shopee e Magalu) com IA, produtos, estados e CRM",
+  "description": "Jarvis — ERP de e-commerce (antigo CONCIL-IA): conciliação (Bling × Mercado Livre, Shopee e Magalu) com IA, produtos, estados e CRM",
   "scripts": {
     "start": "node server.mjs",
     "check": "node --check server.mjs && for f in web/*.js; do node --check \"$f\" || exit 1; done"

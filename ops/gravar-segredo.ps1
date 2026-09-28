@@ -1,4 +1,4 @@
-﻿# Grava uma credencial do CONCIL-IA no Supabase (usado pelas funções) e, se possível, no GitHub.
+﻿# Grava uma credencial do Jarvis no Supabase (usado pelas funções) e, se possível, no GitHub.
 # Uso: powershell -ExecutionPolicy Bypass -File "...\ops\gravar-segredo.ps1" BLING_CLIENT_SECRET
 # Copie a credencial (Ctrl+C) e rode o comando; o valor é lido da área de transferência e não aparece na tela.
 param([Parameter(Mandatory = $true)][string]$Nome)

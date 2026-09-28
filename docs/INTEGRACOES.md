@@ -1,6 +1,6 @@
 # Integrações com as plataformas
 
-O CONCIL-IA acessa as plataformas **pelas APIs oficiais, com autorização OAuth** — o mesmo modelo que ERPs e hubs usam. Não guardamos nem usamos a senha das suas contas: você clica em **Conectar**, entra na própria plataforma e autoriza o acesso. O que fica salvo é um token revogável, em tabela inacessível pelo navegador.
+O Jarvis acessa as plataformas **pelas APIs oficiais, com autorização OAuth** — o mesmo modelo que ERPs e hubs usam. Não guardamos nem usamos a senha das suas contas: você clica em **Conectar**, entra na própria plataforma e autoriza o acesso. O que fica salvo é um token revogável, em tabela inacessível pelo navegador.
 
 Cada plataforma exige cadastrar um **aplicativo de desenvolvedor** (uma vez). Em todas, a URL de retorno (redirect/callback) é:
 

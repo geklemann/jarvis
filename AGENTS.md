@@ -1,4 +1,4 @@
-# CONCIL-IA — regras para quem altera o código (humanos e IAs)
+# Jarvis (antigo CONCIL-IA) — regras para quem altera o código (humanos e IAs)
 
 ## Produto
 Ferramenta de conciliação financeira de e-commerce: Bling (ERP, origem fiscal) × Mercado Livre/Mercado Pago, Shopee e Magalu. Público: financeiro de uma operação brasileira. Toda a interface é em português do Brasil.

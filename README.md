@@ -1,6 +1,6 @@
-# EcomBalance · Compra Store
+# Jarvis · Compra Store
 
-Portal da **Compra Store** (antigo CONCIL-IA). Conciliação financeira de e-commerce entre o **Bling** (ERP, origem fiscal) e os marketplaces **Mercado Livre / Mercado Pago**, **Shopee** e **Magalu**, com assistente de IA (Claude), ranking de produtos, vendas por estado, CRM e entradas e saídas do ERP.
+Portal da **Compra Store** (antigo CONCIL-IA / EcomBalance). Conciliação financeira de e-commerce entre o **Bling** (ERP, origem fiscal) e os marketplaces **Mercado Livre / Mercado Pago**, **Shopee** e **Magalu**, com assistente de IA (Claude), ranking de produtos, vendas por estado, CRM e entradas e saídas do ERP.
 
 **Site:** https://ecombalance.com.br/
 

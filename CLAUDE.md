@@ -1,4 +1,4 @@
-# CONCIL-IA — instruções para o Claude
+# Jarvis (antigo CONCIL-IA) — instruções para o Claude
 
 As regras do repositório estão em **[AGENTS.md](AGENTS.md)**. Leia antes de alterar código.
 
