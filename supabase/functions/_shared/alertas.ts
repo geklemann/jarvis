@@ -10,7 +10,7 @@ function configurar() {
   if (pronto) return true;
   const pub = Deno.env.get("VAPID_PUBLIC_KEY"), priv = Deno.env.get("VAPID_PRIVATE_KEY");
   if (!pub || !priv) return false;
-  webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:suporte@ecombalance.com.br", pub, priv);
+  webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:suporte@jaarvis.com.br", pub, priv);
   return (pronto = true);
 }
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
