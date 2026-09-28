@@ -28,9 +28,33 @@ function dados(){const h=hoje(),m=h.slice(0,7),dia=+h.slice(8),ant=new Date(+m.s
  const avisos=seguro(()=>E().avisos(),[]);
  return {h,m,dia,ant,porDia,vh,vo,mes,mesAnt,spark,ab,venc,vhj,sem,somaT,pr,menor,receberMk,receberVd,recVd,avisos}}
 
+// ─────────── Desempenho por produto (orbe, pergunta escrita) ───────────
+// Acha o produto citado na frase (SKU ou palavras do nome) e responde com vendas, lucro, margem por canal, preço mínimo
+// e estoque. "Quais produtos dão mais lucro?" responde com o ranking.
+const PARADAS=new Set(['como','esta','estao','produto','produtos','item','itens','desempenho','venda','vendas','vendendo','lucro','lucratividade','margem','anuncio','do','da','de','dos','das','o','a','os','as','e','no','na','qual','quanto','que','me','fala','sobre','mostra','ver','performance','rentabilidade','maral','pimpi','compra','store','anda','vai','tem','teve','esse','essa','mes','dias']);
+function acharProduto(n){const lista=(window.Estoque?.lista?.()||[]).filter(p=>p.nome);if(!lista.length)return null;const pal=n.split(/[^a-z0-9]+/).filter(w=>w.length>=2);
+ const sku=lista.find(p=>pal.includes(normalized(p.id)));if(sku)return sku;const q=new Set(pal.filter(w=>!PARADAS.has(w)));if(!q.size)return null;
+ let melhor=null,nota=0;for(const p of lista){const ws=normalized(p.nome).split(/[^a-z0-9]+/).filter(w=>w.length>=2&&!PARADAS.has(w));if(!ws.length)continue;
+  const hit=ws.filter(w=>q.has(w)||[...q].some(x=>x.length>=4&&(w.startsWith(x)||x.startsWith(w)))).length,sc=hit/ws.length+hit*.35;if(hit&&sc>nota){nota=sc;melhor=p}}
+ return nota>=.6?melhor:null}
+function respostaProduto(p){const M=window.Margem?.produto?.(p.id);if(!M)return '<strong>'+esc(p.nome)+'</strong>: abra o Radar de margem para calcular.';
+ const pc=v=>(v*100).toFixed(1).replace('.',',')+'%',var_=M.venda_ant?((M.venda/M.venda_ant-1)*100):null,cob=M.unidades?(Number(p.saldo)||0)/(M.unidades/M.periodo):null;
+ const tom=M.margem<0?'red':M.margem*100<M.meta?'gold':'green';
+ const canais=M.canais.length?'<ul class="hj-list">'+M.canais.map(c=>`<li><span>${esc(c.canal)} · ${c.u} un. a ${money(c.preco)}</span><small class="${c.margem<0?'red':''}">margem ${pc(c.margem)}${c.minimo?` · mín. ${money(c.minimo)}`:''}</small><b>${money(c.lucro)}</b></li>`).join('')+'</ul>':'';
+ return `<div class="hj-prod">${p.imagem?`<img src="${esc(p.imagem)}" alt="">`:''}<div><strong>${esc(p.nome)}</strong><br><span class="caption mono">${esc(p.id)}</span></div></div>
+ <p><strong>Últimos ${M.periodo} dias: ${M.unidades.toLocaleString('pt-BR')} un. · ${money(M.venda)}</strong> em ${M.pedidos} pedido(s)${var_!=null?` — ${var_>=0?'▲':'▼'} ${Math.abs(var_).toFixed(1).replace('.',',')}% contra os ${M.periodo} dias anteriores`:''}.
+ Lucro de contribuição <b class="${tom}">${money(M.lucro)} (${pc(M.margem)})</b>${M.custo?` · custo ${money(M.custo)} por unidade`:''}.</p>${canais}
+ <p class="caption">Estoque: <b>${(Number(p.saldo)||0).toLocaleString('pt-BR')} un.</b>${cob!=null?` · cobertura de ${Math.round(cob)} dia(s)`:''}${M.canais.some(c=>c.minimo&&c.preco<c.minimo)?' · <span class="red">há canal vendendo abaixo do preço mínimo</span>':''}.</p>
+ <div class="row wrap"><button class="small" data-nav="margem">Radar de margem →</button><button class="small" data-est-ficha="${esc(p.id)}">Ficha do produto →</button><button class="small" data-nav="precos">Formação de preço →</button></div>`}
+function rankingLucro(pior){const R=(window.Margem?.ranking?.()||[]).filter(g=>g.venda>0);if(!R.length)return '<strong>Sem vendas com custo no período.</strong>';const l=[...R].sort((a,b)=>pior?a.lucro-b.lucro:b.lucro-a.lucro).slice(0,7);
+ return `<strong>${pior?'Produtos que menos lucram (ou dão prejuízo)':'Produtos que mais dão lucro'} · últimos 30 dias</strong><ul class="hj-list">${l.map((g,i)=>`<li><span>${i+1}. ${esc(String(g.nome).slice(0,48))}</span><small class="${g.margem<0?'red':''}">${g.u} un. · margem ${(g.margem*100).toFixed(1).replace('.',',')}%</small><b class="${g.lucro<0?'red':''}">${money(g.lucro)}</b></li>`).join('')}</ul><div class="row wrap"><button class="small" data-nav="margem">Radar de margem →</button></div>`}
+
 // ─────────── Assistente local: responde com os dados, ou encaminha ───────────
 function responder(q,soRegra){const n=normalized(q),d=dados(),bt=(nav,t)=>`<button class="small" data-nav="${nav}">${t} →</button>`;
  const R=[
+  [/(mais|maior|melhor(es)?) (lucr|rentab|margem)|produtos? (que )?(mais )?(da|dao|dá|dão) (mais )?lucro|ranking de lucr|lucratividade (por|dos) (item|itens|produto)/,()=>rankingLucro(false)],
+  [/(menos|menor|pior(es)?) (lucr|rentab|margem)|prejuizo por produto|produtos? (com|dando) prejuizo/,()=>rankingLucro(true)],
+  [/./,()=>{const p=/(produto|item|desempenho|performance|lucr|rentab|margem|vend|como (esta|anda|vai))/.test(n)||/\bcs\d/.test(n)?acharProduto(n):null;return p?respostaProduto(p):null}],
   [/vend|fatur|pedido|faturei|vendi/,()=>{const var_=d.mesAnt.v?((d.mes.v/d.mesAnt.v-1)*100):0;return `<strong>Hoje: ${money(d.vh.v)} em ${d.vh.n} pedido(s)</strong> (ontem ${money(d.vo.v)}). No mês, ${money(d.mes.v)} em ${d.mes.n} pedidos — ${var_>=0?'▲':'▼'} ${Math.abs(var_).toFixed(1).replace('.',',')}% contra o mesmo período do mês passado.<div class="row wrap">${bt('dashboard','Visão geral')}${bt('margem','Margem')}</div>`}],
   [/venc|pagar|boleto|conta(s)? a pagar|devo/,()=>`<strong>${d.vhj.length} título(s) vencem hoje (${money(d.somaT(d.vhj))})</strong>${d.venc.length?`, <span class="red">${d.venc.length} vencido(s) somando ${money(d.somaT(d.venc))}</span>`:', nada vencido'}. Nos próximos 7 dias: ${d.sem.length} título(s), ${money(d.somaT(d.sem))}.<ul class="hj-list">${[...d.venc,...d.vhj,...d.sem].slice(0,5).map(t=>`<li><span>${esc(t.fornecedor||t.descricao)}</span><small>${dataBR(t.vencimento)}</small><b>${money(E().saldoT?.(t)??t.valor)}</b></li>`).join('')}</ul><div class="row wrap">${bt('pagar','Contas a pagar')}${bt('fluxo','Fluxo de caixa')}</div>`],
   [/receb|repasse|liberac/,()=>`<strong>A receber: ${money(d.receberMk)} dos marketplaces</strong>${d.receberVd?` e ${money(d.receberVd)} de vendas diretas (${d.recVd.length} parcela(s))`:''}.<div class="row wrap">${bt('reconcile','Conciliação de vendas')}${bt('receber','Contas a receber')}</div>`],
@@ -42,7 +66,7 @@ function responder(q,soRegra){const n=normalized(q),d=dados(),bt=(nav,t)=>`<butt
   [/atendim|reclama|cliente|devoluc/,()=>`<strong>${window.Atendimento?.abertos?.()||0} atendimento(s) em aberto.</strong><div class="row wrap">${bt('atendimento','Atendimento')}${bt('devolucoes','Devoluções')}${bt('crm','CRM')}</div>`],
   [/lanc|nova despesa|novo titulo|cadastrar conta/,()=>`<strong>Lançar um título a pagar.</strong><div class="row wrap">${bt('lancamento','Novo lançamento')}</div>`],
   [/venda direta|atacado|orcamento/,()=>`<strong>Venda direta com nota e parcelas.</strong><div class="row wrap">${bt('vendadireta','Nova venda direta')}</div>`]];
- const r=R.find(([re])=>re.test(n));if(r)return r[1]();if(soRegra)return null;
+ for(const [re,f] of R){if(!re.test(n))continue;const x=f();if(x)return x}if(soRegra)return null;
  const res=seguro(()=>E().resultados?.(q),'');
  return `<strong>Não encontrei uma resposta pronta para “${esc(q)}”.</strong>${res?`<div class="hj-res">${res}</div>`:''}<div class="row wrap"><button class="small primary" data-hj="ia" data-q="${esc(q)}">${ico('spark',15)} Perguntar à IA</button></div>`}
 

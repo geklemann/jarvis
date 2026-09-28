@@ -83,6 +83,16 @@ export const TOOLS = [
     input_schema: { type: "object", properties: { mes, limite }, additionalProperties: false },
   },
   {
+    name: "desempenho_produto",
+    description: "Desempenho e LUCRATIVIDADE de um produto: unidades, receita, lucro de contribuição e margem por canal nos últimos 30 dias (venda − tarifa − frete − custo − tributos), comparação com os 30 dias anteriores, preço mínimo por canal e estoque. Use quando perguntarem como está um produto/item/anúncio.",
+    input_schema: { type: "object", properties: { produto: { type: "string", description: "SKU (ex.: CS3087) ou parte do nome do produto" } }, required: ["produto"], additionalProperties: false },
+  },
+  {
+    name: "lucratividade_produtos",
+    description: "Ranking de LUCRO por produto nos últimos 30 dias (lucro de contribuição e margem), dos que mais lucram ou dos que menos lucram/dão prejuízo.",
+    input_schema: { type: "object", properties: { ordem: { type: "string", enum: ["mais", "menos"] }, limite: { type: "integer", minimum: 1, maximum: 50 } }, additionalProperties: false },
+  },
+  {
     name: "ranking_produtos",
     description: "Produtos mais vendidos por receita ou quantidade, com participação e plataformas.",
     input_schema: {

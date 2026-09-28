@@ -478,3 +478,9 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 
 .rstexto{white-space:pre-wrap;font:12.5px/1.5 'DM Sans',sans-serif;background:rgba(127,127,127,.08);border-radius:12px;padding:12px;margin:0;max-height:380px;overflow:auto}
 .alertlist{margin:6px 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+
+/* Plano de contas: tabela na largura toda e categorias em grade */
+.plgrid{grid-template-columns:1fr!important;gap:16px}
+.pltab td:not(:nth-child(2)),.pltab th{padding:7px 12px!important;white-space:nowrap}.pltab td:nth-child(2){padding-top:7px!important;padding-bottom:7px!important}.pltab td:nth-child(2){white-space:normal;min-width:280px}.pltab td:first-child{width:110px}
+.plcats{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px 16px;padding:14px 16px}
+.plcat{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}.plcat select{width:100%}
