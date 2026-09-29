@@ -18,7 +18,7 @@ const VINC={clt:'CLT',prolabore:'Pró-labore',estagio:'Estágio'},quem=()=>windo
 const P=()=>({...PADRAO,...(st.P||{})}),PT=()=>window.Ponto,colabs=()=>(PT()?.estado?.().colabs||[]);
 
 async function carregar(forca){if(st.carregando||(!forca&&st.ok)||!window.Cloud?.ws)return;st.carregando=true;const c=Cloud.client,ws=Cloud.ws;
- try{await PT()?.garantir?.();const [a,b,d]=await Promise.all([c.from('folha_parametros').select('dados').eq('workspace_id',ws).maybeSingle(),c.from('folha_lancamentos').select('*').eq('workspace_id',ws).order('created_at'),c.from('folha_fechamentos').select('*').eq('workspace_id',ws)]);
+ try{await PT()?.garantir?.();await window.Pessoas?.garantir?.();const [a,b,d]=await Promise.all([c.from('folha_parametros').select('dados').eq('workspace_id',ws).maybeSingle(),c.from('folha_lancamentos').select('*').eq('workspace_id',ws).order('created_at'),c.from('folha_fechamentos').select('*').eq('workspace_id',ws)]);
   for(const x of [b,d])if(x.error)throw x.error;st.P=a.data?.dados||null;st.lanc=b.data;st.fech=d.data;st.ok=true;if(!st.comp)st.comp=compAtual()}
  catch(x){toast('Folha: '+(x.message||x))}st.carregando=false;if(page==='folha'&&!document.querySelector('.modalback'))render()}
 
@@ -32,7 +32,11 @@ function vigente(c,comp){return c.proximo_em&&c.proximo_vinculo&&comp>=c.proximo
 function calcular(c0,comp){const c=vigente(c0,comp),p=P(),[y,m]=comp.split('-').map(Number),ini=`${comp}-01`,fimDia=new Date(y,m,0).getDate(),fim=`${comp}-${pad(fimDia)}`;
  if(c.admissao&&c.admissao>fim)return null;if(c.demissao&&c.demissao<ini)return null;
  let dias=30;if(c.admissao&&c.admissao>=ini)dias=Math.max(0,30-(Number(c.admissao.slice(8))-1));if(c.demissao&&c.demissao<=fim)dias=Math.min(dias,Math.min(30,Number(c.demissao.slice(8))));
+ let diasFer=0;const fer=(window.Pessoas?.ferias?.()||[]).filter(x=>x.colaborador_id===c0.id&&x.status!=='cancelada'&&x.gozo_ini<=fim&&x.gozo_fim>=ini);
+ for(const x of fer){const a=x.gozo_ini>ini?x.gozo_ini:ini,b=x.gozo_fim<fim?x.gozo_fim:fim;diasFer+=Math.round((new Date(b+'T12:00:00Z')-new Date(a+'T12:00:00Z'))/864e5)+1}
+ diasFer=Math.min(diasFer,dias);dias=Math.max(0,dias-diasFer);
  const it=[],av=[],add=(cod,desc,ref,valor,tipo,trib=true)=>{valor=r2(valor);if(valor>0)it.push({cod,desc,ref,valor,tipo,trib})},sal=Number(c.salario)||0,base=sal*dias/30;
+ if(diasFer)av.push(`${diasFer} dia(s) de férias no mês: pagos no recibo de férias (Pessoas › Férias), fora do salário deste mês.`);
  if(!sal)av.push('Cadastre o salário no contrato.');
  add('001',{clt:'Salário base',prolabore:'Pró-labore',estagio:'Bolsa-auxílio'}[c.vinculo]||'Salário',`${dias} dias`,base,'p');
  if(c.vinculo==='clt'&&c.politica_horas==='pagar'&&PT()?.linhasMes){const L=PT().linhasMes(c,comp),vh=sal/(Number(p.divisor)||220);let he50=0,he100=0,faltas=[],atraso=0;

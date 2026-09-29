@@ -205,6 +205,6 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-ps],
  }});
 function tabela(itens){return `<div class="tablebox"><table><tbody>${itens.map(([desc,ref,val,tp])=>`<tr><td>${esc(desc)}</td><td><small class="caption">${esc(ref||'')}</small></td><td class="num ${tp==='d'?'red':''}">${tp==='d'?'−':''}${R(val)}</td></tr>`).join('')}</tbody></table></div>`}
 function lancarPagar(id,c,descricao,venc,valor){db.payables=db.payables||[];if(db.payables.some(p=>p.id===id))return toast('Já lançado no contas a pagar.');db.payables.push((window.Pagamentos?.marcar||(x=>x))({id,origem:'folha',fornecedor:c.nome,descricao:descricao+(c.pix?' · PIX '+c.pix:''),vencimento:venc,valor:r2(valor),emissao:hoje(),status:'aberto',parcela:1,parcelas:1,categoria:c.vinculo==='prolabore'?'Pró-labore':'Salários e encargos',lancadoPor:quem(),createdBy:quem()}));save();toast('Lançado no contas a pagar.')}
-window.Pessoas={acessoLiberado:()=>{if(page==='pessoas')render()},periodos,calcFerias,calcRescisao};
+window.Pessoas={acessoLiberado:()=>{if(page==='pessoas')render()},ferias:()=>st.ferias||[],garantir:()=>carregar(),periodos,calcFerias,calcRescisao};
 addPage('pessoas','pessoas','Pessoas',view,'Admissão com os dados do eSocial, férias, rescisões e eventos do eSocial prontos para transmitir. Só quem criou a empresa acessa.','',()=>{});
 })();
