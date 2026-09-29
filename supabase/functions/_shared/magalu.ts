@@ -9,9 +9,17 @@ const ID = "https://id.magalu.com";
 const API = () => Deno.env.get("MAGALU_API_BASE") || "https://api.magalu.com";
 const SCOPES = "open:order-order-seller:read open:order-delivery-seller:read open:order-invoice-seller:read open:order-financial-report-seller:read";
 
+// Toda chamada precisa do X-Tenant-Id (a loja que autorizou). Vem de /account/v1/whoami/tenants.
+async function tenantDe(token: string) {
+  const r = await fetchJson(`${API()}/account/v1/whoami/tenants`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+  const l: any[] = Array.isArray(r) ? r : r?.results ?? r?.data ?? r?.tenants ?? [];
+  const t = l.find((x) => /seller/i.test(String(x.type ?? x.tenant_type ?? x.kind ?? ""))) ?? l[0];
+  return t ? { tenant: String(t.uuid ?? t.id ?? t.tenant_id), tenant_nome: t.legal_name ?? t.name ?? t.trading_name ?? null, tenant_tipo: t.type ?? null } : {};
+}
 const get = async (ctx: SyncContext, path: string) => {
   await sleep(150);
-  return fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json" } });
+  if (!ctx.extra?.tenant) ctx.extra = { ...(ctx.extra ?? {}), ...(await tenantDe(ctx.token)) };
+  return fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json", "X-Tenant-Id": String(ctx.extra?.tenant ?? "") } });
 };
 
 // Valores monetários da Magalu podem vir como número, string ou {amount, normalizer}.
@@ -39,7 +47,8 @@ export const magalu: Provider = {
         code: query.get("code"), grant_type: "authorization_code",
       }),
     });
-    return { access_token: r.access_token, refresh_token: r.refresh_token, expires_in: r.expires_in, account_name: "Seller Magalu" };
+    const t = await tenantDe(r.access_token).catch(() => ({} as any));
+    return { access_token: r.access_token, refresh_token: r.refresh_token, expires_in: r.expires_in, extra: t, account_name: t.tenant_nome ? `Magalu · ${t.tenant_nome}` : "Seller Magalu" };
   },
   async refresh(secret) {
     const r = await fetchJson(`${ID}/oauth/token`, {
@@ -49,7 +58,7 @@ export const magalu: Provider = {
         refresh_token: secret.refresh_token ?? "",
       }),
     });
-    return { access_token: r.access_token, refresh_token: r.refresh_token ?? secret.refresh_token, expires_in: r.expires_in };
+    return { access_token: r.access_token, refresh_token: r.refresh_token ?? secret.refresh_token, expires_in: r.expires_in, extra: secret.extra ?? {} };
   },
   async sync(ctx) {
     const out = emptyResult();
