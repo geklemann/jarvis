@@ -30,8 +30,13 @@ async function tenantDe(token: string): Promise<Record<string, any>> {
   // O token do ID Magalu traz "tenant" (a loja escolhida no login) e "tenant_title" (o nome dela).
   if (typeof claims.tenant === "string" && claims.tenant.trim()) {
     const u = claims.tenant.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
-    return { tenant: u ?? claims.tenant.trim(), tenant_nome: claims.tenant_title ?? null, tenant_origem: "token" };
+    // tenant_origem leva um resumo não sigiloso do token: se o nome parece o da loja, público (aud) e escopos.
+    const loja = /wolfach|compra ?store|e-?commerce|ltda|s\.?a\.?$|me$/i.test(String(claims.tenant_title ?? ""));
+    if (u) return { tenant: u, tenant_nome: claims.tenant_title ?? null, tenant_origem: `token (nome ${loja ? "parece a loja" : "NÃO parece a loja"}; aud=${[].concat(claims.aud ?? []).join(" ")}; escopos=${String(claims.scope ?? "").split(" ").filter((s: string) => /order|seller|apiin/.test(s)).join(" ") || "nenhum de pedidos"})` };
   }
+  // Formato (sem valores) dos campos do token, para diagnóstico: tipo, tamanho e padrão com letras/dígitos mascarados.
+  const formato = (v: unknown) => typeof v === "string" ? `texto(${v.length}):${v.replace(/[a-z]/g, "a").replace(/[A-Z]/g, "A").replace(/[0-9]/g, "9").slice(0, 60)}` : Array.isArray(v) ? `lista(${v.length})` : v && typeof v === "object" ? `objeto{${Object.keys(v).join(",")}}` : typeof v;
+  const diag = ["tenant", "tenant_title", "pid", "sub", "azp"].map((k) => `${k}=${formato(claims[k])}`).join("; ");
   const doToken = achar(claims);
   if (doToken) return { tenant: doToken, tenant_origem: "token" };
   // 2) Endereços que listam as lojas do usuário.
@@ -48,12 +53,22 @@ async function tenantDe(token: string): Promise<Record<string, any>> {
     } catch (e) { tentativas.push(`${url} erro`); }
   }
   // Diagnóstico sem valores: só os nomes dos campos do token e o código de cada endereço.
-  throw new Error(`Magalu: não achei a loja (tenant). Campos do token: ${Object.keys(claims).join(", ") || "token opaco"}. Endereços: ${tentativas.join(" · ")}`);
+  throw new Error(`Magalu: não achei a loja (tenant). Formato dos campos do token: ${diag}. Endereços: ${tentativas.join(" · ")}`);
 }
 const get = async (ctx: SyncContext, path: string) => {
   await sleep(150);
   if (!ctx.extra?.tenant) ctx.extra = { ...(ctx.extra ?? {}), ...(await tenantDe(ctx.token)) };
-  return fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json", "X-Tenant-Id": String(ctx.extra?.tenant ?? "") } });
+  const t = String(ctx.extra?.tenant ?? "");
+  // Como na documentação oficial: só o token. Se a Magalu pedir o tenant, repete com o cabeçalho.
+  try { return await fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json" } }); }
+  catch (e0) { if (!/X-Tenant-Id/i.test(String((e0 as Error).message))) throw e0; }
+  try {
+    return await fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json", "X-Tenant-Id": t } });
+  } catch (e) {
+    // Diagnóstico sem valores: formato do tenant enviado e de onde ele veio.
+    const f = t.replace(/[a-z]/g, "a").replace(/[A-Z]/g, "A").replace(/[0-9]/g, "9").slice(0, 60);
+    throw new Error(`${(e as Error).message} · tenant enviado: ${t ? `texto(${t.length}) ${f}` : "vazio"} · origem: ${ctx.extra?.tenant_origem ?? "?"}`);
+  }
 };
 
 // Valores monetários da Magalu podem vir como número, string ou {amount, normalizer}.
