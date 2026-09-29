@@ -83,7 +83,7 @@ function linha(a){const [tn,tt]=TIPOS[a.tipo]||[a.tipo,''],r=regra(a),u=(a.mensa
   <span class="caption">${esc(a.motivo||r.titulo)}${a.comprador?' · '+esc(a.comprador):''}${a.valor?' · '+money(a.valor):''}</span>
   ${u?`<span class="atmsg"><b>${u.de==='vendedor'?'Nós':'Cliente'}:</b> ${esc(String(u.texto||'').slice(0,160))}</span>`:''}
   ${aberto(a)?`<span class="atsug">${icon('spark')} <span>${esc(a.sugestao?.solucao||r.solucao)}</span></span>`:''}
-  <span class="atfoot">${a.responsavel?`<span class="badge">${esc(a.responsavel)}</span>`:''}<span class="badge">${esc(a.etapa_interna||'novo')}</span>${a.devolucao?.status?`<span class="badge warn">devolução: ${esc(a.devolucao.status)}</span>`:''}</span></button>`}
+  <span class="atfoot"><span data-at-pres="${esc(a.id)}"></span>${a.responsavel?`<span class="badge">${esc(a.responsavel)}</span>`:''}<span class="badge">${esc(a.etapa_interna||'novo')}</span>${a.devolucao?.status?`<span class="badge warn">devolução: ${esc(a.devolucao.status)}</span>`:''}</span></button>`}
 
 function linkML(a){return a.tipo==='pergunta'?(a.dados?.link||'https://www.mercadolivre.com.br/perguntas/vendedor'):a.pedido?`https://www.mercadolivre.com.br/vendas/${encodeURIComponent(a.pedido)}/detalhe`:'https://www.mercadolivre.com.br/vendas/omni/lista'}
 // Respostas prontas por situação: preenchem nome, pedido e produto; o texto continua editável antes de enviar.
@@ -102,6 +102,7 @@ function preencher(t,a){const o=db.orders.find(x=>String(x.id)===String(a.pedido
 function abrir(id){const a=st.lista.find(x=>x.id===id);if(!a)return;const r=regra(a),s=a.sugestao,[tn,tt]=TIPOS[a.tipo]||[a.tipo,''];
  const limite=a.tipo==='mensagem'?350:a.tipo==='pergunta'?2000:2000;const nome=(window.Cloud?.session?.user?.user_metadata?.nome||window.Cloud?.session?.user?.email||'').split(/[\s@]/)[0];
  modal(`${tn} · ${a.produto||pedidoDe(a)?.items?.[0]?.title||a.id}`,`<div class="athead" style="margin-bottom:12px"><span class="badge ${tt}">${tn}</span><span class="caption">${CANAL[a.canal]||a.canal}${a.pedido?' · pedido '+esc(a.pedido):''}${a.valor?' · '+money(a.valor):''}${a.comprador?' · '+esc(a.comprador):''}</span><span class="atprazo">${aberto(a)?prazoTxt(a):'resolvido'}</span></div>
+ <div data-at-pres-modal="${esc(a.id)}"></div>
  ${clienteHtml(a)}
  ${a.motivo?`<p><strong>Motivo:</strong> ${esc(a.motivo)}</p>`:''}
  ${(a.acoes||[]).length?`<p class="caption">Ações disponíveis no marketplace: ${a.acoes.map(x=>`${esc(x.acao)}${x.prazo?` (até ${dataHora(x.prazo)})`:''}`).join(' · ')}</p>`:''}
@@ -140,7 +141,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-at-canal],
  if(d.atFeita){salvarMelhorias(melhorias().map(x=>x.id===d.atFeita?{...x,status:'feita',feita_em:new Date().toISOString()}:x));audit('Melhoria concluída (atendimento)',d.atFeita);render();return}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-at-modelo]');if(!b)return;const a=st.lista.find(x=>x.id===b.dataset.id),m=MODELOS.find(x=>x[0]===b.dataset.atModelo),t=$('#atTexto');if(!a||!m||!t)return;
  t.value=preencher(m[2],a).slice(0,Number(t.maxLength)||2000);t.dispatchEvent(new Event('input'));t.focus();document.querySelectorAll('[data-at-modelo]').forEach(x=>x.classList.toggle('primary',x===b))});
-function bind(){const i=$('#atBusca');if(i)i.oninput=e=>{st.busca=e.target.value;const pos=e.target.selectionStart;render();const n=$('#atBusca');n.focus();n.setSelectionRange(pos,pos)}}
+function bind(){setTimeout(()=>{try{presConectar();presPintar()}catch{}},0);const i=$('#atBusca');if(i)i.oninput=e=>{st.busca=e.target.value;const pos=e.target.selectionStart;render();const n=$('#atBusca');n.focus();n.setSelectionRange(pos,pos)}}
 // ─────────── Melhorar para o cliente ───────────
 // Padrões (mesmo produto + mesmo problema) viram sugestões de melhoria; a ação registrada mostra se os casos pararam.
 const ACOES={naochegou:'Revisar prazo de postagem e transportadora; avisar o cliente assim que despachar.',defeito:'Acionar o fornecedor e reforçar a conferência de qualidade antes do envio.',faltando:'Reforçar a conferência de expedição (bipagem) e a embalagem das peças pequenas.',diferente:'Conferir a separação e as fotos/variações do anúncio.',arrependimento:'Deixar o anúncio mais claro: medidas, idade indicada e fotos reais.',cancelamento:'Encurtar o tempo entre a venda e o despacho.',outro:'Ler os casos e ajustar o anúncio ou o processo.'};
@@ -159,10 +160,10 @@ function lateral(){const ini=Date.now()-30*864e5,rec=st.lista.filter(a=>!['pergu
  const top=(m,n)=>[...m].sort((a,b)=>b[1]-a[1]).slice(0,n),max=Math.max(1,...mot.values());
  const prazos=st.lista.filter(a=>aberto(a)&&a.prazo).sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo))).slice(0,5);
  const sug=padroes().filter(g=>g.n>=2&&!melhorias().some(x=>x.produto===g.produto&&x.caso===g.caso&&x.status!=='feita')).length;
- return `<aside class="atlado"><section class="card"><h3>Motivos em 30 dias</h3>${top(mot,6).map(([c,n])=>`<div class="atbar"><span>${esc(CASO_ROT(c))}</span><i style="width:${Math.round(n/max*100)}%"></i><b>${n}</b></div>`).join('')||'<p class="caption">Sem casos no período.</p>'}</section>
+ return `<div class="atlado"><div data-at-equipe></div><section class="card"><h3>Motivos em 30 dias</h3>${top(mot,6).map(([c,n])=>`<div class="atbar"><span>${esc(CASO_ROT(c))}</span><i style="width:${Math.round(n/max*100)}%"></i><b>${n}</b></div>`).join('')||'<p class="caption">Sem casos no período.</p>'}</section>
  <section class="card"><h3>Produtos com mais chamados</h3>${top(prod,5).map(([p,n])=>`<button class="atlinha" data-at-buscar="${esc(p)}"><span>${esc(String(p).slice(0,48))}</span><b>${n}</b></button>`).join('')||'<p class="caption">—</p>'}</section>
  <section class="card"><h3>Próximos prazos</h3>${prazos.map(a=>`<button class="atlinha" data-at-abrir="${esc(a.id)}"><span>${esc(String(produtoDe(a)!=='Produto não informado'?produtoDe(a):a.motivo||a.id).slice(0,40))}</span><b>${prazoTxt(a)}</b></button>`).join('')||'<p class="caption">Nenhum prazo em aberto.</p>'}</section>
- ${sug?`<section class="card atdica"><strong>${sug} padrão(ões) se repetindo</strong><p class="caption">O mesmo produto com o mesmo problema. Veja a aba Melhorias para agir na causa.</p><button class="small primary" data-at-filtro="melhorias">Ver melhorias</button></section>`:''}</aside>`}
+ ${sug?`<section class="card atdica"><strong>${sug} padrão(ões) se repetindo</strong><p class="caption">O mesmo produto com o mesmo problema. Veja a aba Melhorias para agir na causa.</p><button class="small primary" data-at-filtro="melhorias">Ver melhorias</button></section>`:''}</div>`}
 function melhoriasView(){const P=padroes(),M=melhorias(),abertas=M.filter(x=>x.status!=='feita'),feitas=M.filter(x=>x.status==='feita');
  const depois=x=>st.lista.filter(a=>produtoDe(a)===x.produto&&caso(a)===x.caso&&quando(a)>new Date(x.criado_em).getTime()).length;
  const sug=P.filter(g=>g.n>=2&&!M.some(x=>x.produto===g.produto&&x.caso===g.caso&&x.status!=='feita'));
@@ -181,8 +182,31 @@ function clienteHtml(a){const o=pedidoDe(a);
  <div><div class="navlabel" style="margin:0 0 6px">Cliente</div><p><strong>${esc(nome||'—')}</strong></p><p class="caption">${compras.length} compra(s) · ${money(compras.reduce((s,x)=>s+(Number(x.gross)||0),0))}${compras.length>1?' · cliente recorrente':''}<br>${outros.length?`${outros.length} outro(s) chamado(s)`:'primeiro chamado'}</p></div></div>
  <div class="row wrap" style="gap:8px;margin:8px 0 4px">${o&&window.NfDevolucao?`<button class="small" data-at-dev="${esc(o.id)}">${icon('undo')} Preparar nota de devolução</button>`:''}<button class="small" data-at-criar="${esc(produtoDe(a))}|${esc(caso(a))}">${icon('spark')} Registrar melhoria</button></div>`}
 
+// ─────────── Quem está atendendo agora (presença em tempo real) ───────────
+// Cada pessoa com a tela aberta avisa, pelo canal em tempo real do Supabase, qual caso está vendo e se está escrevendo.
+// Nada é gravado no banco: some quando a pessoa fecha o caso ou a tela. Aparece discreto na fila e dentro do caso.
+const pres={ch:null,ws:null,eu:'',meu:{caso:null,escrevendo:false},casos:new Map(),online:[]};
+const euMesmo=()=>{const u=window.Cloud?.session?.user;return {email:u?.email||'',nome:(u?.user_metadata?.nome||u?.email||'').split(/[\s@]/)[0]}};
+const hm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+function presConectar(){const c=window.Cloud;if(!c?.client?.channel||!c.ws||!c.session?.user)return;if(pres.ch&&pres.ws===c.ws)return;
+ try{if(pres.ch)c.client.removeChannel(pres.ch)}catch{}const eu=euMesmo();pres.eu=eu.email;pres.ws=c.ws;
+ const ch=c.client.channel(`atendimento-presenca-${c.ws}`,{config:{presence:{key:eu.email||'anon'}}});pres.ch=ch;
+ ch.on('presence',{event:'sync'},()=>{const est=ch.presenceState(),m=new Map(),on=[];
+  for(const [k,l] of Object.entries(est)){const p=(l||[]).at(-1);if(!p)continue;on.push(p);if(p.caso&&k!==pres.eu){(m.get(p.caso)||m.set(p.caso,[]).get(p.caso)).push(p)}}
+  pres.casos=m;pres.online=on;presPintar()}).subscribe(s=>{if(s==='SUBSCRIBED')presEnviar()})}
+function presEnviar(){if(!pres.ch)return;const eu=euMesmo();try{pres.ch.track({nome:eu.nome,email:eu.email,caso:pres.meu.caso,desde:pres.meu.desde||null,escrevendo:!!pres.meu.escrevendo,em:new Date().toISOString()})}catch{}}
+function presCaso(id){if(pres.meu.caso===id)return;pres.meu={caso:id,desde:id?new Date().toISOString():null,escrevendo:false};presEnviar()}
+let escT=0;function presEscrevendo(){if(!pres.meu.caso)return;if(!pres.meu.escrevendo){pres.meu.escrevendo=true;presEnviar()}clearTimeout(escT);escT=setTimeout(()=>{pres.meu.escrevendo=false;presEnviar()},6000)}
+const quemTxt=l=>l.map(p=>`${esc(p.nome||'alguém')}${p.escrevendo?' está escrevendo…':' está vendo'}`).join(' · ');
+function presPintar(){for(const el of document.querySelectorAll('[data-at-pres]')){const l=pres.casos.get(el.dataset.atPres)||[];el.innerHTML=l.length?`<span class="atpres ${l.some(p=>p.escrevendo)?'escr':''}" title="Em atendimento agora (desde ${hm(l[0].desde||l[0].em)})"><i></i>${quemTxt(l)}</span>`:''}
+ const m=document.querySelector('[data-at-pres-modal]');if(m){const l=pres.casos.get(m.dataset.atPresModal)||[];m.innerHTML=l.length?`<div class="atpresbox"><i></i><span><strong>${quemTxt(l)}</strong> neste caso agora (desde ${hm(l[0].desde||l[0].em)}). Combine antes de responder para o cliente não receber duas respostas.</span></div>`:''}
+ const eq=document.querySelector('[data-at-equipe]');if(eq){const outros=pres.online.filter(p=>p.email!==pres.eu);eq.innerHTML=outros.length?`<section class="card"><h3>Equipe agora</h3>${outros.map(p=>{const a=p.caso&&st.lista.find(x=>x.id===p.caso);return `<div class="atlinha" style="cursor:default"><span><i class="atdot ${p.caso?'on':''}"></i>${esc(p.nome||'alguém')}</span><small class="caption">${a?(p.escrevendo?'escrevendo · ':'')+esc(String(produtoDe(a)).slice(0,26)):'na fila'}</small></div>`}).join('')}</section>`:''}}
+// Caso aberto = modal com a marca data-at-pres-modal; fechou o modal, a pessoa sai do caso.
+setInterval(()=>{if(page==='atendimento')presConectar();const m=document.querySelector('[data-at-pres-modal]');presCaso(m?m.dataset.atPresModal:null)},1500);
+document.addEventListener('input',e=>{if(e.target?.id==='atTexto')presEscrevendo()});
+
 addPage('atendimento','headset','Atendimento',view,'Reclamações, devoluções, mediações, perguntas e mensagens numa fila só — com a solução sugerida e a resposta pronta.','',bind);
-window.Atendimento={avisos,abertos:abertosN,carregar,lista:()=>st.lista};
+window.Atendimento={avisos,abertos:abertosN,carregar,lista:()=>st.lista,resumo:()=>{const ab=st.lista.filter(aberto),urg=ab.filter(x=>{const h=horasAte(x.prazo);return (h!=null&&h<24)||x.tipo==='mediacao'}),d7=Date.now()-7*864e5,res=st.lista.filter(x=>!aberto(x)&&new Date(x.fechado_em||0).getTime()>=d7);return {carregado:st.carregado,fila:ab.length,urgentes:urg.length,resolvidos7:res.length,atendendo:pres.casos.size,online:pres.online.length,ultimo:ab.sort((x,y)=>String(x.prazo||'9').localeCompare(String(y.prazo||'9')))[0]||null}}};
 // Primeira leitura assim que a empresa abre; depois a cada 2 minutos (o servidor lê o marketplace a cada 10).
 let ultimoWs=null;setInterval(()=>{if(window.Cloud?.ws&&window.Cloud.ws!==ultimoWs){ultimoWs=Cloud.ws;st.carregado=false;st.lista=[];carregar(true)}},1500);
 setInterval(()=>{if(window.Cloud?.ws&&!document.hidden)carregar(true)},120000);

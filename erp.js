@@ -18,7 +18,7 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 
 // ═════════════════ Estrutura ═════════════════
 const MODS=[
- {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','resumo']]]},
+ {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','bolso','resumo']]]},
  {id:'atd',ic:'headset',t:'Atendimento',grupos:[['Atendimento',['atendimento']],['Pós-venda',['devolucoes']],['Satisfação do cliente',['cx']]]},
  {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
