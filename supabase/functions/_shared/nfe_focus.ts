@@ -176,7 +176,7 @@ async function corpoNota(db: SupabaseClient, ws: string, cfg: Fiscal, d: DadosNo
   };
 }
 
-async function focus(a: Amb, method: string, path: string, body?: unknown) {
+export async function focus(a: Amb, method: string, path: string, body?: unknown) {
   if (!token(a)) throw new HttpError(400, `Token do Focus NFe (${a}) ainda não foi gravado no servidor.`);
   const r = await fetch(BASE[a] + path, { method, headers: { ...auth(a), ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const j: any = await r.json().catch(() => ({}));

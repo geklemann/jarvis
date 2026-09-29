@@ -14,6 +14,7 @@ import { enviarPush, verificarAlertas } from "../_shared/alertas.ts";
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
+import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
 import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
@@ -327,6 +328,20 @@ Deno.serve(handler(async (req) => {
     case "fiscal_emitir": return json(await emitirNFe(db, ws, String(body.pedido ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_emitir_venda": return json(await emitirVendaDireta(db, ws, String(body.venda ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_consultar": return json(await consultarNFe(db, ws, String(body.ref ?? "")));
+    // Devolução e estorno: preparar (rascunho a partir da nota original), emitir e consultar.
+    case "devolucao_preparar": case "devolucao_emitir": case "devolucao_consultar": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      const role = String(m?.role);
+      if (action === "devolucao_emitir" && !["owner", "member", "financeiro"].includes(role)) throw new HttpError(403, "Seu papel não permite emitir notas.");
+      if (action === "devolucao_preparar" && !["owner", "member", "financeiro", "atendimento", "estoque"].includes(role)) throw new HttpError(403, "Seu papel não permite preparar notas de devolução.");
+      if (action === "devolucao_consultar" && !m) throw new HttpError(403, "Sem acesso.");
+      const quem = user.email ?? user.id;
+      const r = action === "devolucao_preparar" ? await prepararDevolucao(db, ws, body.dados ?? {}, quem)
+        : action === "devolucao_emitir" ? await emitirDevolucao(db, ws, String(body.id ?? ""), quem, body.producao === true)
+        : await consultarDevolucao(db, ws, String(body.id ?? ""));
+      if (action !== "devolucao_consultar") await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: action === "devolucao_preparar" ? "Nota de devolução preparada" : "Nota de devolução enviada", actor: quem, detail: JSON.stringify(r).slice(0, 900) }).then(() => null, () => null);
+      return json(r);
+    }
     case "fiscal_cancelar": return json(await cancelarNFe(db, ws, String(body.ref ?? ""), String(body.justificativa ?? "")));
     // Catálogo e anúncios pelo Bling. Gravações só para quem altera estoque (dono, gestão, estoque).
     case "catalogo_vinculos": return json(await vinculosBling(db, ws));
