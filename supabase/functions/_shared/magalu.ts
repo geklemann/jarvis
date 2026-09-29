@@ -10,11 +10,40 @@ const API = () => Deno.env.get("MAGALU_API_BASE") || "https://api.magalu.com";
 const SCOPES = "open:order-order-seller:read open:order-delivery-seller:read open:order-invoice-seller:read open:order-financial-report-seller:read";
 
 // Toda chamada precisa do X-Tenant-Id (a loja que autorizou). Vem de /account/v1/whoami/tenants.
-async function tenantDe(token: string) {
-  const r = await fetchJson(`${API()}/account/v1/whoami/tenants`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
-  const l: any[] = Array.isArray(r) ? r : r?.results ?? r?.data ?? r?.tenants ?? [];
-  const t = l.find((x) => /seller/i.test(String(x.type ?? x.tenant_type ?? x.kind ?? ""))) ?? l[0];
-  return t ? { tenant: String(t.uuid ?? t.id ?? t.tenant_id), tenant_nome: t.legal_name ?? t.name ?? t.trading_name ?? null, tenant_tipo: t.type ?? null } : {};
+async function tenantDe(token: string): Promise<Record<string, any>> {
+  // 1) No token do ID Magalu (JWT): procura um campo de tenant com cara de UUID.
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  let claims: Record<string, any> = {};
+  try { claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { /* token opaco */ }
+  const achar = (o: any, prof = 0): string | null => {
+    if (!o || typeof o !== "object" || prof > 3) return null;
+    for (const [k, v] of Object.entries(o)) {
+      if (/tenant/i.test(k)) {
+        if (typeof v === "string" && uuid.test(v)) return v;
+        const x = Array.isArray(v) ? v[0] : v;
+        if (x && typeof x === "object") { const u = x.uuid ?? x.id ?? x.tenant_id; if (typeof u === "string" && uuid.test(u)) return u; }
+      }
+      if (v && typeof v === "object") { const r = achar(v, prof + 1); if (r) return r; }
+    }
+    return null;
+  };
+  const doToken = achar(claims);
+  if (doToken) return { tenant: doToken, tenant_origem: "token" };
+  // 2) Endereços que listam as lojas do usuário.
+  const tentativas: string[] = [];
+  for (const url of [`${API()}/account/v1/whoami/tenants`, "https://id.magalu.com/account/api/v2/whoami/tenants", "https://id.magalu.com/account/api/v1/whoami/tenants"]) {
+    try {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+      tentativas.push(`${url.replace("https://", "")} ${r.status}`);
+      if (!r.ok) continue;
+      const j: any = await r.json();
+      const l: any[] = Array.isArray(j) ? j : j?.results ?? j?.data ?? j?.tenants ?? [];
+      const t = l.find((x) => /seller/i.test(String(x.type ?? x.tenant_type ?? x.kind ?? x.perspective ?? ""))) ?? l[0];
+      if (t) return { tenant: String(t.uuid ?? t.id ?? t.tenant_id), tenant_nome: t.legal_name ?? t.name ?? t.trading_name ?? null, tenant_origem: url };
+    } catch (e) { tentativas.push(`${url} erro`); }
+  }
+  // Diagnóstico sem valores: só os nomes dos campos do token e o código de cada endereço.
+  throw new Error(`Magalu: não achei a loja (tenant). Campos do token: ${Object.keys(claims).join(", ") || "token opaco"}. Endereços: ${tentativas.join(" · ")}`);
 }
 const get = async (ctx: SyncContext, path: string) => {
   await sleep(150);
@@ -47,7 +76,7 @@ export const magalu: Provider = {
         code: query.get("code"), grant_type: "authorization_code",
       }),
     });
-    const t = await tenantDe(r.access_token).catch(() => ({} as any));
+    const t: Record<string, any> = await tenantDe(r.access_token).catch(() => ({}));
     return { access_token: r.access_token, refresh_token: r.refresh_token, expires_in: r.expires_in, extra: t, account_name: t.tenant_nome ? `Magalu · ${t.tenant_nome}` : "Seller Magalu" };
   },
   async refresh(secret) {
