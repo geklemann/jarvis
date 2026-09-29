@@ -17,7 +17,7 @@ function dreDoMes(m){const G=window.Gestao;if(!G?.dreMes)return null;const d=G.d
 function custos(){const c=new Map((db.products||[]).map(p=>[String(p.id).trim(),{c:Number(p.custo)||0,e:Number(p.embalagem)||0}]));for(const p of window.Estoque?.lista?.()||[])if(Number(p.custo))c.set(String(p.id).trim(),{c:Number(p.custo),e:c.get(String(p.id).trim())?.e||0});return c}
 function calcular(){const m=ui.mes,C=custos(),linhas=new Map(),dre=dreDoMes(m);let receitaTot=0,unTot=0,semCusto=0;
  for(const o of db.orders){if(!o.date.startsWith(m)||(ui.canal&&o.platform!==ui.canal))continue;if(o.gross>0&&o.fee>=o.gross*0.95)continue;
-  const its=o.items||[],tot=its.reduce((a,i)=>a+(Number(i.qty)||0)*(Number(i.price)||0),0)||1,frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')?Number(o.shipping):0;
+  const its=o.items||[],tot=its.reduce((a,i)=>a+(Number(i.qty)||0)*(Number(i.price)||0),0)||1,frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')&&o.feeSource!=='Shopee'?Number(o.shipping):0; // taxa da Shopee (venda − repasse) já inclui o frete do vendedor
   for(const i of its){const q=Number(i.qty)||0,share=(q*(Number(i.price)||0))/tot,sku=String(i.sku||i.title||'?').trim(),k=ui.grupo==='canal'?o.platform:sku,c=C.get(sku);
    const x=linhas.get(k)||{k,nome:ui.grupo==='canal'?o.platform:(i.title||sku),sku:ui.grupo==='canal'?'':sku,un:0,rb:0,cmv:0,tar:0,fre:0,semCusto:false,pedidos:new Set()};
    x.un+=q;x.rb+=o.gross*share;x.tar+=(Number(o.fee)||0)*share;x.fre+=frete*share;if(c)x.cmv+=q*(c.c+c.e);else{x.semCusto=true;semCusto++}x.pedidos.add(o.id);linhas.set(k,x)}

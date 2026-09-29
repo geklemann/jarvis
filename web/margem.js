@@ -15,7 +15,7 @@ function calcular(){const k=[db.orders.length,ui.periodo,(window.Estoque?.lista?
  for(const o of db.orders){if(o.date<ini)continue;
   // Tarifa ≥ 95% da venda = pedido cancelado/reembolsado (o marketplace não repassa nada): fora da margem.
   if(o.gross>0&&o.fee>=o.gross*0.95){cancelados.push(o);continue}let cmv=0,falta=false;for(const it of o.items||[]){const c=custo.get(String(it.sku||'').trim());if(c){cmv+=(c.c+c.e)*(Number(it.qty)||0)}else falta=true}
-  if(falta){semCusto++;continue}const frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')?o.shipping:0,trib=o.gross*aliq,lucro=o.gross-o.fee-frete-cmv-trib;
+  if(falta){semCusto++;continue}const frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')&&o.feeSource!=='Shopee'?o.shipping:0,trib=o.gross*aliq,lucro=o.gross-o.fee-frete-cmv-trib;
   peds.push({o,cmv,frete,trib,lucro,m:o.gross?lucro/o.gross:0,feeP:o.gross?o.fee/o.gross:0})}
  // Tarifa fora do padrão: acima de 1,5× a mediana do canal para o mesmo produto principal.
  const med=new Map();for(const x of peds){const k=x.o.platform+'|'+(x.o.items?.[0]?.sku||'');(med.get(k)||med.set(k,[]).get(k)).push(x.feeP)}
