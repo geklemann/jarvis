@@ -7,7 +7,7 @@ import { emptyResult, type Provider, type SyncContext } from "./types.ts";
 
 const ID = "https://id.magalu.com";
 const API = () => Deno.env.get("MAGALU_API_BASE") || "https://api.magalu.com";
-const SCOPES = "open:order-order-seller:read open:order-delivery-seller:read open:order-invoice-seller:read";
+const SCOPES = "open:order-order-seller:read open:order-delivery-seller:read open:order-invoice-seller:read open:order-financial-report-seller:read";
 
 const get = async (ctx: SyncContext, path: string) => {
   await sleep(150);
