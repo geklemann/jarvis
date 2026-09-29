@@ -25,8 +25,9 @@ function view(){const d=window.Hoje?.dados?.(),u=window.Cloud?.session?.user,nom
  ${bloco('Pede atenção','alert',(d.avisos||[]).slice(0,4).map(a=>`<div class="bl-aviso ${a[0]}" ${a[4]?`data-bl-ir="${esc(a[4])}"`:''}><strong>${esc(a[2])}</strong><small>${esc(a[3]||'')}</small></div>`).join('')||'<p class="bl-alerta green">Tudo em dia. ✓</p>')}
  <p class="caption bl-rod">Só o essencial. Toque num quadro para ver o detalhe no sistema.</p></div>`}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-bl-ir]');if(!b||page!=='bolso')return;e.stopPropagation();navigate(b.dataset.blIr)},true);
-let tm=null;function bind(){clearInterval(tm);tm=setInterval(()=>{if(page!=='bolso'){clearInterval(tm);return}if(!document.querySelector('.modalback'))render()},60000)}
+let tm=null;function bind(){document.body.classList.add("pg-bolso");clearInterval(tm);tm=setInterval(()=>{if(page!=='bolso'){clearInterval(tm);return}if(!document.querySelector('.modalback'))render()},60000)}
 addPage('bolso','bolso','Diretoria no bolso',view,'Só as informações-chave: vendas, rentabilidade, caixa, clientes e o que pede atenção. Feita para o celular.','',bind);
 // No celular, a primeira tela depois de entrar é a da diretoria (uma vez por sessão; "Sistema completo" volta ao resto).
+setInterval(()=>document.body.classList.toggle('pg-bolso',page==='bolso'),400);
 let feito=false;setInterval(()=>{if(feito||!window.Cloud?.session)return;feito=true;try{if(matchMedia('(max-width:700px)').matches&&page==='central'&&!sessionStorage.getItem('eb_bolso')){sessionStorage.setItem('eb_bolso','1');navigate('bolso')}}catch{}},1200);
 })();
