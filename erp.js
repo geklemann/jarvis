@@ -54,14 +54,18 @@ function avisos(){const c=contagens(),s=l=>money(round(l.reduce((a,t)=>a+saldoT(
  return out}
 
 let paginaAnterior=null;
-shell=function(){{const mp=modDe(page);if(window.Perfis&&((mp&&!Perfis.moduloVisivel(mp))||Perfis.paginaVisivel?.(page)===false)){page=Perfis.inicio()}}const pm=modDe(page);if(pm)modAtual=pm;if(page!==paginaAnterior){paginaAnterior=page;menuSel=null}const M=MODS.find(m=>m.id===modAtual)||MODS[0],cur=nomePag(page),av=avisos();
+// Menus sempre em ordem alfabética (Início fica no topo): módulos, grupos e telas de cada grupo, pelo nome que aparece.
+let ordemN=-1;function ordenarMenus(){if(ordemN===navItems.length)return;ordemN=navItems.length;const az=(x,y)=>String(x).localeCompare(String(y),'pt-BR',{sensitivity:'base'});
+ const ini=MODS.filter(m=>m.id==='ini'),resto=MODS.filter(m=>m.id!=='ini').sort((x,y)=>az(x.t,y.t));MODS.splice(0,MODS.length,...ini,...resto);
+ for(const m of MODS){m.grupos.sort((x,y)=>az(x[0],y[0]));for(const g of m.grupos)g[1].sort((x,y)=>az(nomePag(x),nomePag(y)))}}
+shell=function(){ordenarMenus();{const mp=modDe(page);if(window.Perfis&&((mp&&!Perfis.moduloVisivel(mp))||Perfis.paginaVisivel?.(page)===false)){page=Perfis.inicio()}}const pm=modDe(page);if(pm)modAtual=pm;if(page!==paginaAnterior){paginaAnterior=page;menuSel=null}const M=MODS.find(m=>m.id===modAtual)||MODS[0],cur=nomePag(page),av=avisos();
  const item=id=>{const n=navItems.find(x=>x[0]===id);if(!n)return '';const c=contagens();const badge=id==='pagar'&&c.vencidos.length?c.vencidos.length:id==='concbanco'&&c.extrato?c.extrato:id==='equipe'&&c.acessos?c.acessos:id==='atendimento'?(window.Atendimento?.abertos?.()||0):0;
   return `<button data-nav="${id}" class="${page===id?'active':''}">${ico(n[1],17)}<span>${n[2]}</span>${badge?`<em class="navcount">${badge}</em>`:''}</button>`};
  const meses=[...new Set([month,...db.orders.map(o=>o.date.slice(0,7)),...P().map(t=>t.vencimento.slice(0,7))])].filter(m=>m>='2020'&&m<=addMeses(hoje(),3).slice(0,7)).sort().reverse().slice(0,36);
  const emp=esc(window.Cloud?.wsName||'Minha empresa');
  $('#app').innerHTML=`<div class="erp">
  <aside class="side"><button class="sidebrand" data-nav="central" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>Jarvis · ERP</small></span></button>
-  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)&&window.Perfis?.paginaVisivel?.(id)!==false),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
+  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)&&window.Perfis?.paginaVisivel?.(id)!==false).sort((x,y)=>String(nomePag(x)).localeCompare(String(nomePag(y)),'pt-BR',{sensitivity:'base'})),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
    if(unico)return `<button class="mhead ${page===ids[0]?'active':''}" data-nav="${ids[0]}">${ico(m.ic,20)}<span>${m.t}</span></button>`;
    return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead ${ov&&page===ov?'active':''}" data-mtoggle="${m.id}" aria-expanded="${aberto}" ${ov?`title="Visão geral de ${m.t}"`:''}>${ico(m.ic,20)}<span>${m.t}</span><i class="mchev" data-mchev="1">${ico('chev',15)}</i></button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
  <main><header><button class="quiet mobilemenu" data-action="menu" aria-label="Abrir navegação">${icon('menu')}</button>
