@@ -19,7 +19,7 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 // ═════════════════ Estrutura ═════════════════
 const MODS=[
  {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','resumo']]]},
- {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
+ {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
  {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfdevolucao','nfrecebidas']],['Tributos',['difal']],['Regras',['parametros','nfconfig']]]},
