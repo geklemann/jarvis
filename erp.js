@@ -33,6 +33,7 @@ const MODS=[
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
 const VISAO={ini:'central',atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cxequipe'};
+window.ERP_MENU={get MODS(){return MODS},get GERAL(){return GERAL}};
 const GERAL=['equipe','ai','history','auditoria','integridade','fontes','integracoes','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
 const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='integracoes'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
@@ -53,14 +54,14 @@ function avisos(){const c=contagens(),s=l=>money(round(l.reduce((a,t)=>a+saldoT(
  return out}
 
 let paginaAnterior=null;
-shell=function(){{const mp=modDe(page);if(mp&&window.Perfis&&!Perfis.moduloVisivel(mp)){page=Perfis.inicio()}}const pm=modDe(page);if(pm)modAtual=pm;if(page!==paginaAnterior){paginaAnterior=page;menuSel=null}const M=MODS.find(m=>m.id===modAtual)||MODS[0],cur=nomePag(page),av=avisos();
+shell=function(){{const mp=modDe(page);if(window.Perfis&&((mp&&!Perfis.moduloVisivel(mp))||Perfis.paginaVisivel?.(page)===false)){page=Perfis.inicio()}}const pm=modDe(page);if(pm)modAtual=pm;if(page!==paginaAnterior){paginaAnterior=page;menuSel=null}const M=MODS.find(m=>m.id===modAtual)||MODS[0],cur=nomePag(page),av=avisos();
  const item=id=>{const n=navItems.find(x=>x[0]===id);if(!n)return '';const c=contagens();const badge=id==='pagar'&&c.vencidos.length?c.vencidos.length:id==='concbanco'&&c.extrato?c.extrato:id==='equipe'&&c.acessos?c.acessos:id==='atendimento'?(window.Atendimento?.abertos?.()||0):0;
   return `<button data-nav="${id}" class="${page===id?'active':''}">${ico(n[1],17)}<span>${n[2]}</span>${badge?`<em class="navcount">${badge}</em>`:''}</button>`};
  const meses=[...new Set([month,...db.orders.map(o=>o.date.slice(0,7)),...P().map(t=>t.vencimento.slice(0,7))])].filter(m=>m>='2020'&&m<=addMeses(hoje(),3).slice(0,7)).sort().reverse().slice(0,36);
  const emp=esc(window.Cloud?.wsName||'Minha empresa');
  $('#app').innerHTML=`<div class="erp">
  <aside class="side"><button class="sidebrand" data-nav="central" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>Jarvis · ERP</small></span></button>
-  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
+  <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)&&window.Perfis?.paginaVisivel?.(id)!==false),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
    if(unico)return `<button class="mhead ${page===ids[0]?'active':''}" data-nav="${ids[0]}">${ico(m.ic,20)}<span>${m.t}</span></button>`;
    return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead ${ov&&page===ov?'active':''}" data-mtoggle="${m.id}" aria-expanded="${aberto}" ${ov?`title="Visão geral de ${m.t}"`:''}>${ico(m.ic,20)}<span>${m.t}</span><i class="mchev" data-mchev="1">${ico('chev',15)}</i></button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
  <main><header><button class="quiet mobilemenu" data-action="menu" aria-label="Abrir navegação">${icon('menu')}</button>
@@ -77,7 +78,7 @@ const nomeUsuario=()=>{const u=window.Cloud?.session?.user;const n=(u?.user_meta
 const saudacao=()=>{const h=new Date().getHours(),n=nomeUsuario();return `${h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}${n?', '+n:''}`};
 
 // Menus suspensos do cabeçalho: "+ Novo", avisos e empresa.
-function drop(html,anchor){const r=anchor.getBoundingClientRect(),d=$('#erpdrop');d.innerHTML=`<div class="dropmenu" style="top:${r.bottom+8}px;${r.left>innerWidth/2?`right:${Math.max(12,innerWidth-r.right)}px`:`left:${r.left}px`}">${html}</div>`}
+function drop(html,anchor){html=String(html).replace(/<button class="dropitem" data-nav="([a-z]+)">[\s\S]*?<\/button>/g,(m,id)=>window.Perfis?.paginaVisivel?.(id)===false?'':m);const r=anchor.getBoundingClientRect(),d=$('#erpdrop');d.innerHTML=`<div class="dropmenu" style="top:${r.bottom+8}px;${r.left>innerWidth/2?`right:${Math.max(12,innerWidth-r.right)}px`:`left:${r.left}px`}">${html}</div>`}
 document.addEventListener('click',e=>{const dm=e.target.closest('.dropmenu');const b=e.target.closest('[data-erp]');if(!dm&&!b)$('#erpdrop')&&($('#erpdrop').innerHTML='');
  if(dm&&e.target.closest('[data-nav],[data-erp-go]'))setTimeout(()=>$('#erpdrop').innerHTML='',0);
  if(!b)return;const a=b.dataset.erp;
