@@ -14,6 +14,7 @@ import { enviarPush, verificarAlertas } from "../_shared/alertas.ts";
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
+import { difalSync } from "../_shared/difal.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
@@ -238,6 +239,17 @@ Deno.serve(handler(async (req) => {
       try { report.push({ workspace_id: i.workspace_id, movimentos: await enviarMovimentosBling(db, i.workspace_id, null, Math.min(deadline - 10_000, Date.now() + 40_000)) }); }
       catch (e) { report.push({ workspace_id: i.workspace_id, movimentos_erro: String(e).slice(0, 200) }); }
     }
+    // DIFAL: lê o XML das notas de saída do Bling (cursor por dia) enquanto sobrar tempo nesta rodada.
+    for (const i of list.filter((x) => x.provider === "bling" && x.settings?.difal?.ativo !== false)) {
+      if (Date.now() > deadline - 40_000) break;
+      try {
+        const cfg: any = await configFiscal(db, i.workspace_id);
+        const ie = Object.fromEntries(Object.entries(cfg.difal_uf ?? {}).filter(([, v]: any) => v?.ie).map(([k]) => [k, true]));
+        const r = await difalSync(db, i.workspace_id, i.settings?.difal?.cursor ?? null, cfg.uf ?? "SC", ie, Math.min(deadline - 15_000, Date.now() + 30_000));
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.difal = { ...(s.difal ?? {}), cursor: r.cursor, ultimo: { ...r, cursor: undefined, em: new Date().toISOString() } }; });
+        report.push({ workspace_id: i.workspace_id, difal: { ...r, cursor: r.cursor.dia } });
+      } catch (e) { report.push({ workspace_id: i.workspace_id, difal_erro: String(e).slice(0, 200) }); }
+    }
     // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {
       if (Date.now() > deadline - 12_000) break;
@@ -328,6 +340,15 @@ Deno.serve(handler(async (req) => {
     case "fiscal_emitir": return json(await emitirNFe(db, ws, String(body.pedido ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_emitir_venda": return json(await emitirVendaDireta(db, ws, String(body.venda ?? ""), user.email ?? user.id, body.producao === true));
     case "fiscal_consultar": return json(await consultarNFe(db, ws, String(body.ref ?? "")));
+    case "difal_sync": {
+      const { data: bl } = await db.from("integrations").select("settings").eq("workspace_id", ws).eq("provider", "bling").maybeSingle();
+      const cfg: any = await configFiscal(db, ws);
+      const ie = Object.fromEntries(Object.entries(cfg.difal_uf ?? {}).filter(([, v]: any) => v?.ie).map(([k]) => [k, true]));
+      const cur = body.desde && /^d{4}-d{2}-d{2}$/.test(String(body.desde)) ? { dia: String(body.desde), pagina: 1 } : bl?.settings?.difal?.cursor ?? null;
+      const r = await difalSync(db, ws, cur, cfg.uf ?? "SC", ie, Date.now() + 90_000);
+      await writeSettings(db, ws, "bling", (s) => { s.difal = { ...(s.difal ?? {}), cursor: r.cursor, ultimo: { ...r, cursor: undefined, em: new Date().toISOString() } }; });
+      return json(r);
+    }
     // Devolução e estorno: preparar (rascunho a partir da nota original), emitir e consultar.
     case "devolucao_preparar": case "devolucao_emitir": case "devolucao_consultar": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
