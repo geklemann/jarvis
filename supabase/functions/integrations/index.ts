@@ -15,6 +15,7 @@ import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBli
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
 import { difalSync } from "../_shared/difal.ts";
+import { sondarAds } from "../_shared/ml_ads.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
@@ -249,6 +250,12 @@ Deno.serve(handler(async (req) => {
         await writeSettings(db, i.workspace_id, i.provider, (s) => { s.difal = { ...(s.difal ?? {}), cursor: r.cursor, ultimo: { ...r, cursor: undefined, em: new Date().toISOString() } }; });
         report.push({ workspace_id: i.workspace_id, difal: { ...r, cursor: r.cursor.dia } });
       } catch (e) { report.push({ workspace_id: i.workspace_id, difal_erro: String(e).slice(0, 200) }); }
+    }
+    // Mercado Ads: sondagem única (só leitura) dos endereços da API de anúncios; o resultado fica em settings.ads_probe.
+    for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.ads_probe || (!x.settings.ads_probe.advertiser && Date.now() - new Date(x.settings.ads_probe.em ?? 0).getTime() > 30 * 60_000)))) {
+      if (Date.now() > deadline - 20_000) break;
+      try { const r = await sondarAds(db, i.workspace_id); await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = r; }); report.push({ workspace_id: i.workspace_id, ads_probe: r.testes.map((x: any) => [x.nome, x.status]) }); }
+      catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
     }
     // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {
