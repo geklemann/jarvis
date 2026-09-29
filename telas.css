@@ -574,3 +574,6 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .rttab tbody tr{cursor:pointer}.rttab tbody tr:hover{background:var(--panel2)}.rtsort{cursor:pointer;white-space:nowrap}.rtsort.on{color:var(--accent,#5fe0cc)}
 @media (max-width:600px){.rtpasso{grid-template-columns:1fr 70px;}.rtpasso i{grid-column:1/-1;order:3}.rtpasso small{display:none}}
 .rtconf{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 6px}.rtconf>div{background:var(--panel2);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column}.rtconf small{color:var(--muted);font-size:11.5px}.rtconf b{font-family:'JetBrains Mono',monospace}
+
+/* ─── Pessoas ─── */
+.psficha h4{margin:14px 0 6px;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}.psficha h4:first-child{margin-top:0}
