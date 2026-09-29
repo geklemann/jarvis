@@ -344,7 +344,12 @@ Deno.serve(handler(async (req) => {
       const { data: bl } = await db.from("integrations").select("settings").eq("workspace_id", ws).eq("provider", "bling").maybeSingle();
       const cfg: any = await configFiscal(db, ws);
       const ie = Object.fromEntries(Object.entries(cfg.difal_uf ?? {}).filter(([, v]: any) => v?.ie).map(([k]) => [k, true]));
-      const cur = body.desde && /^d{4}-d{2}-d{2}$/.test(String(body.desde)) ? { dia: String(body.desde), pagina: 1 } : bl?.settings?.difal?.cursor ?? null;
+      // Um dia só (ex.: "ler as notas de ontem agora"): lê aquele dia sem mexer no cursor da leitura automática.
+      if (body.dia && /^\d{4}-\d{2}-\d{2}$/.test(String(body.dia))) {
+        const r = await difalSync(db, ws, { dia: String(body.dia), pagina: 1 }, cfg.uf ?? "SC", ie, Date.now() + 100_000, String(body.dia));
+        return json({ ...r, cursor: undefined });
+      }
+      const cur = body.desde && /^\d{4}-\d{2}-\d{2}$/.test(String(body.desde)) ? { dia: String(body.desde), pagina: 1 } : bl?.settings?.difal?.cursor ?? null;
       const r = await difalSync(db, ws, cur, cfg.uf ?? "SC", ie, Date.now() + 90_000);
       await writeSettings(db, ws, "bling", (s) => { s.difal = { ...(s.difal ?? {}), cursor: r.cursor, ultimo: { ...r, cursor: undefined, em: new Date().toISOString() } }; });
       return json(r);

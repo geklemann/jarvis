@@ -34,12 +34,13 @@ export function difalDoXml(xml: string) {
 
 type Cursor = { dia: string; pagina: number; desde?: string };
 /** Avança a leitura das notas de saída. Devolve o cursor novo e o que foi gravado. */
-export async function difalSync(db: SupabaseClient, ws: string, cur: Cursor | null, ufEmit: string, ieUf: Record<string, unknown>, deadline = Date.now() + 45_000) {
+export async function difalSync(db: SupabaseClient, ws: string, cur: Cursor | null, ufEmit: string, ieUf: Record<string, unknown>, deadline = Date.now() + 45_000, ate?: string) {
   const hoje = dia(new Date());
   let c: Cursor = cur?.dia ? { ...cur } : { dia: `${hoje.slice(0, 7)}-01`, pagina: 1 };
   const get = await blingGet(db, ws);
-  const out = { lidas: 0, com_difal: 0, sem_difal: 0, erros: 0, cursor: c as Cursor };
+  const out = { lidas: 0, com_difal: 0, sem_difal: 0, erros: 0, cursor: c as Cursor, completo: false };
   while (Date.now() < deadline) {
+    if (ate && c.dia > ate) { out.completo = true; break; } // leitura de um dia só: terminou
     if (c.dia > hoje) { c = { dia: somaDia(hoje, -2), pagina: 1 }; break; } // chegou ao fim: da próxima vez relê os 2 últimos dias
     const q = new URLSearchParams({ pagina: String(c.pagina), limite: "100", tipo: "1", dataEmissaoInicial: `${c.dia} 00:00:00`, dataEmissaoFinal: `${c.dia} 23:59:59` });
     const lista = (await get(`/nfe?${q}`))?.data ?? [];
