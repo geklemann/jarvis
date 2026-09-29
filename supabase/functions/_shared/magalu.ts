@@ -137,7 +137,9 @@ export const magalu: Provider = {
         }));
         const addr = o.shipping_address ?? deliveries[0]?.shipping?.recipient?.address ?? deliveries[0]?.address ?? {};
         const customer = o.customer ?? deliveries[0]?.shipping?.recipient ?? {};
-        const gross = round(money(amounts.total ?? o.total ?? o.total_amount));
+        // Totais numéricos vêm em centavos com o divisor ao lado (amounts.normalizer = 100).
+        const div = (v: any, n: any) => (typeof v === "number" ? v / (num(n) || 1) : money(v));
+        const gross = round(div(amounts.total ?? o.total ?? o.total_amount, amounts.normalizer));
         const commission = money(amounts.commission ?? amounts.fees ?? o.commission);
         out.marketOrders.push({
           id: String(o.code ?? o.id), platform: "Magalu", date, gross, fee: round(commission), fee_source: commission ? "Magalu" : null,
