@@ -114,9 +114,13 @@ Deno.serve(async (req) => {
             if (x.situacao === "0" && (x.linha || x.barras)) {
               const payId = `gnre-${g.id}`;
               const notaTxt = g.tipo === "nota" ? `NF ${g.referencia?.slice(25, 34)?.replace(/^0+/, "") ?? ""}` : `mensal ${g.referencia}`;
-              await db.from("payables").upsert({ workspace_id: ws, id: payId, origem: "gnre", fornecedor: `SEFAZ ${g.uf}`, descricao: `GNRE DIFAL/FCP ${g.uf} · ${notaTxt}`, documento: x.nosso ?? null, emissao: hoje(), vencimento: x.limite ?? g.vencimento, valor: g.total, status: "aberto", categoria: "Impostos e taxas", linha_digitavel: x.linha ?? x.barras, aprovacao: "aprovado", created_by: quem }, { onConflict: "workspace_id,id", ignoreDuplicates: true });
-              await db.from("gnre_guias").update({ status: "emitida", linha_digitavel: x.linha, codigo_barras: x.barras, nosso_numero: x.nosso, vencimento: x.limite ?? g.vencimento, pdf_base64: i === 0 ? r.pdf : null, payable_id: payId, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
-              out.push({ id: g.id, status: "emitida" });
+              // Guia de homologação não se paga: não vira título e a nota volta para a fila (a guia real sai em produção).
+              const teste = g.ambiente !== "producao";
+              if (!teste) await db.from("payables").upsert({ workspace_id: ws, id: payId, origem: "gnre", fornecedor: `SEFAZ ${g.uf}`, descricao: `GNRE DIFAL/FCP ${g.uf} · ${notaTxt}`, documento: x.nosso ?? null, emissao: hoje(), vencimento: x.limite ?? g.vencimento, valor: g.total, status: "aberto", categoria: "Impostos e taxas", linha_digitavel: x.linha ?? x.barras, aprovacao: "aprovado", created_by: quem }, { onConflict: "workspace_id,id", ignoreDuplicates: true });
+              await db.from("gnre_guias").update({ status: "emitida", linha_digitavel: x.linha, codigo_barras: x.barras, nosso_numero: x.nosso, vencimento: x.limite ?? g.vencimento, pdf_base64: i === 0 ? r.pdf : null, payable_id: teste ? null : payId, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
+              if (teste && g.tipo === "nota") await db.from("difal_notas").update({ situacao: "pendente", guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
+              if (teste && g.tipo === "mensal") await db.from("difal_notas").update({ guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
+              out.push({ id: g.id, status: "emitida", teste });
             } else if (x.situacao && x.situacao !== "0" && x.situacao !== "4") {
               await db.from("gnre_guias").update({ status: "rejeitada", motivos: x.motivos, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
               if (g.tipo === "nota") await db.from("difal_notas").update({ situacao: "pendente", guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
