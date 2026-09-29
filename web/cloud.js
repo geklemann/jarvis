@@ -82,7 +82,7 @@ async function load(){
  if(months.length&&!months.includes(month))month=months.at(-1);
 }
 Cloud.reload=async()=>{await flush();await load();render()};
-Cloud.switchWs=async id=>{const w=Cloud.workspaces.find(x=>x.id===id);if(!w||id===Cloud.ws)return;await flush();Cloud.ws=w.id;Cloud.wsName=w.name;Cloud.role=w.role;try{localStorage.setItem('concilia-ws',id)}catch{}await load();window.Integrations&&(Integrations.state.loaded=false);render();toast('Workspace: '+w.name)};
+Cloud.switchWs=async id=>{const w=Cloud.workspaces.find(x=>x.id===id);if(!w||id===Cloud.ws)return;await flush();Cloud.ws=w.id;Cloud.wsName=w.name;Cloud.role=w.role;Cloud.paginas=w.paginas||null;try{localStorage.setItem('concilia-ws',id)}catch{}await load();window.Integrations&&(Integrations.state.loaded=false);render();toast('Workspace: '+w.name)};
 Cloud.renameWs=async name=>{const {error}=await sb.from('workspaces').update({name}).eq('id',Cloud.ws);if(error)throw error;Cloud.wsName=name;const w=Cloud.workspaces.find(x=>x.id===Cloud.ws);if(w)w.name=name};
 
 async function flush(){
@@ -176,12 +176,12 @@ async function start(session){
   $('#app').innerHTML='<div class="auth"><div class="authcard"><p>Carregando seus dados…</p></div></div>';
   const {data:ws,error}=await sb.rpc('ensure_workspace');if(error)throw error;
   // Quem foi adicionado a uma equipe abre o workspace da equipe; a escolha fica lembrada neste navegador.
-  const {data:mems,error:me}=await sb.from('workspace_members').select('workspace_id,role,created_at,workspaces(name)').eq('user_id',session.user.id).order('created_at');if(me)throw me;
+  const {data:mems,error:me}=await sb.from('workspace_members').select('workspace_id,role,paginas,created_at,workspaces(name)').eq('user_id',session.user.id).order('created_at');if(me)throw me;
   if(!(mems||[]).length){await aguardandoView(session);return}
-  Cloud.workspaces=(mems||[]).map(m=>({id:m.workspace_id,role:m.role,name:m.workspaces?.name||'Minha operação'}));
+  Cloud.workspaces=(mems||[]).map(m=>({id:m.workspace_id,role:m.role,paginas:m.paginas||null,name:m.workspaces?.name||'Minha operação'}));
   let pref=null;try{pref=localStorage.getItem('concilia-ws')}catch{}
   const chosen=Cloud.workspaces.find(w=>w.id===pref)||Cloud.workspaces.find(w=>w.role==='member')||Cloud.workspaces.find(w=>w.id===ws)||{id:ws,role:'owner',name:'Minha operação'};
-  Cloud.ws=chosen.id;Cloud.wsName=chosen.name;Cloud.role=chosen.role;
+  Cloud.ws=chosen.id;Cloud.wsName=chosen.name;Cloud.role=chosen.role;Cloud.paginas=chosen.paginas||null;
   await load();
   const h=location.hash.slice(1).split('?')[0];if(h)page=decodeURIComponent(h);
   render();
