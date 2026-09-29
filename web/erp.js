@@ -20,7 +20,7 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 const MODS=[
  {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','resumo']]]},
  {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
- {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['inventario','separacao']]]},
+ {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
  {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfrecebidas']],['Regras',['parametros','nfconfig']]]},
  {id:'cx',ic:'smile',t:'Experiência',grupos:[['Cliente final',['cx']],['Equipe',['cxequipe']]]},

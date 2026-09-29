@@ -11,7 +11,7 @@ import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
 import { enviarPush, verificarAlertas } from "../_shared/alertas.ts";
-import { depositosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
+import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
@@ -229,6 +229,14 @@ Deno.serve(handler(async (req) => {
         report.push({ workspace_id: i.workspace_id, provider: i.provider, ...(await advanceJob(db, i.workspace_id, i.provider, slot)) });
       } catch (e) { report.push({ workspace_id: i.workspace_id, provider: i.provider, error: String(e) }); }
     }
+    // Kardex do Jarvis: movimentos de estoque pendentes vão para o Bling (a cada rodada, se houver).
+    for (const i of list.filter((x) => x.provider === "bling")) {
+      if (Date.now() > deadline - 15_000) break;
+      const { count } = await db.from("estoque_movimentos").select("id", { count: "exact", head: true }).eq("workspace_id", i.workspace_id).in("bling_status", ["pendente", "erro"]).lt("tentativas", 5);
+      if (!count) continue;
+      try { report.push({ workspace_id: i.workspace_id, movimentos: await enviarMovimentosBling(db, i.workspace_id, null, Math.min(deadline - 10_000, Date.now() + 40_000)) }); }
+      catch (e) { report.push({ workspace_id: i.workspace_id, movimentos_erro: String(e).slice(0, 200) }); }
+    }
     // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {
       if (Date.now() > deadline - 12_000) break;
@@ -338,6 +346,12 @@ Deno.serve(handler(async (req) => {
     }
     // Expedição e estoque: depósitos, lançamento (entrada, saída, balanço) e etiquetas de envio pelo Bling.
     case "estoque_depositos": return json(await depositosBling(db, ws));
+    case "estoque_mov_enviar": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "estoque", "vendas", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não permite enviar movimentos de estoque.");
+      const ids = Array.isArray(body.dados?.ids) ? body.dados.ids.map(String) : null;
+      return json(await enviarMovimentosBling(db, ws, ids));
+    }
     case "estoque_lancar": case "etiquetas": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
       const pode = action === "etiquetas" ? ["owner", "member", "estoque", "atendimento"] : ["owner", "member", "estoque"];

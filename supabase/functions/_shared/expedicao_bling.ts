@@ -58,6 +58,35 @@ export async function lancarEstoqueBling(db: SupabaseClient, ws: string, d: any)
   return { lancamento: j?.data?.id, deposito, saldo: saldo != null ? Number(saldo) : null };
 }
 
+const MOTIVOS: Record<string, string> = { venda_direta: "Venda direta", cancelamento_venda: "Cancelamento de venda", devolucao_venda: "Devolução de cliente", devolucao_compra: "Devolução ao fornecedor", compra_sem_nota: "Compra sem nota", inventario: "Inventário", ajuste: "Ajuste", perda: "Perda", avaria: "Avaria", brinde: "Brinde", uso_interno: "Uso interno", amostra: "Amostra", estorno: "Estorno" };
+
+/** Envia ao Bling os movimentos do kardex do Jarvis que ainda não foram (pendentes e erros com menos de 5 tentativas,
+ *  ou os ids pedidos). Cada movimento vira um lançamento de estoque no Bling; o resultado volta para a linha. */
+export async function enviarMovimentosBling(db: SupabaseClient, ws: string, ids: string[] | null, deadline = Date.now() + 50_000) {
+  let q = db.from("estoque_movimentos").select("*").eq("workspace_id", ws);
+  q = ids?.length ? q.in("id", ids.slice(0, 60)).in("bling_status", ["pendente", "erro"]) : q.in("bling_status", ["pendente", "erro"]).lt("tentativas", 5);
+  const { data: movs, error } = await q.order("created_at").limit(40);
+  if (error) throw new HttpError(500, error.message);
+  const out = { enviados: 0, erros: 0, restantes: 0, detalhes: [] as any[] };
+  for (const m of movs ?? []) {
+    if (Date.now() > deadline) { out.restantes++; continue; }
+    let produto = m.produto_bling;
+    if (!produto) { const { data: p } = await db.from("produtos").select("bling_id").eq("workspace_id", ws).eq("id", m.sku).maybeSingle(); produto = p?.bling_id ? Number(p.bling_id) : null; }
+    const obs = [MOTIVOS[m.motivo] ?? m.motivo, m.documento, m.observacao].filter(Boolean).join(" · ").slice(0, 190);
+    try {
+      if (!produto) throw new HttpError(400, `SKU ${m.sku} sem vínculo com produto do Bling.`);
+      const r = await lancarEstoqueBling(db, ws, { produto, sku: m.sku, operacao: m.operacao, quantidade: m.quantidade, custo: m.operacao === "E" && m.custo != null ? m.custo : "", deposito: m.deposito ?? "", observacao: `Jarvis · ${obs}`, quem: m.criado_por });
+      await db.from("estoque_movimentos").update({ produto_bling: produto, bling_status: "enviado", bling_id: r.lancamento ?? null, bling_em: new Date().toISOString(), bling_erro: null, deposito: r.deposito ?? m.deposito, saldo_apos: r.saldo, tentativas: (m.tentativas ?? 0) + 1 }).eq("workspace_id", ws).eq("id", m.id);
+      out.enviados++; out.detalhes.push({ id: m.id, ok: true, saldo: r.saldo });
+    } catch (e) {
+      const msg = String((e as Error)?.message ?? e).slice(0, 300);
+      await db.from("estoque_movimentos").update({ produto_bling: produto ?? null, bling_status: "erro", bling_erro: msg, tentativas: (m.tentativas ?? 0) + 1 }).eq("workspace_id", ws).eq("id", m.id);
+      out.erros++; out.detalhes.push({ id: m.id, ok: false, erro: msg });
+    }
+  }
+  return out;
+}
+
 /** Etiquetas de envio. PDF: baixa cada etiqueta e junta tudo num arquivo; ZPL: junta os textos. */
 export async function etiquetasBling(db: SupabaseClient, ws: string, ids: (string | number)[], formato = "PDF", deadline = Date.now() + 110_000) {
   const b = await bling(db, ws);
