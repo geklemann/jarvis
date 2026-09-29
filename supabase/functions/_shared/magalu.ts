@@ -27,6 +27,11 @@ async function tenantDe(token: string): Promise<Record<string, any>> {
     }
     return null;
   };
+  // O token do ID Magalu traz "tenant" (a loja escolhida no login) e "tenant_title" (o nome dela).
+  if (typeof claims.tenant === "string" && claims.tenant.trim()) {
+    const u = claims.tenant.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
+    return { tenant: u ?? claims.tenant.trim(), tenant_nome: claims.tenant_title ?? null, tenant_origem: "token" };
+  }
   const doToken = achar(claims);
   if (doToken) return { tenant: doToken, tenant_origem: "token" };
   // 2) Endereços que listam as lojas do usuário.
