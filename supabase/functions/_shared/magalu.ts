@@ -62,13 +62,17 @@ const get = async (ctx: SyncContext, path: string) => {
   // Como na documentação oficial: só o token. Se a Magalu pedir o tenant, repete com o cabeçalho.
   try { return await fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json" } }); }
   catch (e0) { if (!/X-Tenant-Id/i.test(String((e0 as Error).message))) throw e0; }
-  try {
-    return await fetchJson(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json", "X-Tenant-Id": t } });
-  } catch (e) {
-    // Diagnóstico sem valores: formato do tenant enviado e de onde ele veio.
-    const f = t.replace(/[a-z]/g, "a").replace(/[A-Z]/g, "A").replace(/[0-9]/g, "9").slice(0, 60);
-    throw new Error(`${(e as Error).message} · tenant enviado: ${t ? `texto(${t.length}) ${f}` : "vazio"} · origem: ${ctx.extra?.tenant_origem ?? "?"}`);
+  // Variações conhecidas do tenant (UUID puro, com a perspectiva ".SELLER"); guarda a que funcionar.
+  const variantes = ctx.extra?.tenant_ok ? [String(ctx.extra.tenant_ok)] : [t, `${t}.SELLER`, t.toUpperCase()];
+  const tentativas: string[] = [];
+  for (const v of variantes) {
+    const r = await fetch(`${API()}${path}`, { headers: { Authorization: `Bearer ${ctx.token}`, Accept: "application/json", "X-Tenant-Id": v, "x-tenant-id": v } });
+    const txt = await r.text();
+    if (r.ok) { ctx.extra = { ...(ctx.extra ?? {}), tenant_ok: v }; return txt ? JSON.parse(txt) : null; }
+    const f = v.replace(/[a-z]/g, "a").replace(/[A-Z]/g, "A").replace(/[0-9]/g, "9").slice(0, 60);
+    tentativas.push(`${f} → ${r.status} ${txt.replace(/\s+/g, " ").slice(0, 120)}`);
   }
+  throw new Error(`Magalu recusou todas as variações do tenant: ${tentativas.join(" | ")} · origem: ${ctx.extra?.tenant_origem ?? "?"}`);
 };
 
 // Valores monetários da Magalu podem vir como número, string ou {amount, normalizer}.

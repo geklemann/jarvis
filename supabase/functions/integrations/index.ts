@@ -270,6 +270,9 @@ Deno.serve(handler(async (req) => {
     for (const w of new Set(list.map((i) => i.workspace_id))) {
       const { data: n, error } = await db.rpc("auto_link_exatos", { ws: w });
       report.push({ workspace_id: w, auto_vinculos: error ? String(error.message) : n });
+      // Mercado Livre: repasse ligado ao pedido pelo número e tarifa = venda − repasse real (autorizado no chat em 29/09).
+      const cp = await db.rpc("conciliar_por_pedido", { ws: w });
+      report.push({ workspace_id: w, conciliar_por_pedido: cp.error ? String(cp.error.message) : cp.data });
     }
     return json({ report });
   }
