@@ -28,7 +28,7 @@ const MODS=[
  {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Análises',['rentabilidade']],['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
- {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Ponto e jornada',['ponto']]]},
+ {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Pessoas',['pessoas']],['Ponto e jornada',['ponto']]]},
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
 const VISAO={ini:'central',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cx'};

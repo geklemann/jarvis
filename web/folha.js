@@ -172,6 +172,8 @@ function titulos(){const F=folhaDoMes(st.comp).filter(x=>x.h.fechado),s=f=>r2(F.
  if(ir>0)T.push({...base,id:`FOLHA-${st.comp}-IRRF`,fornecedor:'Receita Federal',descricao:`IRRF sobre salários e pró-labore ${compLabel(st.comp)} (DCTFWeb)`,vencimento:v20,valor:ir,categoria:'Impostos e taxas'});
  return T}
 document.addEventListener('change',e=>{if(e.target.matches('[data-fl-comp]')&&/^\d{4}-\d{2}$/.test(e.target.value)){st.comp=e.target.value;render()}});
-window.Folha={acessoLiberado:()=>{if(page==='folha')render()},calcular};
+// Usado por Pessoas (férias e rescisão): mesmas tabelas e o mesmo IRRF (simplificado e redutor) da folha.
+function irrfCalc(rend,inss,dependentes){const p=P(),legais=inss+(Number(dependentes)||0)*p.irrf_dependente,ded=Math.max(legais,p.irrf_simplificado),base=r2(Math.max(0,rend-ded));let ir=irrfTabela(base,p.irrf);if(rend<=p.redutor_isento_ate)ir=0;else if(rend<=p.redutor_ate)ir=r2(Math.max(0,ir-Math.max(0,p.redutor_a-p.redutor_b*rend)));return {ir,base}}
+window.Folha={acessoLiberado:()=>{if(page==='folha')render();window.Pessoas?.acessoLiberado?.()},calcular,vigente,tabelas:()=>P(),inss:b=>inssProgressivo(b,P().inss),irrf:irrfCalc,fechamentos:()=>st.fech,garantir:()=>carregar(),parametros:()=>st.P,salvarParametros:async d=>{const {error}=await Cloud.client.from('folha_parametros').upsert({workspace_id:Cloud.ws,dados:{...P(),...d},updated_at:new Date().toISOString()});if(error)throw error;await carregar(true)}};
 addPage('folha','wallet','Folha de pagamento',view,'Holerites a partir do contrato, do ponto e dos lançamentos do mês: INSS, IRRF, FGTS, encargos, guias e lançamento no contas a pagar. Só quem criou a empresa acessa.','',()=>{});
 })();
