@@ -100,7 +100,10 @@ export const shopee: Provider = {
                 qty: num(it.model_quantity_purchased), price: round(num(it.model_discounted_price ?? it.model_original_price)),
               })),
               customer: { id: `SHP-${o.buyer_user_id}`, name: addr.name || o.buyer_username, city: addr.city, state: uf(addr.state) ?? undefined },
-              external: { status: o.order_status, buyer_username: o.buyer_username, commission_fee: income.commission_fee, service_fee: income.service_fee },
+              // renda: todos os valores da renda do pedido (comissão, serviço, rebates e cupons da Shopee, frete...), para a
+              // margem usar o que a Shopee realmente cobrou e devolveu, e não percentuais fixos.
+              external: { status: o.order_status, buyer_username: o.buyer_username, commission_fee: income.commission_fee, service_fee: income.service_fee,
+                renda: Object.fromEntries(Object.entries(income).filter(([, v]) => typeof v === "number" && v !== 0).map(([k, v]) => [k, round(v as number)])) },
             });
           }
         }
