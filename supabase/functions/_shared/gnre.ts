@@ -7,7 +7,9 @@ import forge from "npm:node-forge@1.3.1";
 import { HttpError } from "./common.ts";
 
 export const ambienteGnre = () => (Deno.env.get("GNRE_AMBIENTE") === "producao" ? "producao" : "homologacao");
-const HOST = () => (ambienteGnre() === "producao" ? "https://www.gnre.pe.gov.br" : "https://www.testegnre.pe.gov.br");
+// Homologação: www.testegnre.pe.gov.br apresenta o certificado *.sefaz.pe.gov.br (nome não confere). O mesmo servidor
+// (200.238.83.74) responde como testegnre.sefaz.pe.gov.br, que o certificado cobre. GNRE_HOST sobrepõe, se a SEFAZ-PE corrigir.
+const HOST = () => Deno.env.get("GNRE_HOST") || (ambienteGnre() === "producao" ? "https://www.gnre.pe.gov.br" : "https://testegnre.sefaz.pe.gov.br");
 const NS = "http://www.gnre.pe.gov.br";
 export const temCertificado = () => !!Deno.env.get("GNRE_CERT_PFX") && !!Deno.env.get("GNRE_CERT_SENHA");
 
