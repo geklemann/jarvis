@@ -19,7 +19,7 @@ async function gnre(action,body={}){const r=await Cloud.client.functions.invoke(
 async function integ(action,body={}){const r=await Cloud.client.functions.invoke('integrations',{body:{workspace_id:Cloud.ws,action,...body}});if(r.error){let msg=r.error.message;try{msg=(await r.error.context.json()).error||msg}catch{}throw Error(msg)}return r.data}
 
 async function carregar(){if(st.carregando||!window.Cloud?.client)return;st.carregando=true;
- try{const ini=`${st.mes}-01`,fim=`${st.mes}-31`;
+ try{const [ay,am]=st.mes.split('-').map(Number),ini=`${st.mes}-01`,fim=`${st.mes}-${String(new Date(ay,am,0).getDate()).padStart(2,'0')}`; // último dia real do mês
   const [n,g]=await Promise.all([Cloud.client.from('difal_notas').select('chave,numero,serie,emissao,uf,dest_nome,dest_doc,valor_nota,v_difal,v_fcp,situacao,guia_id').eq('workspace_id',Cloud.ws).gte('emissao',ini).lte('emissao',fim).order('emissao',{ascending:false}).limit(5000),
    Cloud.client.from('gnre_guias').select('id,uf,tipo,referencia,notas,valor_icms,valor_fcp,total,vencimento,status,ambiente,recibo,linha_digitavel,codigo_barras,nosso_numero,motivos,payable_id,created_at').eq('workspace_id',Cloud.ws).order('created_at',{ascending:false}).limit(500)]);
   if(n.error)throw n.error;if(g.error)throw g.error;st.notas=n.data||[];st.guias=g.data||[]}

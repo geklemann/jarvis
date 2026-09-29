@@ -10,6 +10,7 @@ import { blingGet, notaAindaValida } from "../_shared/difal.ts";
 import { ambienteGnre, consultarConfigUf, enviarLote, montarLote, resultadoLote, temCertificado, type Emitente, type GuiaIn } from "../_shared/gnre.ts";
 
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // dia em Brasília
+function ultimoDia(mes: string) { const [a, m] = mes.split("-").map(Number); return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`; }
 function proximoMes(mes: string, dia: number) { const [a, m] = mes.split("-").map(Number); const d = new Date(Date.UTC(a, m, 1)); const ult = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(Math.min(dia, ult)).padStart(2, "0")}`; }
 
 Deno.serve(async (req) => {
@@ -77,7 +78,7 @@ Deno.serve(async (req) => {
         } else if (body.mensal?.uf && /^\d{4}-\d{2}$/.test(String(body.mensal.mes))) {
           const uf = String(body.mensal.uf), mes = String(body.mensal.mes);
           if (!difalUf[uf]?.ie) throw new HttpError(400, `Sem inscrição estadual cadastrada em ${uf}: o DIFAL de ${uf} é por nota.`);
-          const { data: ns } = await db.from("difal_notas").select("chave,v_difal,v_fcp").eq("workspace_id", ws).eq("uf", uf).eq("situacao", "mensal").gte("emissao", `${mes}-01`).lte("emissao", `${mes}-31`);
+          const { data: ns } = await db.from("difal_notas").select("chave,v_difal,v_fcp").eq("workspace_id", ws).eq("uf", uf).eq("situacao", "mensal").gte("emissao", `${mes}-01`).lte("emissao", ultimoDia(mes));
           if (!ns?.length) throw new HttpError(400, `Nenhuma nota com DIFAL em ${uf} no mês ${mes}.`);
           const icms = round(ns.reduce((s: number, x: any) => s + Number(x.v_difal), 0)), fcp = round(ns.reduce((s: number, x: any) => s + Number(x.v_fcp), 0));
           const g = { workspace_id: ws, id: `GM-${uf}-${mes}-${Date.now().toString(36)}`, uf, tipo: "mensal", referencia: mes, notas: ns.map((x: any) => x.chave), valor_icms: icms, valor_fcp: fcp, total: round(icms + fcp), vencimento: proximoMes(mes, Number(difalUf[uf]?.dia) || 10), status: "rascunho", criado_por: quem };
