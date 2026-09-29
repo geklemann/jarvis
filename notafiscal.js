@@ -5,7 +5,7 @@
 // cancelamento e carta de correção. Emitir, cancelar e corrigir: dono, gestão e financeiro.
 (()=>{
 Object.assign(paths,{nfe:'M6 3h9l3 3v15H6z M15 3v3h3 M9 11h6 M9 15h6 M9 7h3'});
-const EMIT={nome:'WOLFACH E-COMMERCE LTDA',fantasia:'Compra Store',cnpj:'65.193.225/0001-57',cidade:'Timbó',uf:'SC'};
+const EMIT={nome:'WOLFACH E-COMMERCE S.A.',fantasia:'Compra Store',cnpj:'65.193.225/0001-57',cidade:'Timbó',uf:'SC'};
 const PAG=[['17','PIX'],['03','Cartão de crédito'],['04','Cartão de débito'],['15','Boleto'],['01','Dinheiro'],['18','Transferência'],['05','Crédito loja'],['90','Sem pagamento'],['99','Outros']];
 const PRES=[['2','Internet'],['1','Presencial'],['3','Teleatendimento'],['9','Outros']];
 const UFS=['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
