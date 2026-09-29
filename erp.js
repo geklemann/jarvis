@@ -22,7 +22,7 @@ const MODS=[
  {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta']],['Pós-venda',['atendimento','devolucoes']],['Conexões',['integracoes']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
- {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfrecebidas']],['Regras',['parametros','nfconfig']]]},
+ {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfdevolucao','nfrecebidas']],['Regras',['parametros','nfconfig']]]},
  {id:'cx',ic:'smile',t:'Experiência',grupos:[['Cliente final',['cx']],['Equipe',['cxequipe']]]},
  {id:'crm',ic:'heart',t:'CRM',grupos:[['CRM',['crm','crmclientes','crmfases','crmacoes']],['Análises',['crmprodutos','crmgeo']],['Automação',['crmreguas']]]},
  {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
@@ -48,7 +48,7 @@ function avisos(){const c=contagens(),s=l=>money(round(l.reduce((a,t)=>a+saldoT(
  if(c.extrato)out.push(['info','swap',`${c.extrato} movimento(s) do extrato a conciliar`,'Conciliação bancária','concbanco']);
  if(c.notas)out.push(['info','receipt',`${c.notas} nota(s) de entrada nova(s)`,'Confira categorias e vencimentos','compras']);
  if(c.acessos)out.push(['warn','users',`${c.acessos} pedido(s) de acesso`,'Equipe e acessos','equipe']);
- out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]),...(window.Resumo?.avisos?.()||[]),...(window.Ponto?.avisos?.()||[]));
+ out.push(...(window.Suporte?.avisos?.()||[]),...(window.Atendimento?.avisos?.()||[]),...(window.Estoque?.avisos?.()||[]),...(window.Faturamento?.avisos?.()||[]),...(window.Devolucoes?.avisos?.()||[]),...(window.NfDevolucao?.avisos?.()||[]),...(window.Orcamento?.avisos?.()||[]),...(window.Margem?.avisos?.()||[]),...(window.Pagamentos?.avisos?.()||[]),...(window.NfRecebidas?.avisos?.()||[]),...(window.Resumo?.avisos?.()||[]),...(window.Ponto?.avisos?.()||[]));
  return out}
 
 let paginaAnterior=null;
