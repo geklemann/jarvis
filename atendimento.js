@@ -6,7 +6,7 @@
 (()=>{
 Object.assign(paths,{headset:'M4 14v-2a8 8 0 0 1 16 0v2 M4 14h3v6H5a1 1 0 0 1-1-1z M20 14h-3v6h2a1 1 0 0 0 1-1z M17 20a4 4 0 0 1-4 2h-1',
  send:'M4 12 20 4l-6 16-3-7z M11 13l9-9'});
-const st={lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'fila',busca:'',vistos:new Set(),notificar:false};
+const st={canal:'',lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'fila',busca:'',vistos:new Set(),notificar:false};
 try{st.notificar=localStorage.getItem('eb_notif_atend')==='1'}catch{}
 const dataHora=s=>s?new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 const TIPOS={reclamacao:['Reclamação','bad'],mediacao:['Mediação','bad'],devolucao:['Devolução','warn'],cancelamento:['Cancelamento','warn'],pergunta:['Pergunta','info'],mensagem:['Mensagem','info']};
@@ -58,27 +58,28 @@ function avisos(){const ab=st.lista.filter(aberto),urg=ab.filter(a=>{const h=hor
  if(perg.length)out.push(['info','chat',`${perg.length} pergunta(s) sem resposta`,'Responder rápido aumenta a venda','atendimento']);return out}
 
 // ─────────── Tela ───────────
-const FILTROS=[['fila','Fila',aberto],['urgentes','Urgentes',a=>aberto(a)&&((horasAte(a.prazo)??99)<24||a.tipo==='mediacao')],['reclamacoes','Reclamações',a=>aberto(a)&&['reclamacao','mediacao','cancelamento'].includes(a.tipo)],['devolucoes','Devoluções',a=>aberto(a)&&(a.tipo==='devolucao'||a.devolucao)],['perguntas','Perguntas',a=>aberto(a)&&a.tipo==='pergunta'],['mensagens','Mensagens',a=>aberto(a)&&a.tipo==='mensagem'],['resolvidos','Resolvidos',a=>!aberto(a)]];
+const FILTROS=[['fila','Fila',aberto],['urgentes','Urgentes',a=>aberto(a)&&((horasAte(a.prazo)??99)<24||a.tipo==='mediacao')],['reclamacoes','Reclamações',a=>aberto(a)&&['reclamacao','mediacao','cancelamento'].includes(a.tipo)],['devolucoes','Devoluções',a=>aberto(a)&&(a.tipo==='devolucao'||a.devolucao)],['perguntas','Perguntas',a=>aberto(a)&&a.tipo==='pergunta'],['mensagens','Mensagens',a=>aberto(a)&&a.tipo==='mensagem'],['resolvidos','Resolvidos',a=>!aberto(a)],['melhorias','Melhorias',()=>false]];
 function view(){if(!window.Cloud?.ws)return '<div class="empty">Entre no portal para ver o atendimento.</div>';if(!st.carregado){carregar();return '<div class="empty">Carregando atendimentos…</div>'}
  const l=st.lista,ab=l.filter(aberto),res30=l.filter(a=>!aberto(a)&&a.fechado_em&&new Date(a.fechado_em)>Date.now()-30*864e5);
  const tempoMedio=(()=>{const t=res30.filter(a=>a.aberto_em).map(a=>(new Date(a.fechado_em)-new Date(a.aberto_em))/3600e3);return t.length?t.reduce((s,x)=>s+x,0)/t.length:null})();
  const kpi=(k,t,v,s,tom)=>`<button class="card kpi kpibtn ${st.filtro===k?'on':''}" data-at-filtro="${k}"><span class="kpil">${t}</span><span class="kpiv ${tom||''}">${v}</span><span class="kpis">${s}</span></button>`;
  const f=FILTROS.find(x=>x[0]===st.filtro)||FILTROS[0],q=normalized(st.busca);
- const lista=l.filter(f[2]).filter(a=>!q||normalized([a.id,a.pedido,a.produto,a.comprador,a.motivo,(a.mensagens||[]).map(m=>m.texto).join(' ')].join(' ')).includes(q)).sort((a,b)=>st.filtro==='resolvidos'?String(b.fechado_em).localeCompare(String(a.fechado_em)):prioridade(b)-prioridade(a));
+ const lista=l.filter(f[2]).filter(a=>!st.canal||a.canal===st.canal).filter(a=>!q||normalized([a.id,a.pedido,produtoDe(a),a.comprador,a.motivo,(a.mensagens||[]).map(m=>m.texto).join(' ')].join(' ')).includes(q)).sort((a,b)=>st.filtro==='resolvidos'?String(b.fechado_em).localeCompare(String(a.fechado_em)):prioridade(b)-prioridade(a));
  const semPermissao=(st.info?.erros||[]).some(e=>/403|UNAUTHORIZED/i.test(e));
  return `${semPermissao?`<div class="notice warnbox"><strong>Falta liberar o Mercado Livre.</strong> O aplicativo Jarvis ainda não tem permissão para ler reclamações, perguntas e mensagens. No painel de desenvolvedores do Mercado Livre, ative as permissões <strong>Comunicação pré e pós-venda</strong> e <strong>Pós-venda (reclamações e devoluções)</strong> e depois clique em <strong>Reconectar</strong> no Mercado Livre em Integrações.</div>`:''}
  ${st.erro?`<div class="notice warnbox">${esc(st.erro)}</div>`:''}
  <div class="grid kpis4 at-kpis">${kpi('fila','Na fila',ab.length,`${ab.filter(esperandoNos).length} aguardando resposta nossa`)}${kpi('urgentes','Urgentes',l.filter(FILTROS[1][2]).length,'Prazo < 24 h ou mediação',l.filter(FILTROS[1][2]).length?'red':'')}${kpi('perguntas','Perguntas',l.filter(FILTROS[4][2]).length,'Sem resposta')}${kpi('resolvidos','Resolvidos em 30 dias',res30.length,tempoMedio!=null?`Tempo médio ${tempoMedio<48?Math.round(tempoMedio)+' h':Math.round(tempoMedio/24)+' dias'}`:'—','green')}</div>
- <div class="crmbar"><div class="segtabs">${FILTROS.map(([k,t,fx])=>`<button class="${st.filtro===k?'active':''}" data-at-filtro="${k}">${t}${k!=='resolvidos'?` <small>${l.filter(fx).length}</small>`:''}</button>`).join('')}</div>
+ <div class="crmbar"><div class="segtabs">${FILTROS.map(([k,t,fx])=>`<button class="${st.filtro===k?'active':''}" data-at-filtro="${k}">${t}${k==='melhorias'?` <small>${padroes().filter(g=>g.n>=2&&!melhorias().some(x=>x.produto===g.produto&&x.caso===g.caso&&x.status!=='feita')).length||''}</small>`:k!=='resolvidos'?` <small>${l.filter(fx).length}</small>`:''}</button>`).join('')}</div>
+  <div class="segtabs">${[['','Todos'],...[...new Set(l.map(a=>a.canal))].map(c=>[c,CANAL[c]||c])].map(([k,t])=>`<button class="${st.canal===k?'active':''}" data-at-canal="${esc(k)}">${esc(t)}</button>`).join('')}</div>
   <div class="searchin">${icon('search')}<input type="search" id="atBusca" placeholder="Pedido, produto, cliente, motivo…" value="${esc(st.busca)}"></div>
   <button class="small" data-at="atualizar" ${st.mlConectado?'':'disabled'}>${icon('refresh')} Atualizar agora</button>
   <button class="small quiet" data-at="notif">${icon('bell')} ${st.notificar?'Notificações ligadas':'Ativar notificações'}</button></div>
  <p class="caption" style="margin:-6px 0 14px">Atualiza sozinho a cada 10 minutos${st.info?.fim?` · última leitura ${dataHora(st.info.fim)}`:''}. Ordem da fila: prazo do marketplace, mediações, valor e tempo sem resposta.</p>
- ${lista.length?`<div class="atlista">${lista.map(linha).join('')}</div>`:`<div class="card empty">${st.filtro==='fila'?'Nenhum atendimento aberto. ✓':'Nada neste filtro.'}</div>`}`}
+ ${st.filtro==='melhorias'?melhoriasView():`<div class="atgrid"><div>${lista.length?`<div class="atlista">${lista.map(linha).join('')}</div>`:`<div class="card empty">${st.filtro==='fila'?'Nenhum atendimento aberto. ✓':'Nada neste filtro.'}</div>`}</div>${lateral()}</div>`}`}
 function linha(a){const [tn,tt]=TIPOS[a.tipo]||[a.tipo,''],r=regra(a),u=(a.mensagens||[]).at(-1);
  return `<button class="card atitem ${aberto(a)&&((horasAte(a.prazo)??99)<24||a.tipo==='mediacao')?'urg':''}" data-at-abrir="${esc(a.id)}">
   <div class="athead"><span class="badge ${tt}">${tn}</span><span class="caption">${CANAL[a.canal]||a.canal}${a.pedido?' · pedido '+esc(a.pedido):''}</span><span class="atprazo">${aberto(a)?prazoTxt(a):`<span class="badge ok">resolvido ${dataHora(a.fechado_em)}</span>`}</span></div>
-  <strong class="attitulo">${esc(a.produto||r.titulo)}</strong>
+  <strong class="attitulo">${esc(a.produto||pedidoDe(a)?.items?.[0]?.title||r.titulo)}</strong>
   <span class="caption">${esc(a.motivo||r.titulo)}${a.comprador?' · '+esc(a.comprador):''}${a.valor?' · '+money(a.valor):''}</span>
   ${u?`<span class="atmsg"><b>${u.de==='vendedor'?'Nós':'Cliente'}:</b> ${esc(String(u.texto||'').slice(0,160))}</span>`:''}
   ${aberto(a)?`<span class="atsug">${icon('spark')} <span>${esc(a.sugestao?.solucao||r.solucao)}</span></span>`:''}
@@ -100,7 +101,8 @@ function preencher(t,a){const o=db.orders.find(x=>String(x.id)===String(a.pedido
  const nm=nome.charAt(0).toUpperCase()+nome.slice(1).toLowerCase();return t.replace(/\{nome\}/g,nm).replace(/\{pedido\}/g,a.pedido||'').replace(/\{produto\}/g,a.produto||o?.items?.[0]?.title||'produto')}
 function abrir(id){const a=st.lista.find(x=>x.id===id);if(!a)return;const r=regra(a),s=a.sugestao,[tn,tt]=TIPOS[a.tipo]||[a.tipo,''];
  const limite=a.tipo==='mensagem'?350:a.tipo==='pergunta'?2000:2000;const nome=(window.Cloud?.session?.user?.user_metadata?.nome||window.Cloud?.session?.user?.email||'').split(/[\s@]/)[0];
- modal(`${tn} · ${a.produto||a.id}`,`<div class="athead" style="margin-bottom:12px"><span class="badge ${tt}">${tn}</span><span class="caption">${CANAL[a.canal]||a.canal}${a.pedido?' · pedido '+esc(a.pedido):''}${a.valor?' · '+money(a.valor):''}${a.comprador?' · '+esc(a.comprador):''}</span><span class="atprazo">${aberto(a)?prazoTxt(a):'resolvido'}</span></div>
+ modal(`${tn} · ${a.produto||pedidoDe(a)?.items?.[0]?.title||a.id}`,`<div class="athead" style="margin-bottom:12px"><span class="badge ${tt}">${tn}</span><span class="caption">${CANAL[a.canal]||a.canal}${a.pedido?' · pedido '+esc(a.pedido):''}${a.valor?' · '+money(a.valor):''}${a.comprador?' · '+esc(a.comprador):''}</span><span class="atprazo">${aberto(a)?prazoTxt(a):'resolvido'}</span></div>
+ ${clienteHtml(a)}
  ${a.motivo?`<p><strong>Motivo:</strong> ${esc(a.motivo)}</p>`:''}
  ${(a.acoes||[]).length?`<p class="caption">Ações disponíveis no marketplace: ${a.acoes.map(x=>`${esc(x.acao)}${x.prazo?` (até ${dataHora(x.prazo)})`:''}`).join(' · ')}</p>`:''}
  ${a.devolucao?`<p class="caption">Devolução: ${esc(a.devolucao.status||'—')}${(a.devolucao.envios||[]).map(e=>` · envio ${esc(e.status||'')}${e.rastreio?' '+esc(e.rastreio):''}`).join('')}</p>`:''}
@@ -130,9 +132,55 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-at-f
    const campos={etapa_interna:a?.tipo==='pergunta'?'resolvido':'aguardando cliente',responsavel:$('#atResp').value.trim()||a?.responsavel||null};await salvar(d.atEnviar,campos).catch(()=>{});toast('Resposta enviada.');closeModal();render()}
   catch(x){toast(x.message);b.disabled=false}}
 });
+document.addEventListener('click',e=>{const b=e.target.closest('[data-at-canal],[data-at-criar],[data-at-feita],[data-at-dev],[data-at-buscar]');if(!b)return;const d=b.dataset;
+ if(d.atCanal!=null){st.canal=d.atCanal;render();return}
+ if(d.atBuscar){st.busca=d.atBuscar;st.filtro='resolvidos'===st.filtro?'fila':st.filtro;render();return}
+ if(d.atDev){closeModal();if(page!=='nfdevolucao')navigate('nfdevolucao');setTimeout(()=>window.NfDevolucao?.nova?.(d.atDev),80);return}
+ if(d.atCriar){const [p,c]=d.atCriar.split('|');criarMelhoria(p,c);if(document.querySelector('.modalback'))closeModal();st.filtro='melhorias';toast('Ação de melhoria registrada. Acompanhe em Atendimento › Melhorias.');render();return}
+ if(d.atFeita){salvarMelhorias(melhorias().map(x=>x.id===d.atFeita?{...x,status:'feita',feita_em:new Date().toISOString()}:x));audit('Melhoria concluída (atendimento)',d.atFeita);render();return}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-at-modelo]');if(!b)return;const a=st.lista.find(x=>x.id===b.dataset.id),m=MODELOS.find(x=>x[0]===b.dataset.atModelo),t=$('#atTexto');if(!a||!m||!t)return;
  t.value=preencher(m[2],a).slice(0,Number(t.maxLength)||2000);t.dispatchEvent(new Event('input'));t.focus();document.querySelectorAll('[data-at-modelo]').forEach(x=>x.classList.toggle('primary',x===b))});
 function bind(){const i=$('#atBusca');if(i)i.oninput=e=>{st.busca=e.target.value;const pos=e.target.selectionStart;render();const n=$('#atBusca');n.focus();n.setSelectionRange(pos,pos)}}
+// ─────────── Melhorar para o cliente ───────────
+// Padrões (mesmo produto + mesmo problema) viram sugestões de melhoria; a ação registrada mostra se os casos pararam.
+const ACOES={naochegou:'Revisar prazo de postagem e transportadora; avisar o cliente assim que despachar.',defeito:'Acionar o fornecedor e reforçar a conferência de qualidade antes do envio.',faltando:'Reforçar a conferência de expedição (bipagem) e a embalagem das peças pequenas.',diferente:'Conferir a separação e as fotos/variações do anúncio.',arrependimento:'Deixar o anúncio mais claro: medidas, idade indicada e fotos reais.',cancelamento:'Encurtar o tempo entre a venda e o despacho.',outro:'Ler os casos e ajustar o anúncio ou o processo.'};
+let idxPed=null,idxN=-1;
+function pedidoDe(a){const p=String(a?.pedido||'').trim();if(!p)return null;if(!idxPed||idxN!==db.orders.length){idxPed=new Map();idxN=db.orders.length;for(const o of db.orders){idxPed.set(String(o.id),o);for(const x of o.external?.ml_order_ids||[])idxPed.set(String(x),o);if(o.external?.ml_order_id)idxPed.set(String(o.external.ml_order_id),o);if(o.external?.pack_id)idxPed.set(String(o.external.pack_id),o)}}return idxPed.get(p)||null}
+const produtoDe=a=>a.produto||pedidoDe(a)?.items?.[0]?.title||'Produto não informado';
+const CASO_ROT=k=>PLAY[k]?.[0]||k;
+const melhorias=()=>db.gerencial?.melhorias||[];
+function salvarMelhorias(l){db.gerencial={...(db.gerencial||{}),melhorias:l};save()}
+const quando=a=>new Date(a.aberto_em||a.created_at||a.updated_at||0).getTime();
+function padroes(dias=60){const ini=Date.now()-dias*864e5,m=new Map();
+ for(const a of st.lista){if(['pergunta','mensagem'].includes(a.tipo)||quando(a)<ini)continue;const c=caso(a),p=produtoDe(a),k=p+'|'+c;const g=m.get(k)||{produto:p,caso:c,n:0,valor:0,ids:[]};g.n++;g.valor+=Number(a.valor)||0;g.ids.push(a.id);m.set(k,g)}
+ return [...m.values()].sort((a,b)=>b.n-a.n||b.valor-a.valor)}
+function lateral(){const ini=Date.now()-30*864e5,rec=st.lista.filter(a=>!['pergunta','mensagem'].includes(a.tipo)&&quando(a)>=ini),mot=new Map(),prod=new Map();
+ for(const a of rec){const c=caso(a);mot.set(c,(mot.get(c)||0)+1);const p=produtoDe(a);prod.set(p,(prod.get(p)||0)+1)}
+ const top=(m,n)=>[...m].sort((a,b)=>b[1]-a[1]).slice(0,n),max=Math.max(1,...mot.values());
+ const prazos=st.lista.filter(a=>aberto(a)&&a.prazo).sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo))).slice(0,5);
+ const sug=padroes().filter(g=>g.n>=2&&!melhorias().some(x=>x.produto===g.produto&&x.caso===g.caso&&x.status!=='feita')).length;
+ return `<aside class="atlado"><section class="card"><h3>Motivos em 30 dias</h3>${top(mot,6).map(([c,n])=>`<div class="atbar"><span>${esc(CASO_ROT(c))}</span><i style="width:${Math.round(n/max*100)}%"></i><b>${n}</b></div>`).join('')||'<p class="caption">Sem casos no período.</p>'}</section>
+ <section class="card"><h3>Produtos com mais chamados</h3>${top(prod,5).map(([p,n])=>`<button class="atlinha" data-at-buscar="${esc(p)}"><span>${esc(String(p).slice(0,48))}</span><b>${n}</b></button>`).join('')||'<p class="caption">—</p>'}</section>
+ <section class="card"><h3>Próximos prazos</h3>${prazos.map(a=>`<button class="atlinha" data-at-abrir="${esc(a.id)}"><span>${esc(String(produtoDe(a)!=='Produto não informado'?produtoDe(a):a.motivo||a.id).slice(0,40))}</span><b>${prazoTxt(a)}</b></button>`).join('')||'<p class="caption">Nenhum prazo em aberto.</p>'}</section>
+ ${sug?`<section class="card atdica"><strong>${sug} padrão(ões) se repetindo</strong><p class="caption">O mesmo produto com o mesmo problema. Veja a aba Melhorias para agir na causa.</p><button class="small primary" data-at-filtro="melhorias">Ver melhorias</button></section>`:''}</aside>`}
+function melhoriasView(){const P=padroes(),M=melhorias(),abertas=M.filter(x=>x.status!=='feita'),feitas=M.filter(x=>x.status==='feita');
+ const depois=x=>st.lista.filter(a=>produtoDe(a)===x.produto&&caso(a)===x.caso&&quando(a)>new Date(x.criado_em).getTime()).length;
+ const sug=P.filter(g=>g.n>=2&&!M.some(x=>x.produto===g.produto&&x.caso===g.caso&&x.status!=='feita'));
+ return `<div class="notice">Cada reclamação repetida é uma chance de melhorar para o próximo cliente. O Jarvis agrupa os casos dos últimos 60 dias por produto e problema e sugere a ação. Registre, conclua e acompanhe se os casos pararam.</div>
+ <div class="grid two" style="align-items:start"><section class="tablebox"><div class="tabletop"><h2>Padrões se repetindo</h2><span class="caption">2 ou mais casos em 60 dias</span></div><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Problema</th><th class="num">Casos</th><th>Ação sugerida</th><th></th></tr></thead><tbody>
+ ${sug.map(g=>`<tr><td><strong>${esc(g.produto)}</strong></td><td>${esc(CASO_ROT(g.caso))}</td><td class="num">${g.n}</td><td class="caption">${esc(ACOES[g.caso]||ACOES.outro)}</td><td><button class="small primary" data-at-criar="${esc(g.produto)}|${esc(g.caso)}">Criar ação</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum padrão se repetindo. ✓</td></tr>'}</tbody></table></div></section>
+ <section class="tablebox"><div class="tabletop"><h2>Ações de melhoria</h2><span class="caption">${abertas.length} em andamento · ${feitas.length} concluída(s)</span></div><div class="tablewrap"><table><thead><tr><th>Ação</th><th>Situação</th><th class="num">Casos depois</th><th></th></tr></thead><tbody>
+ ${[...abertas,...feitas].map(x=>`<tr><td><strong>${esc(x.produto)}</strong> · ${esc(CASO_ROT(x.caso))}<br><span class="caption">${esc(x.acao)}</span><br><span class="caption">${esc(String(x.por||'').split('@')[0])} · ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</span></td><td><span class="badge ${x.status==='feita'?'ok':'warn'}">${x.status==='feita'?'concluída '+new Date(x.feita_em).toLocaleDateString('pt-BR'):'em andamento'}</span></td><td class="num ${depois(x)?'red':'green'}">${depois(x)}</td><td>${x.status==='feita'?'':`<button class="small" data-at-feita="${esc(x.id)}">Concluir</button>`}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Nenhuma ação registrada ainda.</td></tr>'}</tbody></table></div></section></div>`}
+function criarMelhoria(produto,c,acao){const l=[...melhorias(),{id:'mel-'+Date.now().toString(36),produto,caso:c,acao:acao||ACOES[c]||ACOES.outro,status:'aberta',criado_em:new Date().toISOString(),por:window.Cloud?.session?.user?.email||'local'}];salvarMelhorias(l);audit('Melhoria registrada (atendimento)',`${produto} · ${CASO_ROT(c)}`)}
+// Cliente e pedido dentro do caso: itens, valor, nota, compras anteriores e outros chamados.
+function clienteHtml(a){const o=pedidoDe(a);
+ const nome=o?.customer?.name||a.comprador||'',doc=String(o?.customer?.doc||'').replace(/\D/g,'');
+ const compras=doc?db.orders.filter(x=>String(x.customer?.doc||'').replace(/\D/g,'')===doc):nome?db.orders.filter(x=>x.customer?.name===nome):[];
+ const outros=st.lista.filter(x=>x.id!==a.id&&((nome&&x.comprador===nome)||(a.pedido&&x.pedido===a.pedido)));
+ return `<div class="atcliente"><div><div class="navlabel" style="margin:0 0 6px">Pedido</div>${o?`<p><strong>${esc(o.id)}</strong> · ${esc(o.platform)} · ${new Date(o.date+'T12:00').toLocaleDateString('pt-BR')}${o.nf?` · NF ${esc(o.nf)}`:''}</p><ul class="caption" style="margin:0;padding-left:18px">${(o.items||[]).map(i=>`<li>${Number(i.qty)||1}× ${esc(i.title||i.sku)} · ${money((Number(i.qty)||1)*(Number(i.price)||0))}</li>`).join('')}</ul><p class="caption">Total ${money(o.gross)}${o.state?` · ${esc(o.state)}`:''}</p>`:'<p class="caption">Pedido não encontrado no Jarvis.</p>'}</div>
+ <div><div class="navlabel" style="margin:0 0 6px">Cliente</div><p><strong>${esc(nome||'—')}</strong></p><p class="caption">${compras.length} compra(s) · ${money(compras.reduce((s,x)=>s+(Number(x.gross)||0),0))}${compras.length>1?' · cliente recorrente':''}<br>${outros.length?`${outros.length} outro(s) chamado(s)`:'primeiro chamado'}</p></div></div>
+ <div class="row wrap" style="gap:8px;margin:8px 0 4px">${o&&window.NfDevolucao?`<button class="small" data-at-dev="${esc(o.id)}">${icon('undo')} Preparar nota de devolução</button>`:''}<button class="small" data-at-criar="${esc(produtoDe(a))}|${esc(caso(a))}">${icon('spark')} Registrar melhoria</button></div>`}
+
 addPage('atendimento','headset','Atendimento',view,'Reclamações, devoluções, mediações, perguntas e mensagens numa fila só — com a solução sugerida e a resposta pronta.','',bind);
 window.Atendimento={avisos,abertos:abertosN,carregar,lista:()=>st.lista};
 // Primeira leitura assim que a empresa abre; depois a cada 2 minutos (o servidor lê o marketplace a cada 10).
