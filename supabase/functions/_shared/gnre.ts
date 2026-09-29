@@ -36,7 +36,9 @@ async function soap(servico: "GnreLoteRecepcao" | "GnreResultadoLote" | "GnreCon
   if (!r.ok) throw new HttpError(502, `Portal GNRE ${r.status}: ${(txt.match(/<(?:\w+:)?Text[^>]*>([^<]+)</)?.[1] ?? txt.slice(0, 200))}`);
   return txt;
 }
-const tag = (x: string, t: string) => x.match(new RegExp(`<(?:\\w+:)?${t}(?:\\s[^>]*)?>([^<]*)</(?:\\w+:)?${t}>`))?.[1] ?? null;
+// Texto das respostas vem com entidades XML (ex.: n&#xE3;o): decodifica para mostrar legível.
+const ent = (s: string) => s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+const tag = (x: string, t: string) => { const v = x.match(new RegExp(`<(?:\\w+:)?${t}(?:\\s[^>]*)?>([^<]*)</(?:\\w+:)?${t}>`))?.[1]; return v == null ? null : ent(v); };
 const blocos = (x: string, t: string) => [...x.matchAll(new RegExp(`<(?:\\w+:)?${t}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:\\w+:)?${t}>`, "g"))].map((m) => m[1]);
 const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const semAcento = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -50,6 +52,12 @@ export async function consultarConfigUf(uf: string, receita: string) {
   const cod = tag(xml, "codigo");
   const flags: Record<string, string> = {};
   for (const m of xml.matchAll(/<(?:\w+:)?(exige\w+)[^>]*>\s*(?:<(?:\w+:)?campo>)?\s*([SN])/g)) flags[m[1]] = m[2];
+  // Sem nenhuma exigência na resposta, o portal recusou a consulta (ex.: 102 = CNPJ não habilitado): vira erro e não vai para o cache.
+  if (!Object.keys(flags).length) {
+    const desc = tag(xml, "descricao") ?? "resposta sem as exigências da UF";
+    const dica = cod === "102" ? " Peça a habilitação do CNPJ para o webservice no Portal GNRE (Área do contribuinte › Solicitar acesso), no mesmo ambiente em uso." : "";
+    throw new HttpError(400, `Portal GNRE (${ambienteGnre()}) respondeu ${cod ?? "?"}: ${desc}.${dica}`);
+  }
   return {
     uf, receita, situacao: { codigo: cod, descricao: tag(xml, "descricao") }, flags,
     tiposDocumentosOrigem: blocos(xml, "tipoDocumentoOrigem").map((b) => ({ codigo: tag(b, "codigo"), descricao: tag(b, "descricao") })),
