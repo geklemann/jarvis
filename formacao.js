@@ -55,7 +55,7 @@ function view(){const g=G(),meta=ui.meta??n2(g.margemAlvo),q=normalized(ui.busca
  return `<div class="fpbar"><div class="fpmetabox"><label>Margem alvo</label><input type="range" min="0" max="40" step="1" value="${meta}" data-fp-meta><b>${pc(meta)}</b></div>
   <input type="search" id="fpBusca" placeholder="Produto ou SKU…" value="${esc(ui.busca)}">
   ${marcas.length?`<select data-fp-marca><option value="">Todos os grupos</option>${marcas.map(m=>`<option ${ui.marca===m?'selected':''}>${esc(m)}</option>`).join('')}</select>`:''}
-  <button class="small" data-fp="dvv">${icon('sliders')} DVV por grupo</button><button class="small" data-fp="importar">${icon('upload')} Importar planilha</button><button class="small" data-fp="exportar">${icon('download')} Exportar tabela</button><button class="small quiet" data-nav="precos">${icon('sliders')} Regras e simulador</button></div>
+  <button class="small" data-fp="dvv">${icon('sliders')} DVV por grupo</button><button class="small" data-fp="importar">${icon('upload')} Importar planilha</button><button class="small" data-fp="versoes">${icon('refresh')} Versões</button><button class="small" data-fp="exportar">${icon('download')} Exportar tabela</button><button class="small quiet" data-nav="precos">${icon('sliders')} Regras e simulador</button></div>
  <div class="segtabs" style="margin-bottom:12px">${[['todos','Todos'],['prejuizo',`Com prejuízo (${cont(x=>x.c.some(c=>c.r&&c.r.margem<0))})`],['abaixo',`Abaixo da meta (${cont(x=>x.c.some(c=>c.r&&c.r.margem<(c.c.margem??meta)-0.05))})`],['sempreco',`Sem preço em algum canal`],['semcusto',`Sem custo (${cont(x=>!x.p.custo)})`]].map(([k,t])=>`<button class="${ui.filtro===k?'active':''}" data-fp-filtro="${k}">${t}</button>`).join('')}</div>
  ${ui.sel.size?`<div class="fplote"><b>${ui.sel.size} selecionado(s)</b><button class="small primary" data-fp="lote-sug">Aplicar preço sugerido</button><span class="row" style="gap:6px"><input id="fpPct" value="5" style="width:60px" inputmode="decimal">%<button class="small" data-fp="lote-pct">Reajustar</button></span><button class="small" data-fp="lote-90">Arredondar para ,90</button><button class="small quiet" data-fp="lote-limpar">Limpar seleção</button></div>`:''}
  <div class="tablebox"><div class="tablewrap"><table class="fptab"><thead><tr><th style="width:28px"><input type="checkbox" class="check" data-fp-todos ${L.length&&L.every(x=>ui.sel.has(x.p.id))?'checked':''}></th><th>Produto</th><th class="num">Custo</th>${CAN.map(([k,rot,nome])=>{const c=G().canais[nome];return `<th>${rot}<br><span class="caption">${String(c.comissao).replace('.',',')}%${n2(c.fixa)?` + ${money(n2(c.fixa))}`:''}${n2(c.servico)?` + ${String(c.servico).replace('.',',')}% serv.`:''}</span></th>`}).join('')}</tr></thead><tbody>
@@ -89,7 +89,11 @@ function lerDVV(wb){let n=0;
    if(/^dvv venda (maral|top) x/.test(t)){const o=bloco(i,j);delete o.difal;delete o.comissao;delete o.margem;delete o.adm;if(Object.keys(o).length){G_.compra=o;n++}continue}
    if(t==='valor produto'){const fx=[];for(let k=i+1;k<Math.min(R.length,i+10);k++){const ate=Number(R[k][j+1]),tx=Number(R[k][j+2]);if(!isFinite(tx)||R[k][j+2]==='')break;fx.push([isFinite(ate)&&R[k][j+1]!==''?ate:1e9,tx])}if(fx.length){fx[fx.length-1][0]=1e9;G().faixasShopee=fx;n++}}}}
  return n}
-async function importar(file){const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});grupos();let n=0,fora=0,abas=[];
+// Versões: antes de cada importação a tabela inteira (preços, fretes, taxas, DVV) é guardada; as 5 últimas ficam para restaurar.
+const foto=()=>JSON.parse(JSON.stringify({produtos:db.products||[],grupos:G().grupos||null,faixas:G().faixasShopee||null}));
+function guardarVersao(motivo,arquivo){const g=G(),f=foto();g.versoes=[{em:new Date().toISOString(),motivo,arquivo:arquivo||null,por:window.Cloud?.session?.user?.email||'local',itens:f.produtos.length,...f},...(g.versoes||[])].slice(0,5)}
+async function importar(file){const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});grupos();let n=0,fora=0,abas=[];const importados=new Set();
+ guardarVersao('Antes de importar a planilha',file.name);
  const blocosDVV=lerDVV(wb);
  const oculta=nome=>!!(wb.Workbook?.Sheets||[]).find(x=>x.name===nome)?.Hidden;
  for(const nome of wb.SheetNames){if(oculta(nome)||/^dvv /.test(normalized(nome))||/base dados|base_dados/.test(normalized(nome)))continue;
@@ -107,16 +111,25 @@ async function importar(file){const wb=XLSX.read(await file.arrayBuffer(),{type:
    const id=lista.find(p=>String(p.id).replace(/^CS/i,'').toUpperCase()===cod.replace(/^CS/i,'').toUpperCase())?.id;
    if(!id){fora++;continue}
    const p=prod(id);if(!p.nome||p.nome===id)p.nome=String(r[C.desc]||p.nome);
+   if(!importados.has(id)){p.precos={};p.extra={...p.extra,frete:{},fixa:{}};importados.add(id)}p.extra.fonte='planilha';p.extra.arquivo=file.name;
    const set=(canal,i)=>{const v=n2(r[i]);if(i>=0&&v>0)p.precos[canal]=Math.round(v*100)/100};set('Mercado Livre',C.mlp);set('Mercado Livre Clássico',C.mlc);set('Magalu',C.mag);set('Shopee',C.shp);
    const ex=(campo,canal,i)=>{if(i<0||r[i]==='')return;const v=n2(r[i]);p.extra[campo]={...(p.extra[campo]||{}),[canal]:v}};
    ex('frete','Mercado Livre',C.freteMlp>=0?C.freteMlp:C.freteMl);ex('frete','Mercado Livre Clássico',C.freteMlc>=0?C.freteMlc:C.freteMl);ex('frete','Magalu',C.freteMag);ex('fixa','Magalu',C.taxaMag);ex('fixa','Shopee',C.taxaShp);
    if(gr){p.extra.grupo=gr;if(C.custo>=0&&n2(r[C.custo])>0)p.extra.custoOrigem=Math.round(n2(r[C.custo])*10000)/10000;if(C.quebra>=0&&r[C.quebra]!=='')p.extra.quebra=Math.round(n2(r[C.quebra])*10000)/100;else delete p.extra.quebra;if(C.emb>=0)p.embalagem=n2(r[C.emb]);
     if(p.extra.custoOrigem)p.custo=Math.round(custoCadeia(gr,p.extra.custoOrigem,p.extra.quebra)*100)/100}
    p.extra.marca=marca;n++}}
- if(!n&&!blocosDVV)throw Error('Não encontrei o layout da tabela (colunas Código … Tabela Shopee).');
+ if(!n&&!blocosDVV){G().versoes=(G().versoes||[]).slice(1);throw Error('Não encontrei o layout da tabela (colunas Código … Tabela Shopee).')}
+ const saem=(db.products||[]).filter(p=>p.extra?.fonte==='planilha'&&!importados.has(String(p.id)));if(n&&saem.length)db.products=db.products.filter(p=>!saem.includes(p));
  audit('Tabela de preços importada',`${file.name} · ${n} produto(s) · ${abas.join(', ')}${blocosDVV?` · DVV atualizado (${blocosDVV} bloco(s))`:''}${fora?` · ${fora} código(s) sem produto no Bling`:''}`);save();render();
  toast(`${n} produto(s) importado(s) de ${abas.join(', ')}${blocosDVV?' e DVV dos grupos atualizado':''}.${fora?` ${fora} código(s) da planilha ainda não existem no Bling e ficaram de fora.`:''}`)}
 // Janela para conferir e ajustar o DVV de cada grupo (mesmos campos da planilha).
+function janelaVersoes(){const vs=G().versoes||[];
+ modal('Versões da tabela de preços',`<p class="caption" style="margin-top:-8px">Antes de cada importação, a tabela inteira (preços, fretes, taxas e DVV) é guardada. Restaurar troca a tabela atual pela versão escolhida, e a atual também fica guardada.</p>
+ <div class="tablewrap"><table><thead><tr><th>Guardada em</th><th>Motivo</th><th class="num">Produtos</th><th></th></tr></thead><tbody>${vs.map((v,i)=>`<tr><td>${new Date(v.em).toLocaleString('pt-BR')}<br><span class="caption">${esc(String(v.por||'').split('@')[0])}</span></td><td>${esc(v.motivo)}${v.arquivo?`<br><span class="caption">${esc(v.arquivo)}</span>`:''}</td><td class="num">${v.itens}</td><td><button class="small" data-fp-restaurar="${i}">Restaurar</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Nenhuma versão guardada ainda.</td></tr>'}</tbody></table></div>
+ <div class="modalfoot"><button class="primary" data-action="close">Fechar</button></div>`)}
+function restaurar(i){const g=G(),v=(g.versoes||[])[i];if(!v)return;const atual=foto();db.products=JSON.parse(JSON.stringify(v.produtos||[]));if(v.grupos)g.grupos=v.grupos;if(v.faixas)g.faixasShopee=v.faixas;
+ g.versoes=[{em:new Date().toISOString(),motivo:'Antes de restaurar a versão de '+new Date(v.em).toLocaleString('pt-BR'),arquivo:null,por:window.Cloud?.session?.user?.email||'local',itens:atual.produtos.length,...atual},...g.versoes.filter((_,k)=>k!==i)].slice(0,5);
+ audit('Tabela de preços restaurada',`versão de ${new Date(v.em).toLocaleString('pt-BR')} · ${v.itens} produto(s)`);save();closeModal();render();toast('Versão restaurada.')}
 function janelaDVV(){const gs=grupos(),CANS=CAN.map(x=>x[2]),campos=Object.keys(DVV_ROT);
  modal('DVV por grupo',`<p class="caption" style="margin-top:-8px">Percentuais sobre o preço de venda, como nas abas DVV da planilha. Preço de tabela = (custo + embalagem + frete + taxa fixa) ÷ (1 − total do canal). A margem de lucro é a meta usada no preço sugerido.</p>
  ${Object.entries(gs).map(([gr,x])=>`<h3 style="margin:14px 0 6px">${esc(gr)}</h3><div class="tablewrap"><table><thead><tr><th>DVV</th>${CANS.map(c=>`<th class="num">${esc(CAN.find(y=>y[2]===c)[1])}</th>`).join('')}</tr></thead><tbody>
@@ -141,17 +154,20 @@ document.addEventListener('change',e=>{const x=e.target;const d=x.dataset;
  if(x.id==='fpArq'){importar(x.files[0]).catch(er=>toast(er.message))}});
 document.addEventListener('input',e=>{const x=e.target;if(x.matches('[data-fp-meta]')){ui.meta=Number(x.value);clearTimeout(ui.t);ui.t=setTimeout(render,120);return}
  if(x.id==='fpBusca'){ui.busca=x.value;const p=x.selectionStart;render();const n=$('#fpBusca');n.focus();n.setSelectionRange(p,p)}});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-fp],[data-fp-filtro],[data-fp-sug],[data-fp-abrir]');if(!b)return;const d=b.dataset,meta=ui.meta??n2(G().margemAlvo);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-fp],[data-fp-filtro],[data-fp-sug],[data-fp-abrir],[data-fp-restaurar]');if(!b)return;const d=b.dataset,meta=ui.meta??n2(G().margemAlvo);
+ if(d.fpRestaurar!=null){if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar';b.classList.add('danger');return}restaurar(Number(d.fpRestaurar));return}
  if(d.fpFiltro){ui.filtro=d.fpFiltro;render();return}
  if(d.fpAbrir){ui.aberto=ui.aberto===d.fpAbrir?null:d.fpAbrir;render();return}
  if(d.fpSug){const [id,canal]=d.fpSug.split('|');const b0=base().find(x=>x.id===id);const p=prod(id),rg=regra(canal,b0);p.precos[canal]=sugerido(rg.margem??meta,rg,b0);audit('Preço sugerido aplicado',`${id} · ${canal} · ${money(p.precos[canal])}`);save();render();return}
  switch(d.fp){case 'importar':{const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xls';i.id='fpArq';i.style.display='none';document.body.appendChild(i);i.onchange=()=>{importar(i.files[0]).catch(er=>toast(er.message));i.remove()};i.click();break}
   case 'exportar':exportar();break;
   case 'dvv':janelaDVV();break;
+  case 'versoes':janelaVersoes();break;
   case 'dvv-padrao':{if(b.dataset.conf!=='1'){b.dataset.conf='1';b.textContent='Confirmar: voltar ao padrão';b.classList.add('danger');return}const g=G();g.grupos=JSON.parse(JSON.stringify(GRUPOS_PADRAO));g.faixasShopee=FAIXAS_SHOPEE.map(x=>[...x]);audit('DVV restaurado ao padrão da planilha','');save();janelaDVV();render();break}
   case 'lote-sug':aplicar([...ui.sel],(p,nome,c)=>p.custo?sugerido(c.margem??meta,c,p):0,'Preços sugeridos aplicados em lote');break;
   case 'lote-pct':{const f=1+n2($('#fpPct').value)/100;aplicar([...ui.sel],(p,nome)=>n2(p.precos[nome])*f,`Reajuste de ${$('#fpPct').value}% em lote`);break}
   case 'lote-90':aplicar([...ui.sel],(p,nome)=>arred90(n2(p.precos[nome])),'Preços arredondados para ,90');break;
   case 'lote-limpar':ui.sel.clear();render();break}});
+window.Formacao={importar,grupos,versoes:()=>G().versoes||[]};
 addPage('formacao','calc','Formação de preço',view,'A tabela de preço do e-commerce viva: custo do Bling, frete e taxas por produto, margem e preço sugerido por canal, com ações em lote.','',()=>{});
 })();
