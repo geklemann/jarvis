@@ -68,11 +68,11 @@ export async function sincronizarAtendimentoML(db: SupabaseClient, ws: string) {
       workspace_id: ws, id: `ML-R-${c.id}`, canal: "mercadolivre",
       tipo: c.stage === "dispute" ? "mediacao" : TIPO[c.type] ?? "reclamacao",
       status: c.status === "opened" ? "aberto" : "fechado", etapa: c.stage ?? null,
-      pedido: c.resource === "order" ? String(c.resource_id) : null, motivo_codigo: c.reason_id ?? null,
+      pedido: ["order", "purchase"].includes(c.resource) && c.resource_id ? String(c.resource_id) : null, motivo_codigo: c.reason_id ?? null,
       motivo: mot ? [mot.name, mot.detail].filter(Boolean).join(" · ") : null,
       prazo, acoes, aberto_em: c.date_created ?? null, atualizado_em: c.last_updated ?? null,
       fechado_em: c.status === "closed" ? (c.resolution?.date_created ?? c.last_updated ?? null) : null,
-      dados: { tipo_ml: c.type, etapa: c.stage, resolucao: c.resolution ?? null, entidades: c.related_entities ?? [], quantidade: c.quantity_type ?? null, cumprido: c.fulfilled ?? null },
+      dados: { tipo_ml: c.type, recurso: c.resource ?? null, recurso_id: c.resource_id ?? null, etapa: c.stage, resolucao: c.resolution ?? null, entidades: c.related_entities ?? [], quantidade: c.quantity_type ?? null, cumprido: c.fulfilled ?? null },
       updated_at: agora,
     };
     if (ordem) Object.assign(base, {
