@@ -120,7 +120,7 @@ function montar(auth){if(auth.querySelector('.vitrine'))return;
   mx+=(tmx-mx)*.05;my+=(tmy-my)*.05;lados.forEach((l,i)=>{l.style.setProperty('--px',(mx*(i?-16:16)).toFixed(2)+'px');l.style.setProperty('--py',(my*-12).toFixed(2)+'px')});
   shown.vendas+=(est.vendas-shown.vendas)*.06;shown.ped+=(est.ped-shown.ped)*.08;K('vendas').textContent=brl(shown.vendas);K('ped').textContent=int(shown.ped);K('var').textContent='+'+est.var.toFixed(1).replace('.',',')+'%';
   est.conc+=(est.alvoConc-est.conc)*.025;K('conc').textContent=est.conc.toFixed(1).replace('.',',')+'%';$('.jv-cheio').style.strokeDashoffset=(100-est.conc).toFixed(2);K('rep').textContent=int(est.rep*est.conc/100);
-  if(fxGeo){cursor=(cursor+dt*.00012)%1;const i=cursor*30,a=Math.floor(i),f=i-a,y=fxGeo.s[a]+(fxGeo.s[Math.min(30,a+1)]-fxGeo.s[a])*f,x=fxGeo.X(i);
+  if(fxGeo){cursor=(cursor+(Number.isFinite(dt)?dt:0)*.00012)%1;if(!Number.isFinite(cursor))cursor=0;const i=cursor*30,a=Math.floor(i),f=i-a,y=fxGeo.s[a]+(fxGeo.s[Math.min(30,a+1)]-fxGeo.s[a])*f,x=fxGeo.X(i);
    const c=$('.jv-cursor');c.setAttribute('x1',x.toFixed(1));c.setAttribute('x2',x.toFixed(1));const p=$('.jv-fponto');p.setAttribute('cx',x.toFixed(1));p.setAttribute('cy',fxGeo.Y(y).toFixed(1));K('saldo').textContent=brl(y*1000).replace(/,\d\d$/,'')}
   tEv+=dt;if(tEv>2300){tEv=0;evento()}
   if(trilha){tCar+=dt;if(tCar>3200){tCar=0;idx++;carrossel()}}

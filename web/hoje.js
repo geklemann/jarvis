@@ -177,5 +177,5 @@ addPage('painel','grid','Modo painel',painelView,'Painel ao vivo para TV.','',pa
 addPage('central','home','Hoje',view,'Seu dia no Jarvis: o que entrou, o que sai e o que precisa de você.','',bind);
 {const ids=navItems.map(n=>n[0]);const ult=ids.lastIndexOf('central');if(ids.indexOf('central')!==ult)navItems.splice(ult,1);const n=navItems.find(x=>x[0]==='central');if(n)n[2]='Hoje'}
 const shell0=shell;shell=function(){const r=shell0.apply(this,arguments);document.body.classList.toggle('pg-home',page==='central');document.body.classList.toggle('painel',page==='painel');return r};
-window.Hoje={perguntar,responder,regra:q=>String(q||'').trim().length>3?seguro(()=>responder(q,true),null):null};
+window.Hoje={dados:()=>seguro(()=>dados(),null),perguntar,responder,regra:q=>String(q||'').trim().length>3?seguro(()=>responder(q,true),null):null};
 })();
