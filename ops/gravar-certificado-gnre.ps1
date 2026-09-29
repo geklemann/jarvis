@@ -1,4 +1,4 @@
-# Grava o certificado e-CNPJ A1 (arquivo .pfx) e a senha nos segredos do servidor, para a GNRE pelo webservice.
+﻿# Grava o certificado e-CNPJ A1 (arquivo .pfx) e a senha nos segredos do servidor, para a GNRE pelo webservice.
 # Uso: powershell -ExecutionPolicy Bypass -File "...\ops\gravar-certificado-gnre.ps1"
 # Uma janela pede o arquivo .pfx; a senha é digitada escondida. Nada aparece na tela, no código ou no banco.
 # Para trocar de ambiente depois de testar: acrescente -Producao (grava GNRE_AMBIENTE=producao).
