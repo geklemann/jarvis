@@ -1,0 +1,113 @@
+/* Tema "Fiori" (inspirado no SAP Fiori Horizon): fundo neutro claro, cartões brancos com sombra leve e cantos
+   de 12 px, azul de ação, cores semânticas padronizadas, barra superior branca, navegação lateral clara e tabelas
+   mais arejadas. Ativo com body.fiori; o modo escuro (Evening Horizon) é body.fiori sem .light.
+   Só muda a aparência: classes, ids e atributos usados pelo JavaScript continuam os mesmos. */
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+body.fiori.light{
+ --bg:#f5f6f7;--panel:#ffffff;--panel2:#f5f6f7;--solid:#ffffff;--line:#e5e5e5;--text:#1d2d3e;--muted:#556b82;
+ --accent:#0064d9;--ar:0 112 242;--ar2:0 112 242;--btn:#0070f2;--btn-hi:#0064d9;--on-accent:#ffffff;
+ --green:#256f3a;--red:#aa0808;--gold:#b44f00;--shadow:0 0 .125rem rgba(34,53,72,.15),0 .5rem 1.5rem rgba(34,53,72,.12);
+ --f-shell:#ffffff;--f-side:#ffffff;--f-hover:#eaecee;--f-sel:#ebf8ff;--f-field:#ffffff;--f-fieldline:#556b82;--f-card:0 0 .125rem rgba(34,53,72,.2),0 .125rem .25rem rgba(34,53,72,.2);
+ --f-okbg:#f5fae5;--f-warnbg:#fff8d6;--f-badbg:#ffeaf4;--f-infobg:#e1f4ff;color-scheme:light}
+body.fiori:not(.light){
+ --bg:#12171c;--panel:#1d232a;--panel2:#161c22;--solid:#1d232a;--line:#2e3a46;--text:#eaecee;--muted:#a9b4be;
+ --accent:#4db1ff;--ar:77 177 255;--ar2:77 177 255;--btn:#1c8aea;--btn-hi:#4db1ff;--on-accent:#ffffff;
+ --green:#6fd08a;--red:#ff8888;--gold:#ffaa5a;--shadow:0 .5rem 1.5rem rgba(0,0,0,.45);
+ --f-shell:#1d232a;--f-side:#1d232a;--f-hover:#232b33;--f-sel:#1f3448;--f-field:#12171c;--f-fieldline:#a9b4be;--f-card:0 0 .125rem rgba(0,0,0,.5),0 .125rem .5rem rgba(0,0,0,.35);
+ --f-okbg:#1a2e22;--f-warnbg:#352812;--f-badbg:#3a1a1f;--f-infobg:#132b40;color-scheme:dark}
+
+body.fiori{background:var(--bg)!important;color:var(--text);font-family:"Source Sans 3","72","Segoe UI",Arial,sans-serif;font-size:14px}
+body.fiori #app{background:var(--bg)}
+body.fiori h1,body.fiori h2,body.fiori h3{font-family:inherit;letter-spacing:0;color:var(--text)}
+body.fiori h1{font-size:24px;font-weight:700;line-height:1.25}
+body.fiori h2{font-size:16px;font-weight:700}
+body.fiori p{color:var(--muted)}
+
+/* Barra superior (shell bar) */
+body.fiori .erp header{background:var(--f-shell)!important;border-bottom:0!important;box-shadow:0 0 .125rem rgba(34,53,72,.15),0 .125rem .25rem rgba(34,53,72,.12);height:52px;padding:0 20px;position:sticky;top:0;z-index:30;backdrop-filter:none}
+body.fiori .searchbox{background:var(--panel2)!important;border:1px solid transparent!important;border-radius:18px!important;height:36px;box-shadow:none!important;color:var(--muted)}
+body.fiori .searchbox:hover{border-color:var(--f-fieldline)!important}
+body.fiori .searchbox kbd{background:var(--panel)!important;border:1px solid var(--line)!important;color:var(--muted)}
+body.fiori .iconbtn,body.fiori .userbtn{background:transparent!important;border:0!important;border-radius:8px!important;box-shadow:none!important}
+body.fiori .iconbtn:hover,body.fiori .userbtn:hover{background:var(--f-hover)!important}
+body.fiori .avatar{background:#0070f2!important;color:#fff!important;border-radius:50%!important}
+body.fiori .belldot{background:#aa0808!important;color:#fff!important}
+body.fiori .demo{display:none}
+
+/* Navegação lateral */
+body.fiori .erp .side{background:var(--f-side)!important;border-right:1px solid var(--line)!important;box-shadow:none!important;backdrop-filter:none!important;border-radius:0!important;margin:0!important;top:0!important;bottom:0!important;height:auto}
+body.fiori .sidebrand{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important}
+body.fiori .sidebrand strong{color:var(--text)}
+body.fiori .sidelogo{filter:none!important}
+body.fiori .erp .menu .mhead,body.fiori .erp .mitems button{color:var(--text)!important;border-radius:8px!important;background:transparent!important;font-weight:500}
+body.fiori .erp .menu .mhead .icon{color:var(--muted)}
+body.fiori .erp .menu .mhead:hover,body.fiori .erp .mitems button:hover{background:var(--f-hover)!important}
+body.fiori .erp .menu .mhead.active,body.fiori .erp .mitems button.active{background:var(--f-sel)!important;color:var(--accent)!important;font-weight:700;box-shadow:inset 3px 0 0 #0070f2!important}
+body.fiori .erp .menu .mhead.active:before,body.fiori .erp .mitems button.active:before{display:none!important}
+body.fiori .mgroup.cur>.mhead{color:var(--accent)!important;font-weight:700}
+body.fiori .mgroup.cur>.mhead .icon{color:var(--accent)}
+body.fiori .navcount{background:#0070f2!important;color:#fff!important;border-radius:10px}
+
+/* Cabeçalho da página (dynamic page header) */
+body.fiori .pagehead{background:var(--panel);margin:-30px -36px 20px;padding:18px 36px 16px;border-bottom:1px solid var(--line);box-shadow:0 .125rem .25rem rgba(34,53,72,.06)}
+body.fiori .crumb{color:var(--accent);font-size:13px;text-transform:none;letter-spacing:0;font-weight:500}
+body.fiori .crumb span{color:var(--muted)}
+body.fiori .monthsel{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important}
+
+/* Cartões e KPIs (tiles) */
+body.fiori .card,body.fiori .tablebox,body.fiori .kpi,body.fiori .hero,body.fiori .platform{background:var(--panel)!important;border:0!important;border-radius:12px!important;box-shadow:var(--f-card)!important;backdrop-filter:none!important}
+body.fiori .hero{background:var(--panel)!important}
+body.fiori .hero:after{display:none}
+body.fiori button.card:hover,body.fiori .kpi:hover{box-shadow:0 0 .125rem rgba(34,53,72,.25),0 .5rem 1rem rgba(34,53,72,.2)!important;transform:none}
+body.fiori .kpil,body.fiori .metric .label{color:var(--muted);font-size:13px;font-weight:600}
+body.fiori .kpiv,body.fiori .metric .value{color:var(--text);font-family:inherit;font-weight:300;font-size:30px;letter-spacing:-.3px}
+body.fiori .kpiv.green{color:var(--green)}body.fiori .kpiv.red{color:var(--red)}body.fiori .kpiv.gold{color:var(--gold)}
+body.fiori .notice{background:var(--f-infobg)!important;border:0!important;border-left:0!important;border-radius:8px!important;color:var(--text);box-shadow:none!important}
+body.fiori .notice.warnbox{background:var(--f-warnbg)!important}
+
+/* Botões */
+body.fiori button{border-radius:8px;border:1px solid #bcc3ca;background:var(--panel);color:var(--accent);font-weight:600;min-height:32px}
+body.fiori button:hover{background:var(--f-hover);border-color:#bcc3ca;transform:none}
+body.fiori .primary,body.fiori button.primary{background:var(--btn)!important;border-color:var(--btn)!important;color:#fff!important;box-shadow:none!important}
+body.fiori .primary:hover{background:var(--btn-hi)!important}
+body.fiori .quiet{background:transparent;border-color:transparent}
+body.fiori .newbtn{border-radius:8px!important}
+
+/* Abas (icon tab bar) */
+body.fiori .segtabs{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;gap:18px;box-shadow:none!important}
+body.fiori .segtabs button{background:transparent!important;border:0!important;border-radius:0!important;color:var(--text)!important;padding:10px 2px!important;font-weight:500;box-shadow:inset 0 -3px 0 transparent}
+body.fiori .segtabs button.active{color:var(--accent)!important;font-weight:700;box-shadow:inset 0 -3px 0 #0070f2!important;background:transparent!important}
+body.fiori .segtabs button small{background:var(--panel2);color:var(--muted);border-radius:8px;padding:0 6px}
+
+/* Tabelas (responsive table) */
+body.fiori table{font-size:14px}
+body.fiori th{background:var(--panel)!important;color:var(--muted)!important;text-transform:none!important;letter-spacing:0!important;font-size:13px!important;font-weight:600!important;border-bottom:1px solid var(--line)}
+body.fiori td{border-top:1px solid var(--line)!important;padding-top:11px;padding-bottom:11px}
+body.fiori tbody tr:hover td,body.fiori tbody tr:hover{background:var(--f-hover)!important}
+
+/* Campos */
+body.fiori input,body.fiori select,body.fiori textarea{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important;color:var(--text)}
+body.fiori input:focus,body.fiori select:focus,body.fiori textarea:focus{outline:2px solid #0070f2;outline-offset:1px}
+body.fiori .searchin{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important}
+body.fiori .searchin input{border:0!important}
+
+/* Status (object status) */
+body.fiori .badge{border-radius:4px;font-weight:600;font-size:12px;padding:2px 8px}
+body.fiori .badge.ok{background:var(--f-okbg);color:var(--green)}
+body.fiori .badge.warn{background:var(--f-warnbg);color:var(--gold)}
+body.fiori .badge.bad{background:var(--f-badbg);color:var(--red)}
+body.fiori .badge.info{background:var(--f-infobg);color:var(--accent)}
+
+/* Diálogos */
+body.fiori .modalback{background:rgba(29,45,62,.4)!important;backdrop-filter:none!important}
+body.fiori .modal{background:var(--panel)!important;border:0!important;border-radius:12px!important;box-shadow:0 1rem 3rem rgba(34,53,72,.3)!important}
+
+/* Assistente (botão flutuante) */
+body.fiori .fab{background:#0070f2!important;color:#fff!important;box-shadow:0 .25rem .75rem rgba(0,112,242,.35)!important}
+
+/* Mesma família de fonte em tudo (o tema anterior usa outra nos títulos e números) */
+body.fiori *:not(code):not(kbd):not(.mono):not(.icon):not(svg):not(path){font-family:"Source Sans 3","72","Segoe UI",Arial,sans-serif!important}
+body.fiori .mono,body.fiori code,body.fiori kbd{font-family:ui-monospace,Consolas,monospace!important}
+/* Sem brilho colorido nos cartões de canal (só neste visual) */
+body.fiori .vg-canal:after,body.fiori .vg-canal:before{display:none!important}
