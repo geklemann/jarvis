@@ -421,3 +421,14 @@ body.fiori .cctip b,body.fiori .mgtl b,body.fiori .vg-tip div b{font-weight:500}
 
 /* ─── Impressão ─── */
 @media print{body.fiori{--bg:#fff;--panel:#fff;--panel2:#f3f3f3;--line:#ddd;--text:#111;--muted:#555}body.fiori .card,body.fiori .tablebox{box-shadow:none}}
+
+/* ═══ Variações do Studio — só tom e cor (a estrutura é a mesma). Classe st-<id> no body, junto com .fiori ═══ */
+/* Esmeralda */
+body.fiori.light.st-esmeralda{--bg:#f4f7f6;--panel2:#eff3f1;--accent:#0f7a5f;--ar:15 122 95;--ar2:15 122 95;--f-ring:0 0 0 3px rgb(15 122 95 / 20%);--g1:#0f7a5f;--g2:#0f7a5f;--hot:#0f7a5f;--b1:15 122 95;--b2:120 190 165;--b3:18 40 33}
+body.fiori.st-esmeralda:not(.light){--bg:#0a0f0d;--panel:#111815;--panel2:#18201c;--solid:#111815;--input:#0d1310;--line:#1f2a25;--line2:#2a3731;--accent:#5fd3ac;--ar:95 211 172;--ar2:95 211 172;--f-ring:0 0 0 3px rgb(95 211 172 / 24%);--g1:#3fbf95;--g2:#5fd3ac;--hot:#5fd3ac;--b1:95 211 172;--b2:50 130 105;--b3:24 48 40}
+/* Índigo */
+body.fiori.light.st-indigo{--bg:#f6f5fa;--panel2:#f1f0f7;--line:#e6e4ef;--accent:#5b45e0;--ar:91 69 224;--ar2:91 69 224;--f-ring:0 0 0 3px rgb(91 69 224 / 20%);--g1:#5b45e0;--g2:#5b45e0;--hot:#5b45e0;--b1:91 69 224;--b2:160 148 236;--b3:32 26 64}
+body.fiori.st-indigo:not(.light){--bg:#0d0c14;--panel:#15131f;--panel2:#1c1a28;--solid:#15131f;--input:#100e18;--line:#26233a;--line2:#322e4a;--accent:#a99bff;--ar:169 155 255;--ar2:169 155 255;--f-ring:0 0 0 3px rgb(169 155 255 / 24%);--g1:#8b7bff;--g2:#a99bff;--hot:#a99bff;--b1:169 155 255;--b2:92 78 180;--b3:40 34 80}
+/* Terracota */
+body.fiori.light.st-terracota{--bg:#f8f6f3;--panel2:#f3f0ec;--line:#e9e4de;--accent:#b8471b;--ar:184 71 27;--ar2:184 71 27;--f-ring:0 0 0 3px rgb(184 71 27 / 20%);--g1:#b8471b;--g2:#b8471b;--hot:#b8471b;--b1:184 71 27;--b2:222 150 115;--b3:58 30 18}
+body.fiori.st-terracota:not(.light){--bg:#100d0b;--panel:#191512;--panel2:#211c18;--solid:#191512;--input:#130f0d;--line:#2d2621;--line2:#3a312b;--accent:#f39a6b;--ar:243 154 107;--ar2:243 154 107;--f-ring:0 0 0 3px rgb(243 154 107 / 24%);--g1:#e07a47;--g2:#f39a6b;--hot:#f39a6b;--b1:243 154 107;--b2:160 80 45;--b3:62 34 22}
