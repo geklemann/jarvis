@@ -471,7 +471,7 @@ body.pg-bolso .pagehead{display:none}
 .dg-folha{max-width:860px;margin:0 auto;background:var(--solid,var(--panel));border:1px solid var(--line);border-radius:16px;padding:34px 38px;display:grid;gap:20px}
 .dg-folha h3{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);margin:0 0 8px}
 .dg-cab{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:16px}
-.dg-marca{display:flex;gap:12px;align-items:center}.dg-marca i{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#5fe0cc,#18a592);color:#07111b;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:20px}
+.dg-marca{display:flex;gap:12px;align-items:center}.dg-marca img{width:40px;height:40px;flex:none}
 .dg-marca b{display:block;font-size:20px}.dg-marca small,.dg-quem small{display:block;color:var(--muted);font-size:12px}.dg-quem{text-align:right}.dg-quem b{font-size:16px}
 .dg-achado{border-radius:14px;padding:18px 22px;background:rgb(var(--ar) / 10%);border:1px solid rgb(var(--ar) / 35%);display:grid;gap:4px}.dg-achado small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}.dg-achado b{font-size:36px;letter-spacing:-1px;font-variant-numeric:tabular-nums}.dg-achado span{color:var(--muted);font-size:13px}
 .dg-kpis,.dg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media(max-width:760px){.dg-kpis,.dg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
