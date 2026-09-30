@@ -150,5 +150,20 @@ function produtoDesempenho(sku){const {peds,aliq,custoDe}=calcular(),per=ui.peri
   canais:[...canais.values()].map(g=>({...g,margem:g.venda?g.lucro/g.venda:0,preco:g.u?g.venda/g.u:0,minimo:an.find(a=>a.canal===g.canal)?.min??null,equilibrio:an.find(a=>a.canal===g.canal)?.eq??null})).sort((a,b)=>b.venda-a.venda)}}
 function rankingProdutos(){const {peds}=calcular(),m=new Map();for(const x of peds){const its=x.o.items||[],tot=its.reduce((a,i)=>a+(Number(i.qty)||0)*(Number(i.price)||0),0)||1;for(const i of its){const k=String(i.sku||i.title).trim(),vb=(Number(i.qty)||0)*(Number(i.price)||0),g=m.get(k)||{sku:k,nome:i.title||k,u:0,venda:0,lucro:0};g.u+=Number(i.qty)||0;g.venda+=vb;g.lucro+=x.lucro*vb/tot;m.set(k,g)}}
  return [...m.values()].map(g=>({...g,margem:g.venda?g.lucro/g.venda:0}))}
-window.Margem={produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
+// Resumo para o Diagnóstico de repasses e margem (mesmas contas do Radar, no período do Radar).
+function diagCore(){const {peds,aliq,custoDe,semCusto,cancelados}=calcular(),ini=menos(ui.periodo),C=custosDoPeriodo(ini,new Date().toLocaleDateString('sv-SE'));
+ const canais=new Map(),menores=[];let fora=0,excesso=0;
+ for(const x of peds){const p=partes(x),c=canais.get(x.o.platform)||{canal:x.o.platform,n:0,venda:0,prod:0,tar:0,fo:0,lucro:0};
+  c.n++;c.venda+=x.o.gross;c.prod+=p.tot;c.tar+=p.com+p.fixa-p.reb;c.fo+=p.frete+p.outros;c.lucro+=x.lucro;canais.set(x.o.platform,c);
+  if(x.tarifaFora){fora++;excesso+=x.tarifaExcesso}if(p.menor)menores.push({id:x.o.id,valor:p.outros,data:x.o.date})}
+ const venda=peds.reduce((s,x)=>s+x.o.gross,0),lucro=peds.reduce((s,x)=>s+x.lucro,0),base=db.orders.filter(o=>o.date>=ini&&!(o.gross>0&&o.fee>=o.gross*0.95)).reduce((s,o)=>s+o.gross,0);
+ const fixos=base?(C.mkt+C.fixas-C.fin+C.ir)*venda/base:0;
+ const A=anuncios(peds,aliq,custoDe),pj=A.filter(a=>a.st==='prejuizo').map(a=>({nome:a.nome,sku:a.sku,canal:a.canal,u:a.u,preco:a.preco,min:a.min,eq:a.eq,perda:-a.lucroU*a.u,margem:a.margem})).filter(a=>a.perda>0).sort((a,b)=>b.perda-a.perda);
+ const abaixo=A.filter(a=>a.st==='abaixo').length;
+ return {periodo:ui.periodo,ini,pedidos:peds.length,venda,lucro,margem:venda?lucro/venda:0,liquido:lucro-fixos,aliq,semCusto,cancelados:cancelados.length,
+  canais:[...canais.values()].map(c=>({...c,tarP:c.prod?c.tar/c.prod:0,foP:c.prod?c.fo/c.prod:0,m:c.venda?c.lucro/c.venda:0})).sort((a,b)=>b.venda-a.venda),
+  fora:{n:fora,valor:excesso},menores:{n:menores.length,valor:menores.reduce((s,m)=>s+m.valor,0),lista:menores.sort((a,b)=>b.valor-a.valor).slice(0,5)},
+  prejuizo:{n:pj.length,valor:pj.reduce((s,a)=>s+a.perda,0),top:pj.slice(0,5)},abaixo,anuncios:A.length}}
+const diagnostico=per=>{const o=ui.periodo;if(per)ui.periodo=per;try{return diagCore()}finally{ui.periodo=o}};
+window.Margem={diagnostico,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
 })();
