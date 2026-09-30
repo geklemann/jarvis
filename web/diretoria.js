@@ -29,5 +29,5 @@ let tm=null;function bind(){document.body.classList.add("pg-bolso");clearInterva
 addPage('bolso','bolso','Diretoria no bolso',view,'Só as informações-chave: vendas, rentabilidade, caixa, clientes e o que pede atenção. Feita para o celular.','',bind);
 // No celular, a primeira tela depois de entrar é a da diretoria (uma vez por sessão; "Sistema completo" volta ao resto).
 setInterval(()=>document.body.classList.toggle('pg-bolso',page==='bolso'),400);
-let feito=false;setInterval(()=>{if(feito||!window.Cloud?.session)return;feito=true;try{if(matchMedia('(max-width:700px)').matches&&page==='central'&&!sessionStorage.getItem('eb_bolso')){sessionStorage.setItem('eb_bolso','1');navigate('bolso')}}catch{}},1200);
+let feito=false;setInterval(()=>{if(feito||!window.Cloud?.session)return;feito=true;try{if(matchMedia('(max-width:700px)').matches&&(page==='central'||page==='resumo')&&!sessionStorage.getItem('eb_bolso')){sessionStorage.setItem('eb_bolso','1');navigate('bolso')}}catch{}},1200);
 })();
