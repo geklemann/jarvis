@@ -64,7 +64,7 @@ shell=function(){ordenarMenus();{const mp=modDe(page);if(window.Perfis&&((mp&&!P
  const meses=[...new Set([month,...db.orders.map(o=>o.date.slice(0,7)),...P().map(t=>t.vencimento.slice(0,7))])].filter(m=>m>='2020'&&m<=addMeses(hoje(),3).slice(0,7)).sort().reverse().slice(0,36);
  const emp=esc(window.Cloud?.wsName||'Minha empresa');
  $('#app').innerHTML=`<div class="erp">
- <aside class="side"><button class="sidebrand" data-nav="central" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>Jarvis · ERP</small></span></button>
+ <aside class="side"><button class="sidebrand" data-nav="resumo" aria-label="Início"><img class="sidelogo" src="brand/comprastore-logo-240.png" alt=""><span><strong>${emp}</strong><small>Jarvis · ERP</small></span></button>
   <nav class="menu" aria-label="Menu principal">${MODS.filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false&&(m.id!=='pes'||window.Ponto?.acesso===true)).map(m=>{const ov=VISAO[m.id],ids=m.grupos.flatMap(([,l])=>l).filter(id=>id!==ov&&navItems.some(n=>n[0]===id)&&window.Perfis?.paginaVisivel?.(id)!==false).sort((x,y)=>String(nomePag(x)).localeCompare(String(nomePag(y)),'pt-BR',{sensitivity:'base'})),unico=!ov&&ids.length===1&&!m.plataformas,ativo=m.id===M.id,aberto=(menuSel??M.id)===m.id;
    if(unico)return `<button class="mhead ${page===ids[0]?'active':''}" data-nav="${ids[0]}">${ico(m.ic,20)}<span>${m.t}</span></button>`;
    return `<div class="mgroup ${aberto?'open':''} ${ativo?'cur':''}"><button class="mhead ${ov&&page===ov?'active':''}" data-mtoggle="${m.id}" aria-expanded="${aberto}" ${ov?`title="Visão geral de ${m.t}"`:''}>${ico(m.ic,20)}<span>${m.t}</span><i class="mchev" data-mchev="1">${ico('chev',15)}</i></button>${aberto?`<div class="mitems">${ids.map(item).join('')}${m.plataformas?Object.keys(platforms).map(p=>`<button data-nav="${p}" class="${page===p?'active':''}"><span class="platdot" style="background:${platforms[p].color}"></span><span>${p}</span></button>`).join(''):''}</div>`:''}</div>`}).join('')}</nav></aside>
@@ -334,7 +334,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-rel],[data
 
 addPage('central','home','Central do dia',centralView,'O que entra, o que sai e o que precisa da sua atenção hoje.','',bindGrafico);
 // Abre na Central do dia quando não há tela no endereço.
-if(!location.hash&&page==='dashboard')page='central';
+if(!location.hash&&page==='dashboard')page='resumo';
 window.ERP={lan,catNomes,fornNomes:()=>[...new Set([...C('forn').map(c=>c.dados.fantasia||c.dados.razao),...P().map(t=>t.fornecedor).filter(Boolean)])].filter(Boolean).sort(),busca,projecao,cadUI,centralView,avisos,contagens,graficoCaixa,bindGrafico,MODS,saudacao,nomeUsuario,abertos,saldoT,modDe,resultados};
 })();
 

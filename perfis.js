@@ -12,7 +12,7 @@ const MODULOS={owner:null,member:null,
 // Áreas de dados que cada módulo lê (para avisar quando uma tela liberada fica fora do que o perfil pode ver no banco).
 const AREA={ini:null,atd:'vendas',ven:'vendas',est:'estoque',fin:'financeiro',fis:'contabil',cx:null,crm:'vendas',cad:'config',res:'contabil',pre:'precos',pes:'financeiro',rel:'financeiro',ger:null};
 const LE={owner:null,member:null,financeiro:['financeiro','contabil','vendas','precos','config','estoque'],contador:['contabil','config','financeiro','vendas','precos','estoque'],atendimento:['vendas','estoque','precos','config'],estoque:['estoque','vendas','precos','config']};
-const SEMPRE=['suporte','mapa','central','bolso'];// ajuda fica sempre disponível
+const SEMPRE=['suporte','mapa','central','bolso','resumo'];// ajuda fica sempre disponível
 const INICIO={contador:'parametros',atendimento:'atendimento',estoque:'estoque'};
 const papel=()=>window.Cloud?.role||'owner';
 const lista=()=>papel()==='owner'?null:(Array.isArray(window.Cloud?.paginas)?window.Cloud.paginas:null);
@@ -20,7 +20,7 @@ const menu=()=>window.ERP_MENU||{MODS:[],GERAL:[]};
 function moduloDe(id){return menu().MODS.find(m=>m.grupos.some(([,l])=>l.includes(id)))?.id||(menu().GERAL.includes(id)?'ger':null)}
 function paginaVisivel(id){if(SEMPRE.includes(id))return true;const l=lista();if(l)return l.includes(id);return true}
 function moduloVisivel(mid){const l=lista();if(l){const m=menu().MODS.find(x=>x.id===mid);return !!m&&m.grupos.some(([,ids])=>ids.some(i=>l.includes(i)))}const p=MODULOS[papel()];return !p||p.includes(mid)}
-function inicio(){const l=lista();if(l){const pref=INICIO[papel()]||'central';return l.includes(pref)?pref:(l.find(i=>moduloDe(i))||'suporte')}return INICIO[papel()]||'central'}
+function inicio(){const l=lista();if(l){const pref=INICIO[papel()]||'resumo';return l.includes(pref)?pref:(l.find(i=>moduloDe(i))||'suporte')}return INICIO[papel()]||'resumo'}
 // Telas que o perfil vê por padrão (sem lista personalizada).
 function padrao(role){const p=MODULOS[role];return menu().MODS.filter(m=>!p||p.includes(m.id)).flatMap(m=>m.grupos.flatMap(([,l])=>l)).concat(role==='owner'?menu().GERAL:menu().GERAL.filter(g=>!['equipe','auditoria','integracoes'].includes(g)))}
 window.Perfis={moduloVisivel,paginaVisivel,inicio,padrao,nome:()=>window.PERFIS.find(p=>p[0]===papel())?.[1]||papel()};
