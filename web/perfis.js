@@ -12,7 +12,7 @@ const MODULOS={owner:null,member:null,
 // Áreas de dados que cada módulo lê (para avisar quando uma tela liberada fica fora do que o perfil pode ver no banco).
 const AREA={ini:null,atd:'vendas',ven:'vendas',est:'estoque',fin:'financeiro',fis:'contabil',cx:null,crm:'vendas',cad:'config',res:'contabil',pre:'precos',pes:'financeiro',rel:'financeiro',ger:null};
 const LE={owner:null,member:null,financeiro:['financeiro','contabil','vendas','precos','config','estoque'],contador:['contabil','config','financeiro','vendas','precos','estoque'],atendimento:['vendas','estoque','precos','config'],estoque:['estoque','vendas','precos','config']};
-const SEMPRE=['suporte','mapa'];// ajuda fica sempre disponível
+const SEMPRE=['suporte','mapa','central','bolso'];// ajuda fica sempre disponível
 const INICIO={contador:'parametros',atendimento:'atendimento',estoque:'estoque'};
 const papel=()=>window.Cloud?.role||'owner';
 const lista=()=>papel()==='owner'?null:(Array.isArray(window.Cloud?.paginas)?window.Cloud.paginas:null);
