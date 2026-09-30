@@ -18,7 +18,7 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 
 // ═════════════════ Estrutura ═════════════════
 const MODS=[
- {id:'ini',ic:'home',t:'Início',grupos:[['Hoje',['central','bolso','resumo']]]},
+ {id:'ini',ic:'home',t:'Início',grupos:[['Início',['resumo']]]},
  {id:'atd',ic:'headset',t:'Atendimento',grupos:[['Atendimento',['atendimento']],['Pós-venda',['devolucoes']],['Satisfação do cliente',['cx']]]},
  {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','margem','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
@@ -32,11 +32,11 @@ const MODS=[
  {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Pessoas',['pessoas']],['Ponto e jornada',['ponto']]]},
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports','diagnostico']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
-const VISAO={ini:'central',atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cxequipe'};
+const VISAO={atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cxequipe'};
 window.ERP_MENU={get MODS(){return MODS},get GERAL(){return GERAL}};
 const GERAL=['equipe','ai','history','auditoria','integridade','fontes','integracoes','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
-const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='integracoes'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
+const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='integracoes'||p==='central'||p==='bolso'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
 let modAtual=modDe(page)||'ini';
 const menuAberto=new Set((()=>{try{return JSON.parse(localStorage.getItem('eb_menu')||'[]')}catch{return []}})());
 const menuFechado=new Set();let menuSel=null;
