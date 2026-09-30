@@ -1,6 +1,6 @@
 # Configurar a nuvem (Supabase + IA)
 
-O site já está publicado no GitHub Pages (https://guilhermek-maker.github.io/ecombalance/) em **modo local**. Estes passos ligam o modo nuvem: login, dados compartilhados entre computadores, integrações automáticas e o assistente de IA. Tudo é gratuito, exceto o consumo da IA (pago por uso na Anthropic).
+O site já está publicado no GitHub Pages (https://jaarvis.com.br/) em **modo local**. Estes passos ligam o modo nuvem: login, dados compartilhados entre computadores, integrações automáticas e o assistente de IA. Tudo é gratuito, exceto o consumo da IA (pago por uso na Anthropic).
 
 > Nenhum destes passos pode ser feito pela IA por você: envolvem criar contas e copiar chaves secretas. Leva cerca de 15 minutos.
 
@@ -65,8 +65,8 @@ Ou simplesmente peça ao Claude: **"ligue o site ao Supabase: URL … chave anon
 ## 6. Ajustar o login no Supabase
 
 Em **Authentication › URL Configuration**:
-- **Site URL**: `https://guilhermek-maker.github.io/ecombalance/`
-- **Redirect URLs**: adicione `https://guilhermek-maker.github.io/ecombalance/**` e `http://127.0.0.1:3000/**`
+- **Site URL**: `https://jaarvis.com.br/`
+- **Redirect URLs**: adicione `https://jaarvis.com.br/**` e `http://127.0.0.1:3000/**`
 
 Abra o site, clique em **Criar conta**, confirme pelo e-mail e entre. Se você tinha dados no modo local deste navegador, o sistema oferece copiá-los para a nuvem.
 Para a equipe: cada pessoa cria a conta e o dono adiciona o e-mail em **Integrações › Equipe**.
