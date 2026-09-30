@@ -432,3 +432,9 @@ body.fiori.st-indigo:not(.light){--bg:#0d0c14;--panel:#15131f;--panel2:#1c1a28;-
 /* Terracota */
 body.fiori.light.st-terracota{--bg:#f8f6f3;--panel2:#f3f0ec;--line:#e9e4de;--accent:#b8471b;--ar:184 71 27;--ar2:184 71 27;--f-ring:0 0 0 3px rgb(184 71 27 / 20%);--g1:#b8471b;--g2:#b8471b;--hot:#b8471b;--b1:184 71 27;--b2:222 150 115;--b3:58 30 18}
 body.fiori.st-terracota:not(.light){--bg:#100d0b;--panel:#191512;--panel2:#211c18;--solid:#191512;--input:#130f0d;--line:#2d2621;--line2:#3a312b;--accent:#f39a6b;--ar:243 154 107;--ar2:243 154 107;--f-ring:0 0 0 3px rgb(243 154 107 / 24%);--g1:#e07a47;--g2:#f39a6b;--hot:#f39a6b;--b1:243 154 107;--b2:160 80 45;--b3:62 34 22}
+
+/* Diagnóstico impresso: folha branca com as cores do tema claro e linhas compactas, para caber numa página A4. */
+@media print{body.fiori.pg-diag .dg-folha{--text:#111318;--muted:#5f6674;--line:#dde0e5;--panel:#fff;--panel2:#f3f4f6;--solid:#fff;--accent:#2f5bd9;--green:#158049;--red:#d13c4c;--gold:#a05f00;color:#111318;background:#fff}
+ body.fiori.pg-diag .dg-achado{background:#f2f5fd!important;border-color:#c9d5f6!important}
+ body.fiori.pg-diag .dg-tab{font-size:10.5px!important}
+ body.fiori.pg-diag .dg-tab th,body.fiori.pg-diag .dg-tab td{padding:3px 7px!important;height:auto!important;line-height:1.3!important}}
