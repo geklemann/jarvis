@@ -60,7 +60,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-ob]');if(!
    const r=t.value==='texto'?{texto:n}:t.value==='util'?{util:Number(n)||1,m:mm}:t.value==='ultimo'?{ultimoUtil:true,m:mm}:{dia:Number(n)||10,m:mm};
    aj[id]={...(aj[id]||{}),r,resp:$(`[data-ob-resp="${id}"]`)?.value||o[5],oculta:$(`[data-ob-oculta="${id}"]`)?.checked||false}}
   salvar({ajustes:aj});audit('Agenda de obrigações ajustada',Object.keys(aj).join(', '));ui.ed=false;toast('Agenda salva.');render();return}
- if(k==='pacote'){const l=lista(),ent2=cfg().entregas||{},lin=[['obrigacao','prazo','responsavel','dados_ecombalance','situacao']];
+ if(k==='pacote'){const l=lista(),ent2=cfg().entregas||{},lin=[['obrigacao','prazo','responsavel','dados_jarvis','situacao']];
   for(const o of l){const p=prazo(o,m);if(!p)continue;const e2=ent2[m+'|'+o.id];lin.push([o.n,p.txt,o.resp,dado(o,m),e2?`entregue ${e2.por} ${e2.em.slice(0,10)}`:'pendente'])}
   const t=window.Contab?.tributos?.(m);if(t)for(const [n,v] of [['Receita bruta',t.receita],['ICMS próprio',t.icms],['DIFAL + FCP',t.difal],['PIS',t.pis],['COFINS',t.cofins],['IRPJ',t.irpj],['CSLL',t.csll]])lin.push(['Apuração: '+n,'','',String((v||0).toFixed(2)).replace('.',','),'']);
   const csv='﻿'+lin.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(';')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`obrigacoes-${m}.csv`;a.click();audit('Pacote de obrigações exportado',m)}});
