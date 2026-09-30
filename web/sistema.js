@@ -11,9 +11,9 @@ const VIDRO=[['aurora','Aurora','Petróleo, água-marinha e coral','#5fe0cc','#0
  ['terracota','Terracota','Quente, areia e coral','#ffab8f','#b2432a','#ffd08a','#1f1410'],['grafite','Grafite','Sóbrio, cinza e dourado','#c9d3df','#2b3441','#e0a93b','#12161c']];
 function temaAtual(){const m=window.Cloud?.session?.user?.user_metadata||{};return m.tema2||ler('eb_tema2')||'aurora'}
 function classicoAtual(){return window.Cloud?.session?.user?.user_metadata?.tema||ler('eb_tema')||'violeta'}
-function aplicar(t){const vd=VIDRO.some(x=>x[0]===t),b=document.body;b.classList.toggle('vidro',vd);for(const [id] of VIDRO)b.classList.toggle('vd-'+id,vd&&id===t&&id!=='aurora');
- const c=vd?'violeta':classicoAtual();for(const [id] of TEMAS)b.classList.toggle('tema-'+id,!vd&&id===c&&id!=='violeta');
- document.querySelector('meta[name=theme-color]')?.setAttribute('content',vd?(b.classList.contains('light')?'#eef3f6':'#0a1420'):(getComputedStyle(b).getPropertyValue('--bg').trim()||'#090c13'))}
+function aplicar(t){const fi=t==='fiori',vd=!fi&&VIDRO.some(x=>x[0]===t),b=document.body;b.classList.toggle('vidro',vd);b.classList.toggle('fiori',fi);for(const [id] of VIDRO)b.classList.toggle('vd-'+id,vd&&id===t&&id!=='aurora');
+ const c=vd||fi?'violeta':classicoAtual();for(const [id] of TEMAS)b.classList.toggle('tema-'+id,!vd&&id===c&&id!=='violeta');
+ document.querySelector('meta[name=theme-color]')?.setAttribute('content',fi?(b.classList.contains('light')?'#ffffff':'#1d232a'):vd?(b.classList.contains('light')?'#eef3f6':'#0a1420'):(getComputedStyle(b).getPropertyValue('--bg').trim()||'#090c13'))}
 aplicar(ler('eb_tema2')||'aurora');
 let temaSessao=null;setInterval(()=>{const t=temaAtual()+'|'+classicoAtual()+'|'+db.theme;if(t!==temaSessao){temaSessao=t;aplicar(temaAtual())}},1000);
 async function escolher(t,classico){try{localStorage.setItem('eb_tema2',classico?'classico':t);if(classico)localStorage.setItem('eb_tema',t)}catch{}
@@ -23,6 +23,8 @@ function aparencia(){const t=temaAtual(),claro=db.theme==='light',cl=t==='classi
  modal('Aparência',`<p class="caption" style="margin-top:-10px">A cor vale para o seu usuário, em qualquer computador. O modo claro/noite vale para a empresa.</p>
  <div class="navlabel" style="margin:6px 0 10px">Aurora · vidro</div>
  <div class="vdgrid">${VIDRO.map(([id,nome,desc,c1,c2,c3,c0])=>`<button class="vdcard ${t===id?'on':''}" data-tema="${id}" style="--c1:${c1};--c2:${c2};--c3:${c3};--c0:${c0}"><i></i><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div>
+ <div class="navlabel" style="margin:20px 0 10px">Empresarial</div>
+ <div class="vdgrid"><button class="vdcard ${t==='fiori'?'on':''}" data-tema="fiori" style="--c1:#0070f2;--c2:#0064d9;--c3:#f5f6f7;--c0:#1d2d3e"><i></i><strong>Fiori</strong><small>Claro e sóbrio, no estilo SAP Fiori</small></button></div>
  <div class="navlabel" style="margin:20px 0 8px">Modo</div><div class="segtabs"><button class="${claro?'':'active'}" data-modo="dark">${icon('moon')} Noite</button><button class="${claro?'active':''}" data-modo="light">${icon('sun')} Claro</button></div>
  <details style="margin-top:16px"><summary class="caption" style="cursor:pointer">Visual clássico (sólido)</summary><div class="temagrid" style="margin-top:10px">${TEMAS.map(([id,nome,esc1,cla,desc])=>`<button class="temacard ${cl===id?'on':''}" data-tema="${id}" data-classico="1"><span class="temaprev" style="--c1:${esc1};--c2:${cla}"><i></i><i></i><i></i></span><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div></details>
  <div class="modalfoot"><button class="primary" data-action="close">${icon('check')} Pronto</button></div>`)}
