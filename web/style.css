@@ -481,3 +481,8 @@ body.pg-bolso .pagehead{display:none}
 .dg-nota{font-size:11px;color:var(--muted);margin:6px 0 0}.dg-rec{margin:0;padding-left:20px;display:grid;gap:6px;font-size:13px;color:var(--text)}.dg-rod{font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
 @media print{body.pg-diag .pagehead,body.pg-diag .dg-barra,body.pg-diag .fab,body.pg-diag #toast{display:none!important}body.pg-diag .erp{display:block!important}body.pg-diag .dg-folha{border:0;border-radius:0;max-width:none;padding:0;background:#fff;color:#111}
  body.pg-diag{--text:#111;--muted:#555;--line:#ddd;--green:#1f7a4d;--red:#b03040;--gold:#8a6200;--accent:#0f6f7c;background:#fff!important}@page{size:A4;margin:12mm}}
+@media print{body.pg-diag .dg-folha{gap:10px;font-size:11px}body.pg-diag .dg-kpis,body.pg-diag .dg-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+ body.pg-diag .dg-cab{padding-bottom:8px}body.pg-diag .dg-achado{padding:10px 14px}body.pg-diag .dg-achado b{font-size:26px}body.pg-diag .dg-achado span{font-size:11px}
+ body.pg-diag .dg-card{padding:8px 10px}body.pg-diag .dg-card b{font-size:16px}body.pg-diag .dg-card span,body.pg-diag .dg-card small{font-size:9.5px}
+ body.pg-diag .dg-folha h3{font-size:10.5px;margin:0 0 4px}body.pg-diag .dg-tab{font-size:10.5px}body.pg-diag .dg-tab th,body.pg-diag .dg-tab td{padding:3.5px 6px}body.pg-diag .dg-tab th{font-size:9px}
+ body.pg-diag .dg-nota{font-size:9px;margin-top:3px}body.pg-diag .dg-rec{font-size:11px;gap:3px}body.pg-diag .dg-rod{font-size:9px;padding-top:6px}}
