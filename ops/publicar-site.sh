@@ -10,4 +10,4 @@ git commit -q -m "Publicação $v" -- web/index.html
 git branch -D gh-pages >/dev/null 2>&1 || true
 git subtree split --prefix web -b gh-pages
 git push -f origin gh-pages
-echo "Publicado (versão $v). O GitHub Pages atualiza em 1–2 minutos: https://ecombalance.com.br/"
+echo "Publicado (versão $v). O GitHub Pages atualiza em 1–2 minutos: https://jaarvis.com.br/"

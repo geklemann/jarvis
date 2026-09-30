@@ -13,7 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [auth]
-site_url = "https://ecombalance.com.br/"
+site_url = "https://jaarvis.com.br/"
 # Cadastro aberto com aprovação: a conta nova vira um pedido de acesso e o dono libera em Integrações › Equipe (workspaces.recebe_solicitacoes).
 enable_signup = true
 additional_redirect_urls = ["https://jaarvis.com.br/**", "https://www.jaarvis.com.br/**", "https://geklemann.github.io/jarvis/**", "https://ecombalance.com.br/**", "https://www.ecombalance.com.br/**", "https://guilhermek-maker.github.io/ecombalance/**", "https://guilhermek-maker.github.io/fechai/**", "https://guilhermek-maker.github.io/concil-ia/**", "http://127.0.0.1:3000/**"]
