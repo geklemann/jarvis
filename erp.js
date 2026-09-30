@@ -30,7 +30,7 @@ const MODS=[
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Análises',['rentabilidade']],['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
  {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
  {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Pessoas',['pessoas']],['Ponto e jornada',['ponto']]]},
-{id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports']]]}];
+{id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports','diagnostico']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
 const VISAO={ini:'central',atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cxequipe'};
 window.ERP_MENU={get MODS(){return MODS},get GERAL(){return GERAL}};
