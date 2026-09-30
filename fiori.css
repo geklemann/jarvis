@@ -1,113 +1,423 @@
-/* Tema "Fiori" (inspirado no SAP Fiori Horizon): fundo neutro claro, cartões brancos com sombra leve e cantos
-   de 12 px, azul de ação, cores semânticas padronizadas, barra superior branca, navegação lateral clara e tabelas
-   mais arejadas. Ativo com body.fiori; o modo escuro (Evening Horizon) é body.fiori sem .light.
-   Só muda a aparência: classes, ids e atributos usados pelo JavaScript continuam os mesmos. */
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@charset "UTF-8";
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   Tema "Studio" (ligado por body.fiori — o nome interno continua "fiori" para não mexer no JS).
+   Direção: produto SaaS premium — superfícies planas em branco/grafite, bordas hairline precisas,
+   sombras quase invisíveis, tipografia Inter com numerais tabulares, botão primário em tinta
+   (preto no claro, branco no escuro) e um único azul de destaque usado só onde orienta o olhar
+   (foco, ativo, links, linhas de gráfico). Modo claro = body.fiori.light; escuro = body.fiori sem .light.
+   Só muda a aparência: classes, ids e atributos usados pelo JavaScript continuam os mesmos.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-body.fiori.light{
- --bg:#f5f6f7;--panel:#ffffff;--panel2:#f5f6f7;--solid:#ffffff;--line:#e5e5e5;--text:#1d2d3e;--muted:#556b82;
- --accent:#0064d9;--ar:0 112 242;--ar2:0 112 242;--btn:#0070f2;--btn-hi:#0064d9;--on-accent:#ffffff;
- --green:#256f3a;--red:#aa0808;--gold:#b44f00;--shadow:0 0 .125rem rgba(34,53,72,.15),0 .5rem 1.5rem rgba(34,53,72,.12);
- --f-shell:#ffffff;--f-side:#ffffff;--f-hover:#eaecee;--f-sel:#ebf8ff;--f-field:#ffffff;--f-fieldline:#556b82;--f-card:0 0 .125rem rgba(34,53,72,.2),0 .125rem .25rem rgba(34,53,72,.2);
- --f-okbg:#f5fae5;--f-warnbg:#fff8d6;--f-badbg:#ffeaf4;--f-infobg:#e1f4ff;color-scheme:light}
-body.fiori:not(.light){
- --bg:#12171c;--panel:#1d232a;--panel2:#161c22;--solid:#1d232a;--line:#2e3a46;--text:#eaecee;--muted:#a9b4be;
- --accent:#4db1ff;--ar:77 177 255;--ar2:77 177 255;--btn:#1c8aea;--btn-hi:#4db1ff;--on-accent:#ffffff;
- --green:#6fd08a;--red:#ff8888;--gold:#ffaa5a;--shadow:0 .5rem 1.5rem rgba(0,0,0,.45);
- --f-shell:#1d232a;--f-side:#1d232a;--f-hover:#232b33;--f-sel:#1f3448;--f-field:#12171c;--f-fieldline:#a9b4be;--f-card:0 0 .125rem rgba(0,0,0,.5),0 .125rem .5rem rgba(0,0,0,.35);
- --f-okbg:#1a2e22;--f-warnbg:#352812;--f-badbg:#3a1a1f;--f-infobg:#132b40;color-scheme:dark}
+/* ─── Tokens · modo claro ─── */
+body.fiori.light{color-scheme:light;
+ --bg:#f6f7f9;--panel:#ffffff;--panel2:#f2f3f5;--solid:#ffffff;--input:#ffffff;
+ --line:#e5e7eb;--line2:#d3d6dc;--text:#111318;--muted:#5f6674;
+ --accent:#2f5bd9;--ar:47 91 217;--ar2:47 91 217;
+ --btn:#15171c;--btn-hi:#2b2e36;--on-accent:#ffffff;
+ --green:#158049;--red:#d13c4c;--gold:#a05f00;
+ --shadow:0 16px 48px rgba(17,19,24,.12),0 2px 6px rgba(17,19,24,.05);
+ --f-sm:0 1px 2px rgba(17,19,24,.05);--f-md:0 6px 20px rgba(17,19,24,.07),0 1px 2px rgba(17,19,24,.04);
+ --f-hover:rgba(17,19,24,.04);--f-active:rgba(17,19,24,.07);--f-ring:0 0 0 3px rgb(47 91 217 / 20%);
+ /* variáveis que o Início, a Visão geral e os gráficos leem com fallback */
+ --glassline:var(--line);--glasshi:transparent;--lift:var(--f-sm);
+ --g1:#2f5bd9;--g2:#2f5bd9;--hot:#2f5bd9;--b1:47 91 217;--b2:132 156 235;--b3:27 33 58}
+/* ─── Tokens · modo escuro ─── */
+body.fiori:not(.light){color-scheme:dark;
+ --bg:#0c0e13;--panel:#13161c;--panel2:#1a1e26;--solid:#13161c;--input:#0f1116;
+ --line:#242830;--line2:#30353f;--text:#e9ebf0;--muted:#8f96a3;
+ --accent:#8aa6ff;--ar:138 166 255;--ar2:138 166 255;
+ --btn:#eceef2;--btn-hi:#ffffff;--on-accent:#0c0e13;
+ --green:#5fd39a;--red:#ff7f8c;--gold:#f0b95e;
+ --shadow:0 24px 64px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
+ --f-sm:0 1px 2px rgba(0,0,0,.3);--f-md:0 10px 28px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+ --f-hover:rgba(255,255,255,.05);--f-active:rgba(255,255,255,.08);--f-ring:0 0 0 3px rgb(138 166 255 / 24%);
+ --glassline:var(--line);--glasshi:transparent;--lift:none;
+ --g1:#6f8dff;--g2:#8aa6ff;--hot:#8aa6ff;--b1:138 166 255;--b2:70 90 170;--b3:36 42 72}
 
-body.fiori{background:var(--bg)!important;color:var(--text);font-family:"Source Sans 3","72","Segoe UI",Arial,sans-serif;font-size:14px}
+/* ─── Base e tipografia ─── */
+body.fiori{background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;font-size:13.5px;line-height:1.5;
+ -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:"cv05","cv08","cv11";text-rendering:optimizeLegibility}
 body.fiori #app{background:var(--bg)}
-body.fiori h1,body.fiori h2,body.fiori h3{font-family:inherit;letter-spacing:0;color:var(--text)}
-body.fiori h1{font-size:24px;font-weight:700;line-height:1.25}
-body.fiori h2{font-size:16px;font-weight:700}
+body.fiori *:not(code):not(kbd):not(pre):not(.mono):not(.mono *):not(.rtpasso em){font-family:Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif!important}
+body.fiori .mono,body.fiori code,body.fiori kbd,body.fiori pre,body.fiori .rtpasso em{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace!important;font-size:12.5px}
+body.fiori h1,body.fiori h2,body.fiori h3{color:var(--text);letter-spacing:-.01em}
+body.fiori h1{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+body.fiori h2{font-size:15px;font-weight:600}
+body.fiori h3{font-size:13.5px;font-weight:600}
 body.fiori p{color:var(--muted)}
-
-/* Barra superior (shell bar) */
-body.fiori .erp header{background:var(--f-shell)!important;border-bottom:0!important;box-shadow:0 0 .125rem rgba(34,53,72,.15),0 .125rem .25rem rgba(34,53,72,.12);height:52px;padding:0 20px;position:sticky;top:0;z-index:30;backdrop-filter:none}
-body.fiori .searchbox{background:var(--panel2)!important;border:1px solid transparent!important;border-radius:18px!important;height:36px;box-shadow:none!important;color:var(--muted)}
-body.fiori .searchbox:hover{border-color:var(--f-fieldline)!important}
-body.fiori .searchbox kbd{background:var(--panel)!important;border:1px solid var(--line)!important;color:var(--muted)}
-body.fiori .iconbtn,body.fiori .userbtn{background:transparent!important;border:0!important;border-radius:8px!important;box-shadow:none!important}
-body.fiori .iconbtn:hover,body.fiori .userbtn:hover{background:var(--f-hover)!important}
-body.fiori .avatar{background:#0070f2!important;color:#fff!important;border-radius:50%!important}
-body.fiori .belldot{background:#aa0808!important;color:#fff!important}
-body.fiori .demo{display:none}
-
-/* Navegação lateral */
-body.fiori .erp .side{background:var(--f-side)!important;border-right:1px solid var(--line)!important;box-shadow:none!important;backdrop-filter:none!important;border-radius:0!important;margin:0!important;top:0!important;bottom:0!important;height:auto}
-body.fiori .sidebrand{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important}
-body.fiori .sidebrand strong{color:var(--text)}
-body.fiori .sidelogo{filter:none!important}
-body.fiori .erp .menu .mhead,body.fiori .erp .mitems button{color:var(--text)!important;border-radius:8px!important;background:transparent!important;font-weight:500}
-body.fiori .erp .menu .mhead .icon{color:var(--muted)}
-body.fiori .erp .menu .mhead:hover,body.fiori .erp .mitems button:hover{background:var(--f-hover)!important}
-body.fiori .erp .menu .mhead.active,body.fiori .erp .mitems button.active{background:var(--f-sel)!important;color:var(--accent)!important;font-weight:700;box-shadow:inset 3px 0 0 #0070f2!important}
-body.fiori .erp .menu .mhead.active:before,body.fiori .erp .mitems button.active:before{display:none!important}
-body.fiori .mgroup.cur>.mhead{color:var(--accent)!important;font-weight:700}
-body.fiori .mgroup.cur>.mhead .icon{color:var(--accent)}
-body.fiori .navcount{background:#0070f2!important;color:#fff!important;border-radius:10px}
-
-/* Cabeçalho da página (dynamic page header) */
-body.fiori .pagehead{background:var(--panel);margin:-30px -36px 20px;padding:18px 36px 16px;border-bottom:1px solid var(--line);box-shadow:0 .125rem .25rem rgba(34,53,72,.06)}
-body.fiori .crumb{color:var(--accent);font-size:13px;text-transform:none;letter-spacing:0;font-weight:500}
-body.fiori .crumb span{color:var(--muted)}
-body.fiori .monthsel{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important}
-
-/* Cartões e KPIs (tiles) */
-body.fiori .card,body.fiori .tablebox,body.fiori .kpi,body.fiori .hero,body.fiori .platform{background:var(--panel)!important;border:0!important;border-radius:12px!important;box-shadow:var(--f-card)!important;backdrop-filter:none!important}
-body.fiori .hero{background:var(--panel)!important}
-body.fiori .hero:after{display:none}
-body.fiori button.card:hover,body.fiori .kpi:hover{box-shadow:0 0 .125rem rgba(34,53,72,.25),0 .5rem 1rem rgba(34,53,72,.2)!important;transform:none}
-body.fiori .kpil,body.fiori .metric .label{color:var(--muted);font-size:13px;font-weight:600}
-body.fiori .kpiv,body.fiori .metric .value{color:var(--text);font-family:inherit;font-weight:300;font-size:30px;letter-spacing:-.3px}
+body.fiori .caption{font-size:12.5px;color:var(--muted)}
+body.fiori ::selection{background:rgb(var(--ar) / 18%)}
+body.fiori *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text) 18%,transparent) transparent}
+body.fiori .num,body.fiori .kpiv,body.fiori .metric .value,body.fiori .bankval,body.fiori table,body.fiori .fxk strong,body.fiori .vg-canal>strong,body.fiori .vg-big strong,body.fiori .hj-val,body.fiori .bl-num b,body.fiori .dg-card b,body.fiori .dg-achado b,body.fiori .projrow strong,body.fiori .minis strong,body.fiori .simres strong{font-variant-numeric:tabular-nums}
+/* Números grandes: peso 600 e tracking apertado no lugar do 800 do tema anterior */
+body.fiori .kpiv,body.fiori .metric .value,body.fiori .bankval,body.fiori .vg-big strong,body.fiori .vg-canal>strong,body.fiori .fxk strong,body.fiori .hj-val,body.fiori .bl-num b,body.fiori .dg-achado b,body.fiori .dg-card b,body.fiori .projrow strong,body.fiori .detailmetric strong,body.fiori .minis strong,body.fiori .simres strong,body.fiori .fctrib strong,body.fiori .insight strong,body.fiori .evcard strong,body.fiori .kpis4.small strong,body.fiori .seg b,body.fiori .platform b,body.fiori .ring b,body.fiori .pdn,body.fiori .vg-ring dd,body.fiori .hj-modbody strong,body.fiori .tour-tip strong,body.fiori .rt-n,body.fiori .rt-ring text,body.fiori .vg-ring text,body.fiori .hj-orb b,body.fiori .hj h2,body.fiori .dg-marca b,body.fiori .pfprog strong{font-weight:600;letter-spacing:-.02em}
+body.fiori .kpil,body.fiori .metric .label,body.fiori .fxk span{font-size:12.5px;font-weight:500;color:var(--muted)}
+body.fiori .kpiv,body.fiori .metric .value{font-size:26px;line-height:1.15;color:var(--text)}
+body.fiori .kpis,body.fiori .metric small,body.fiori .fxk small{font-size:12.5px;color:var(--muted)}
 body.fiori .kpiv.green{color:var(--green)}body.fiori .kpiv.red{color:var(--red)}body.fiori .kpiv.gold{color:var(--gold)}
-body.fiori .notice{background:var(--f-infobg)!important;border:0!important;border-left:0!important;border-radius:8px!important;color:var(--text);box-shadow:none!important}
-body.fiori .notice.warnbox{background:var(--f-warnbg)!important}
+body.fiori .eyebrow,body.fiori .hj-eyebrow,body.fiori .vg-big small,body.fiori .guia small,body.fiori .tour-tip small,body.fiori .bl-tit,body.fiori .dg-achado small,body.fiori .dg-folha h3,body.fiori .formcard legend,body.fiori .drophead,body.fiori .bggroup,body.fiori .mlabel{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+body.fiori .hj-eyebrow{margin-bottom:8px}
 
-/* Botões */
-body.fiori button{border-radius:8px;border:1px solid #bcc3ca;background:var(--panel);color:var(--accent);font-weight:600;min-height:32px}
-body.fiori button:hover{background:var(--f-hover);border-color:#bcc3ca;transform:none}
-body.fiori .primary,body.fiori button.primary{background:var(--btn)!important;border-color:var(--btn)!important;color:#fff!important;box-shadow:none!important}
-body.fiori .primary:hover{background:var(--btn-hi)!important}
-body.fiori .quiet{background:transparent;border-color:transparent}
-body.fiori .newbtn{border-radius:8px!important}
+/* ─── Estrutura: menu lateral ─── */
+@media(min-width:1181px){body.fiori .erp{grid-template-columns:252px minmax(0,1fr)}}
+@media(min-width:761px) and (max-width:1180px){body.fiori .erp{grid-template-columns:228px minmax(0,1fr)}}
+body.fiori .erp .side{background:var(--bg);border-right:1px solid var(--line);box-shadow:none;backdrop-filter:none;border-radius:0;margin:0;top:0;height:100vh;padding:14px 12px 12px}
+body.fiori .sidebrand{gap:11px;padding:6px 8px 14px;margin-bottom:8px;min-height:0;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+body.fiori .sidebrand:hover{background:transparent}
+body.fiori .sidebrand img,body.fiori .sidelogo{height:38px;filter:none}
+body.fiori .sidebrand strong{font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+body.fiori .sidebrand small{font-size:11.5px;color:var(--muted)}
+body.fiori .erp .menu{gap:1px}
+body.fiori .erp .menu .mhead,body.fiori .erp .mitems button{border-radius:8px;background:transparent;color:var(--muted);font-weight:500;box-shadow:none;transition:background-color .12s,color .12s}
+body.fiori .erp .menu .mhead{font-size:13.5px;padding:8px 10px;gap:10px}
+body.fiori .erp .menu .mhead .icon{width:18px;height:18px;color:var(--muted);transition:color .12s}
+body.fiori .erp .menu .mhead:hover,body.fiori .erp .mitems button:hover{background:var(--f-hover);color:var(--text)}
+body.fiori .erp .menu .mhead:hover .icon{color:var(--text)}
+body.fiori .mgroup.open>.mhead,body.fiori .mgroup.cur>.mhead{color:var(--text)}
+body.fiori .mgroup.cur>.mhead>.icon:first-child{color:var(--accent)}
+body.fiori .erp .menu .mhead.active{background:var(--f-active);color:var(--text);font-weight:600;box-shadow:none}
+body.fiori .erp .menu .mhead.active:before{display:none}
+body.fiori .mhead .mchev{width:22px;height:22px;border-radius:6px;opacity:.55}
+body.fiori .mhead .mchev:hover{background:var(--f-active);opacity:1}
+body.fiori .mitems{margin:1px 0 6px;gap:1px}
+body.fiori .erp .mitems button{font-size:13px;padding:7px 10px 7px 38px}
+body.fiori .erp .mitems button.active{background:var(--f-active);color:var(--text);font-weight:600}
+body.fiori .erp .mitems button.active:before{left:20px;width:5px;height:5px;margin-top:-2.5px;background:var(--accent)}
+body.fiori .navcount{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);border-radius:6px;font-size:11px;font-weight:600;padding:1px 6px;min-width:20px;text-align:center}
 
-/* Abas (icon tab bar) */
-body.fiori .segtabs{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;gap:18px;box-shadow:none!important}
-body.fiori .segtabs button{background:transparent!important;border:0!important;border-radius:0!important;color:var(--text)!important;padding:10px 2px!important;font-weight:500;box-shadow:inset 0 -3px 0 transparent}
-body.fiori .segtabs button.active{color:var(--accent)!important;font-weight:700;box-shadow:inset 0 -3px 0 #0070f2!important;background:transparent!important}
-body.fiori .segtabs button small{background:var(--panel2);color:var(--muted);border-radius:8px;padding:0 6px}
+/* ─── Estrutura: barra superior ─── */
+body.fiori .erp>main>header{height:56px;padding:0 24px;gap:10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);mask-image:none}
+body.fiori .searchbox{max-width:440px;height:34px;padding:0 10px 0 12px;gap:9px;border-radius:8px;background:var(--input);border:1px solid var(--line);box-shadow:var(--f-sm);color:var(--muted);font-size:13px}
+body.fiori .searchbox:hover{border-color:var(--line2);background:var(--panel)}
+body.fiori .searchbox .icon{width:15px;height:15px}
+body.fiori .searchbox kbd{font-size:10.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+body.fiori .hdrright{gap:6px}
+body.fiori .newbtn{height:34px;padding:0 12px 0 10px;border-radius:8px;font-size:13px;font-weight:500;gap:6px}
+body.fiori .iconbtn{width:34px;height:34px;border-radius:8px;color:var(--muted)}
+body.fiori .iconbtn:hover{color:var(--text)}
+body.fiori .iconbtn .icon{width:18px;height:18px}
+body.fiori .belldot{top:-5px;right:-5px;min-width:12px;height:12px;font-size:9px;font-weight:600;border-radius:999px;background:var(--red);color:#fff;border:2px solid var(--bg);box-sizing:content-box;padding:0 3px;line-height:1}
+body.fiori .demo{font-size:10.5px;font-weight:500;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:4px 8px}
+body.fiori .userbtn{padding:3px 6px 3px 3px;border-radius:8px;gap:4px;color:var(--muted);background:transparent;border-color:transparent;box-shadow:none}
+body.fiori .userbtn:hover{background:var(--f-hover)}
+body.fiori .userbtn .avatar,body.fiori .avatar{width:28px;height:28px;border-radius:7px;background:var(--btn);color:var(--on-accent);font-size:11.5px;font-weight:600;letter-spacing:0}
+body.fiori .avatar.big{width:38px;height:38px;border-radius:10px;font-size:14px}
+body.fiori .userdot{top:0;left:24px;width:8px;height:8px;border-color:var(--bg)}
 
-/* Tabelas (responsive table) */
-body.fiori table{font-size:14px}
-body.fiori th{background:var(--panel)!important;color:var(--muted)!important;text-transform:none!important;letter-spacing:0!important;font-size:13px!important;font-weight:600!important;border-bottom:1px solid var(--line)}
-body.fiori td{border-top:1px solid var(--line)!important;padding-top:11px;padding-bottom:11px}
-body.fiori tbody tr:hover td,body.fiori tbody tr:hover{background:var(--f-hover)!important}
+/* ─── Cabeçalho da página e conteúdo ─── */
+body.fiori .erp .content{padding:26px 32px 48px;max-width:1600px}
+body.fiori .pagehead{margin-bottom:22px;align-items:flex-end}
+body.fiori .pagehead h1{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:4px 0 4px}
+body.fiori .pagehead p{font-size:13.5px;color:var(--muted);max-width:720px}
+body.fiori .crumb{font-size:12.5px;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}
+body.fiori .crumb span{color:var(--muted);opacity:.55}
+body.fiori .guiabtn{width:22px;height:22px;margin-left:8px;font-size:12px;font-weight:600;color:var(--muted);background:var(--panel)!important;border:1px solid var(--line)!important;box-shadow:var(--f-sm)}
+body.fiori .guiabtn:hover{color:var(--text);background:var(--panel2)!important}
+body.fiori .monthsel{height:34px;border:1px solid var(--line);background:var(--input);border-radius:8px;box-shadow:var(--f-sm);color:var(--muted);padding:0 2px 0 10px}
+body.fiori .monthsel select{font-size:13px;padding:0 6px;height:32px;color:var(--text);font-weight:500;box-shadow:none;border:0}
+body.fiori .monthsel .icon{width:15px;height:15px}
+body.fiori .footer{font-size:11.5px}
 
-/* Campos */
-body.fiori input,body.fiori select,body.fiori textarea{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important;color:var(--text)}
-body.fiori input:focus,body.fiori select:focus,body.fiori textarea:focus{outline:2px solid #0070f2;outline-offset:1px}
-body.fiori .searchin{background:var(--f-field)!important;border:1px solid var(--line)!important;border-bottom:1px solid var(--f-fieldline)!important;border-radius:6px!important}
-body.fiori .searchin input{border:0!important}
+/* ─── Superfícies: cartões, tabelas e painéis ─── */
+body.fiori .card,body.fiori .tablebox,body.fiori .kpi,body.fiori .hero,body.fiori .platform,body.fiori .formcard,body.fiori .toolbar,body.fiori .relparams,body.fiori .concgrid,body.fiori .fxk,body.fiori .projcard,body.fiori .welcome,body.fiori .pfhero,body.fiori .simcard,body.fiori .scancard,body.fiori .fxcen,body.fiori .authcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--f-sm);backdrop-filter:none}
+body.fiori .erp .card{padding:20px 22px}
+body.fiori .hero:after{display:none}
+body.fiori .hero,body.fiori .projcard,body.fiori .welcome,body.fiori .pfhero{background:var(--panel)}
+body.fiori button.card,body.fiori .kpi{transition:border-color .15s,box-shadow .15s}
+body.fiori button.card:hover,body.fiori .kpi:hover,body.fiori .pdcard:hover,body.fiori .atitem:hover{transform:none;border-color:var(--line2);box-shadow:var(--f-md)}
+body.fiori .kpibtn.on,body.fiori .bankcard.on,body.fiori .seg.active,body.fiori .evcard.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+body.fiori .erp .cardhead{margin-bottom:16px}
+body.fiori .erp h2,body.fiori .tabletop h2,body.fiori .relhead h2{font-size:15px}
+body.fiori .erp .tabletop{padding:16px 20px}
+body.fiori .detailmetric,body.fiori .minis>div,body.fiori .simres>div,body.fiori .fctrib div,body.fiori .rtconf>div,body.fiori .chk,body.fiori .rt-step,body.fiori .guia>div,body.fiori .pm-mod,body.fiori .bl-aviso{background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+body.fiori .simres .simtot{background:color-mix(in srgb,var(--accent) 8%,var(--panel2));border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
+body.fiori .notice{padding:14px 16px;border-radius:10px;background:color-mix(in srgb,var(--accent) 5%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line));color:var(--muted);font-size:13px;box-shadow:none}
+body.fiori .notice strong{color:var(--text)}
+body.fiori .notice.warnbox,body.fiori .warnbox{background:color-mix(in srgb,var(--gold) 7%,var(--panel));border-color:color-mix(in srgb,var(--gold) 30%,var(--line))}
+body.fiori .notice.red{background:color-mix(in srgb,var(--red) 6%,var(--panel));border-color:color-mix(in srgb,var(--red) 28%,var(--line))}
+body.fiori .aprov{border:1px dashed color-mix(in srgb,var(--gold) 45%,var(--line));background:color-mix(in srgb,var(--gold) 6%,var(--panel))}
+body.fiori .aprov.ok{border:1px solid color-mix(in srgb,var(--green) 30%,var(--line));background:color-mix(in srgb,var(--green) 6%,var(--panel))}
 
-/* Status (object status) */
-body.fiori .badge{border-radius:4px;font-weight:600;font-size:12px;padding:2px 8px}
-body.fiori .badge.ok{background:var(--f-okbg);color:var(--green)}
-body.fiori .badge.warn{background:var(--f-warnbg);color:var(--gold)}
-body.fiori .badge.bad{background:var(--f-badbg);color:var(--red)}
-body.fiori .badge.info{background:var(--f-infobg);color:var(--accent)}
+/* ─── Tabelas ─── */
+body.fiori .erp table,body.fiori table{font-size:13.5px}
+body.fiori th,body.fiori .erp th{background:transparent;color:var(--muted);font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;padding:10px 16px;border-bottom:1px solid var(--line)}
+body.fiori td,body.fiori .erp td{padding:11px 16px;border-top:1px solid var(--line)}
+body.fiori thead+tbody tr:first-child td{border-top:0}
+body.fiori tbody tr{transition:background-color .1s}
+body.fiori tbody tr:hover,body.fiori tbody tr:hover td,body.fiori .clickrow:hover td{background:var(--f-hover)}
+body.fiori tr.sel td,body.fiori .pgtable tr.sel td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+body.fiori table.dre tr.total td,body.fiori .ctbgrupo td,body.fiori .reltable tfoot td{background:var(--panel2);font-weight:600}
+body.fiori .conchead{background:var(--panel2);font-size:11.5px;letter-spacing:.06em;font-weight:600}
+body.fiori .concm{background:var(--panel2)}
+body.fiori .tablefoot,body.fiori .mgrodape{border-top:1px solid var(--line);font-size:12.5px}
+body.fiori .mgrola .mgtab thead th{background:var(--panel);box-shadow:inset 0 -1px 0 var(--line)}
+body.fiori .mgrola .mgtab th:first-child,body.fiori .mgrola .mgtab td:first-child{background:var(--panel);box-shadow:inset -1px 0 0 var(--line)}
+body.fiori .mgrola .mgtab td{background:var(--panel)}
+body.fiori .mgrola .mgtab tbody tr:hover td{background:color-mix(in srgb,var(--panel) 96%,var(--text))}
+body.fiori .mgrola .mgtab tr.mgfixo td{background:color-mix(in srgb,var(--panel) 92%,var(--accent))}
+body.fiori .mgord.on{color:var(--accent)}
+body.fiori .fxtab tr.hoje td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+body.fiori .fxtab tr.fxsem td{background:var(--panel2)}
 
-/* Diálogos */
-body.fiori .modalback{background:rgba(29,45,62,.4)!important;backdrop-filter:none!important}
-body.fiori .modal{background:var(--panel)!important;border:0!important;border-radius:12px!important;box-shadow:0 1rem 3rem rgba(34,53,72,.3)!important}
+/* ─── Controles: botões ─── */
+/* Regra genérica com :where() → especificidade de elemento: qualquer classe do sistema continua vencendo */
+:where(body.fiori) button{min-height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:13px;font-weight:500;box-shadow:var(--f-sm);gap:7px;transition:background-color .12s,border-color .12s,box-shadow .12s,color .12s}
+:where(body.fiori) button:hover{transform:none;background:var(--panel2);border-color:var(--line2)}
+:where(body.fiori) button:active{background:var(--f-active)}
+:where(body.fiori) button:disabled{opacity:.45}
+body.fiori .erp button{font-size:13px}
+body.fiori button:hover{transform:none}
+body.fiori .primary,body.fiori button.primary{background:var(--btn);color:var(--on-accent);border-color:var(--btn);font-weight:500;box-shadow:var(--f-sm)}
+body.fiori .primary:hover,body.fiori button.primary:hover{background:var(--btn-hi);border-color:var(--btn-hi);color:var(--on-accent)}
+body.fiori .quiet,body.fiori button.quiet{background:transparent;border-color:transparent;box-shadow:none;color:var(--muted)}
+body.fiori .quiet:hover,body.fiori button.quiet:hover{background:var(--f-hover);border-color:transparent;color:var(--text)}
+body.fiori .small,body.fiori button.small{min-height:30px;padding:0 10px;font-size:12.5px;border-radius:7px}
+body.fiori .dangerbtn{color:var(--red)}
+body.fiori .upbtn,body.fiori .btnlink,body.fiori .cbtn{border:1px solid var(--line);background:var(--panel);border-radius:8px;box-shadow:var(--f-sm);color:var(--text)}
+body.fiori .upbtn:hover,body.fiori .btnlink:hover,body.fiori .cbtn:hover{border-color:var(--line2);background:var(--panel2)}
+body.fiori .chips button,body.fiori .hj-chips button,body.fiori .atmodelos button{border-radius:999px;font-size:12.5px;min-height:30px;padding:0 12px;background:var(--panel);color:var(--text)}
+body.fiori .hj-chips button{border-radius:999px!important}
+body.fiori .dropitem,body.fiori .rellist button,body.fiori .pfnav button,body.fiori .agday,body.fiori .segline,body.fiori .hj-day,body.fiori .rt-body,body.fiori .atlinha,body.fiori .hj-orb,body.fiori .hj-fav,body.fiori .mobilemenu{box-shadow:none;border-color:transparent;background:transparent}
+body.fiori .fxc,body.fiori .brmap .uf,body.fiori .listline,body.fiori .temacard,body.fiori .vdcard{box-shadow:none}
+body.fiori button.listline{border-width:0 0 1px;border-radius:0;background:transparent}
+body.fiori .fxc{border-radius:8px}
+body.fiori .fplink,body.fiori .cxx{min-height:0;box-shadow:none;border:0;background:none}
+body.fiori .mapaitem,body.fiori .pn-voltar,body.fiori .estcard{box-shadow:var(--f-sm)}
+body.fiori .estcard{border-radius:12px!important}
+body.fiori .mapaitem{border-radius:10px!important;border:1px solid var(--line)}
+body.fiori .dropitem:hover,body.fiori .rellist button:hover,body.fiori .pfnav button:hover,body.fiori .agday:hover{background:var(--f-hover)}
+body.fiori .rellist button.active,body.fiori .pfnav button.active{background:var(--f-active);color:var(--text);font-weight:600}
+body.fiori .fab{border:0;border-radius:999px;padding:0 16px;height:40px;background:var(--btn);color:var(--on-accent);font-weight:600;font-size:13.5px;box-shadow:0 10px 28px rgba(17,19,24,.22),0 1px 2px rgba(17,19,24,.1)}
+body.fiori:not(.light) .fab{box-shadow:0 10px 28px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06)}
+body.fiori .fab:hover{background:var(--btn-hi)}
 
-/* Assistente (botão flutuante) */
-body.fiori .fab{background:#0070f2!important;color:#fff!important;box-shadow:0 .25rem .75rem rgba(0,112,242,.35)!important}
+/* ─── Controles: foco (teclado) ─── */
+body.fiori :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body.fiori :is(input,select,textarea):focus-visible{outline:none}
 
-/* Mesma família de fonte em tudo (o tema anterior usa outra nos títulos e números) */
-body.fiori *:not(code):not(kbd):not(.mono):not(.icon):not(svg):not(path){font-family:"Source Sans 3","72","Segoe UI",Arial,sans-serif!important}
-body.fiori .mono,body.fiori code,body.fiori kbd{font-family:ui-monospace,Consolas,monospace!important}
-/* Sem brilho colorido nos cartões de canal (só neste visual) */
+/* ─── Controles: campos ─── */
+body.fiori input,body.fiori select,body.fiori textarea,body.fiori .erp input,body.fiori .erp select,body.fiori .erp textarea{background:var(--input);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:13.5px;padding:8px 10px;box-shadow:var(--f-sm);transition:border-color .12s,box-shadow .12s}
+body.fiori input:hover,body.fiori select:hover,body.fiori textarea:hover{border-color:var(--line2)}
+body.fiori input:focus,body.fiori select:focus,body.fiori textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--f-ring)}
+body.fiori input::placeholder,body.fiori textarea::placeholder{color:color-mix(in srgb,var(--muted) 80%,transparent)}
+body.fiori input[type=checkbox],body.fiori input[type=radio]{box-shadow:none;accent-color:var(--btn);width:15px;height:15px}
+body.fiori input[type=range]{box-shadow:none;border:0;background:transparent;accent-color:var(--accent);padding:0}
+body.fiori .check,body.fiori .switch input{accent-color:var(--btn)}
+body.fiori label{font-size:12.5px;font-weight:500;color:var(--muted)}
+body.fiori .field label{color:var(--muted)}
+body.fiori .field input.invalid{border-color:var(--red);box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 18%,transparent)}
+body.fiori .searchin{border:1px solid var(--line);background:var(--input);border-radius:8px;box-shadow:var(--f-sm);color:var(--muted);min-height:34px;padding:0 8px 0 10px}
+body.fiori .searchin:focus-within{border-color:var(--accent);box-shadow:var(--f-ring)}
+body.fiori .searchin input{border:0;background:transparent;box-shadow:none;padding:6px 4px}
+body.fiori .searchin input:focus{box-shadow:none}
+body.fiori .fxtog span{background:var(--line2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 6%,transparent)}
+body.fiori .fxtog span::after{box-shadow:0 1px 2px rgba(0,0,0,.25)}
+body.fiori .fxtog input:checked+span{background:var(--btn)}
+body.fiori select option,body.fiori select optgroup{background:var(--solid);color:var(--text)}
+
+/* ─── Abas segmentadas ─── */
+body.fiori .segtabs{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;box-shadow:none}
+body.fiori .segtabs button{min-height:28px;padding:0 11px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--muted);font-size:13px;font-weight:500}
+body.fiori .segtabs button:hover{background:var(--f-hover);color:var(--text)}
+body.fiori .segtabs button.active,body.fiori .segtabs button.on{background:var(--panel);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(17,19,24,.08),0 0 0 1px var(--line)}
+body.fiori:not(.light) .segtabs button.active,body.fiori:not(.light) .segtabs button.on{background:#262b34;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+body.fiori .segtabs button small{opacity:1;color:var(--muted);font-weight:500;background:var(--f-active);border-radius:5px;padding:0 5px;margin-left:5px;font-size:11px}
+body.fiori .modswitch{border:1px solid var(--line);background:var(--panel2);border-radius:9px}
+body.fiori .modswitch button.active{background:var(--panel);color:var(--text);box-shadow:var(--f-sm)}
+
+/* ─── Selos e status ─── */
+body.fiori .badge,body.fiori .erp .badge{font-size:11.5px;font-weight:500;padding:2px 7px;border-radius:6px;border:1px solid transparent;background:var(--panel2);border-color:var(--line);color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.5}
+body.fiori .badge.ok{background:color-mix(in srgb,var(--green) 10%,transparent);border-color:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}
+body.fiori .badge.warn{background:color-mix(in srgb,var(--gold) 11%,transparent);border-color:color-mix(in srgb,var(--gold) 26%,transparent);color:var(--gold)}
+body.fiori .badge.bad{background:color-mix(in srgb,var(--red) 9%,transparent);border-color:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}
+body.fiori .badge.info,body.fiori .badge.purple{background:color-mix(in srgb,var(--accent) 9%,transparent);border-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+body.fiori .heat{border-radius:6px;font-weight:500}
+body.fiori .heat.ok{background:color-mix(in srgb,var(--green) 12%,transparent)}body.fiori .heat.warn{background:color-mix(in srgb,var(--gold) 13%,transparent)}body.fiori .heat.bad{background:color-mix(in srgb,var(--red) 11%,transparent)}
+body.fiori .avico,body.fiori .formicon,body.fiori .hj-ic,body.fiori .guiaico,body.fiori .c360av,body.fiori .wsmark{border-radius:9px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent)}
+body.fiori .avico.bad{background:color-mix(in srgb,var(--red) 11%,transparent);color:var(--red)}body.fiori .avico.warn{background:color-mix(in srgb,var(--gold) 12%,transparent);color:var(--gold)}body.fiori .avico.ok{background:color-mix(in srgb,var(--green) 11%,transparent);color:var(--green)}
+body.fiori .concmark{background:var(--panel2);color:var(--muted)}
+body.fiori .concmark.ok{background:color-mix(in srgb,var(--green) 12%,transparent);color:var(--green)}body.fiori .concmark.warn{background:color-mix(in srgb,var(--gold) 13%,transparent);color:var(--gold)}body.fiori .concmark.bad{background:color-mix(in srgb,var(--red) 11%,transparent);color:var(--red)}
+body.fiori .atpres{background:color-mix(in srgb,var(--green) 9%,transparent);border-color:color-mix(in srgb,var(--green) 25%,transparent)}
+body.fiori .atpres.escr{background:color-mix(in srgb,var(--gold) 10%,transparent);border-color:color-mix(in srgb,var(--gold) 28%,transparent)}
+body.fiori .atpresbox{background:color-mix(in srgb,var(--green) 6%,var(--panel));border-color:color-mix(in srgb,var(--green) 25%,var(--line));border-radius:10px}
+body.fiori .scanlast.ok{background:color-mix(in srgb,var(--green) 10%,transparent)}body.fiori .scanlast.bad{background:color-mix(in srgb,var(--red) 9%,transparent)}
+body.fiori .bar,body.fiori .bartrack,body.fiori .htrack,body.fiori .mgbar,body.fiori .projbar,body.fiori .fcbar,body.fiori .rtpasso i,body.fiori .stackbar{background:var(--f-active);border:0}
+body.fiori .bar i,body.fiori .fcbar i,body.fiori .bartrack i,body.fiori .projbar i,body.fiori .bl-canais i,body.fiori .atbar i,body.fiori .rtpasso b{background:var(--accent)}
+body.fiori .rtpasso b.neg{background:var(--red)}
+body.fiori .vg-prod .bartrack{background:var(--f-active)}
+
+/* ─── Camadas: diálogos, menus suspensos, dicas, gaveta e aviso ─── */
+body.fiori .modalback{background:rgba(9,11,16,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.fiori:not(.light) .modalback{background:rgba(0,0,0,.62)}
+body.fiori .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:24px;animation:fiIn .2s ease-out}
+body.fiori .modalhead{margin-bottom:18px}
+body.fiori .modalhead h2{font-size:17px}
+body.fiori .modalfoot{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+body.fiori .dropmenu,body.fiori .cctip,body.fiori .mgtip-pop,body.fiori .vg-tip,body.fiori .fxtip,body.fiori .tour-tip,body.fiori .toastshow{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--f-md),var(--shadow)}
+body.fiori .dropmenu{padding:6px;border-radius:12px}
+body.fiori .dropitem{border-radius:8px;padding:8px 10px;min-height:0;font-weight:400}
+body.fiori .dropitem strong{font-weight:500}
+body.fiori .userhead{padding:10px 10px 12px}
+body.fiori .tour-tip{border-radius:12px;padding:16px 18px}
+body.fiori .tour-spot{border-radius:12px;box-shadow:0 0 0 9999px rgba(9,11,16,.55),0 0 0 2px var(--accent)}
+body.fiori .toastshow{padding:12px 18px;font-size:13.5px}
+body.fiori .drawer{background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow)}
+body.fiori .drawerhead{padding:14px 16px}
+body.fiori .msg{border-radius:12px;font-size:13.5px}
+body.fiori .msg.user{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+body.fiori .msg.bot{background:var(--panel2);border:1px solid var(--line)}
+body.fiori .composer textarea{border-radius:10px}
+body.fiori .proposal{background:color-mix(in srgb,var(--accent) 6%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:10px}
+body.fiori .mark{border:1px solid var(--line);background:var(--panel2);color:var(--accent);border-radius:9px}
+@keyframes fiIn{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+body.fiori #view>*{animation:fiUp .22s ease-out both}
+@keyframes fiUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ─── Início (Hoje) ─── */
+body.fiori .hj-hello{background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--text);-webkit-text-fill-color:currentColor;font-weight:600;letter-spacing:-.025em}
+body.fiori .hj-brief{font-size:14px}
+body.fiori .hj-ask{border-radius:12px;padding:6px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--f-md);backdrop-filter:none}
+body.fiori .hj-ask:focus-within{border-color:var(--accent);box-shadow:var(--f-ring),var(--f-md)}
+body.fiori .hj-ask input{font-size:15px;padding:8px 6px}
+body.fiori .hj-mic,body.fiori .hj-send{width:38px;height:38px;border-radius:8px!important;min-height:0}
+body.fiori .hj-mic{background:var(--panel2)!important;color:var(--muted);border:1px solid var(--line)!important;box-shadow:none}
+body.fiori .hj-mic:hover{color:var(--text)}
+body.fiori .hj-mic[aria-pressed=true]{background:var(--btn)!important;color:var(--on-accent);animation:none}
+body.fiori .hj-send{background:var(--btn)!important;color:var(--on-accent);box-shadow:var(--f-sm)}
+body.fiori .hj-send:hover{background:var(--btn-hi)!important}
+body.fiori .hj-orb-core{box-shadow:inset 0 -18px 40px rgba(0,0,0,.22),inset 0 10px 30px rgba(255,255,255,.3),0 20px 50px rgb(var(--ar) / 22%)}
+body.fiori .hj-orb-ring{border-color:rgb(var(--ar) / 22%)}
+body.fiori .hj-status{font-weight:500}
+body.fiori .hj-answer.on,body.fiori .hj-line,body.fiori .hj-todo,body.fiori .rt{border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--f-sm)}
+body.fiori .hj-card,body.fiori .hj-modbody,body.fiori .vg-canal{border-radius:12px!important;background:var(--panel)!important;border:1px solid var(--line)!important;box-shadow:var(--f-sm);transition:border-color .15s,box-shadow .15s}
+body.fiori .hj-card:hover,body.fiori .hj-modbody:hover,body.fiori .vg-canal:hover{transform:none;border-color:var(--line2)!important;box-shadow:var(--f-md)}
+body.fiori .hj-accent{background:var(--panel)!important}
+body.fiori .hj-cardtop{font-size:13px;font-weight:500}
+body.fiori .hj-val{font-size:24px}
+body.fiori .hj-warn .hj-ic{background:color-mix(in srgb,var(--gold) 12%,transparent);color:var(--gold)}
+body.fiori .hj-task{border-radius:10px!important;background:var(--panel2)!important;border:1px solid var(--line);box-shadow:none;min-height:0}
+body.fiori .hj-task:hover{border-color:var(--line2)}
+body.fiori .hj-modart{width:44px;height:44px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);box-shadow:none}
+body.fiori .hj-modbody strong{font-size:16px}
+body.fiori .hj-modstat{color:var(--accent)}
+body.fiori .hj-bar{border-radius:4px 4px 2px 2px;background:var(--accent);opacity:.85}
+body.fiori .hj-day.now .hj-bar{background:var(--accent);opacity:1}
+body.fiori .hj-day.now small{background:var(--btn);color:var(--on-accent)}
+body.fiori .hj-fav[aria-pressed=true]{color:var(--gold)}
+body.fiori .hj .insight{border-radius:10px!important;background:var(--panel2)!important;border:1px solid var(--line)}
+body.fiori .rt-n{width:26px;height:26px;border-radius:7px;font-size:12px;background:var(--f-active);color:var(--text)}
+body.fiori .rt-step{border-radius:10px}
+body.fiori .rt-step.ok .rt-n{background:var(--green);color:#fff}
+body.fiori .rt-tr{stroke:var(--f-active)}
+body.fiori .copiloto{border-radius:12px}
+
+/* ─── Vendas · Visão geral ─── */
 body.fiori .vg-canal:after,body.fiori .vg-canal:before{display:none!important}
+body.fiori .vg-canal header .plogo{width:30px;height:30px;border-radius:8px;font-size:12px}
+body.fiori .vg-canal>strong{font-size:24px}
+body.fiori .vg-kv small{font-size:11.5px}
+body.fiori .vg-pill{border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;padding:5px 10px}
+body.fiori .vg-big p{font-size:14px}
+body.fiori .vg-ring .rreal{stroke:var(--accent)}
+body.fiori .vg-ring .rtrack,body.fiori .rtrack{stroke:var(--f-active)}
+body.fiori .vg-ring .rproj{stroke:rgb(var(--ar) / 35%)}
+body.fiori .vg-chart .cur{stroke:var(--accent);stroke-width:2.5}
+body.fiori .vg-chart .ant{stroke:var(--line2)}
+body.fiori .vg-prod img,body.fiori .vg-prod .ph,body.fiori .hj-prod img{border:1px solid var(--line);border-radius:8px}
+
+/* ─── Fluxo de caixa ─── */
+body.fiori .fxk{padding:14px 16px}
+body.fiori .fxk strong{font-size:clamp(18px,1.5vw,23px)}
+body.fiori .fxk.in strong{color:var(--green)}body.fiori .fxk.out strong{color:var(--red)}
+body.fiori .fxsit.bad{border-color:color-mix(in srgb,var(--red) 35%,var(--line));background:color-mix(in srgb,var(--red) 6%,var(--panel))}
+body.fiori .fxsit.bad strong{color:var(--red)}
+body.fiori .fxsit.warn{border-color:color-mix(in srgb,var(--gold) 35%,var(--line));background:color-mix(in srgb,var(--gold) 6%,var(--panel))}
+body.fiori .fxsit.ok{border-color:color-mix(in srgb,var(--green) 32%,var(--line));background:color-mix(in srgb,var(--green) 6%,var(--panel))}
+body.fiori .fxwf{border-radius:10px}
+body.fiori .fxbe{fill:var(--green)}body.fiori .fxbs{fill:var(--red)}
+body.fiori .fxfds,body.fiori .fxpass{fill:color-mix(in srgb,var(--text) 4%,transparent)}
+body.fiori .fxtab tr.neg td{background:color-mix(in srgb,var(--red) 7%,transparent)}
+
+/* ─── Atendimento ─── */
+body.fiori .erp .card.atitem{padding:14px 16px}
+body.fiori .atitem.urg{box-shadow:inset 3px 0 var(--red),var(--f-sm)}
+body.fiori .atsug{background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);border-radius:8px;color:var(--text)}
+body.fiori .atsolucao,body.fiori .fasebox,body.fiori .atdica{background:color-mix(in srgb,var(--accent) 5%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));border-radius:10px}
+body.fiori .atbolha{border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+body.fiori .atbolha.nos{background:color-mix(in srgb,var(--accent) 9%,transparent);border-color:color-mix(in srgb,var(--accent) 22%,transparent)}
+body.fiori .atcliente{border-radius:10px}
+body.fiori .atlado .card{padding:16px 18px}
+
+/* ─── Contas a pagar, conciliação, relatórios ─── */
+body.fiori .agday i{background:var(--accent);opacity:.85;border-radius:4px 4px 2px 2px}
+body.fiori .agday.hoje i{background:var(--gold);opacity:1}
+body.fiori .agday.hoje .agdia{color:var(--gold)}
+body.fiori .concrow.warn{background:color-mix(in srgb,var(--gold) 4%,transparent)}body.fiori .concrow.bad{background:color-mix(in srgb,var(--red) 4%,transparent)}
+body.fiori .rellist{padding:8px}
+body.fiori .relbody>p,body.fiori .relsub{color:var(--muted)}
+body.fiori .parcelas{padding:18px 20px}
+body.fiori .formcard{padding:8px 22px 20px}
+body.fiori .formcard fieldset{padding:16px 0 20px}
+body.fiori .formhead h2{font-size:19px}
+
+/* ─── Radar de margem, diagnóstico e Diretoria no bolso ─── */
+body.fiori .mgtip{border-bottom-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+body.fiori .mgtip-pop{border-color:var(--line);padding:12px 14px}
+body.fiori .mgtl.tot{border-top-color:var(--line)}
+body.fiori .dg-folha{border-radius:12px;box-shadow:var(--f-sm)}
+body.fiori .dg-marca i{background:var(--btn);color:var(--on-accent);border-radius:10px}
+body.fiori .dg-achado{border-radius:10px;background:color-mix(in srgb,var(--accent) 6%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line))}
+body.fiori .dg-card{border-radius:10px}
+body.fiori .bl-card{border-radius:12px}
+body.fiori .bl-tit{font-size:11px}
+body.fiori .bl-tit .icon{color:var(--muted)}
+body.fiori .bl-num b{font-size:23px}
+body.fiori .bl-aviso{border-radius:8px}
+body.fiori .bl-card[data-bl-ir]:hover{border-color:var(--line2)}
+
+/* ─── Aparência (janela de temas) e outros ─── */
+body.fiori .vdcard{border-radius:10px!important}
+body.fiori .vdcard.on{border-color:var(--accent)!important;box-shadow:var(--f-ring)}
+body.fiori .vdcard i{border-radius:7px}
+body.fiori .temacard.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+body.fiori .timeline{border-left-color:var(--line)}
+body.fiori .event:before{background:var(--accent);box-shadow:0 0 0 3px var(--panel)}
+body.fiori .dropzone{border:1px dashed var(--line2);background:var(--panel2);border-radius:10px}
+body.fiori .dropzone .icon{color:var(--muted)}
+body.fiori .uftile,body.fiori .brmap .uf{border-radius:8px}
+body.fiori .brmap .uf:hover{transform:none;border-color:var(--accent)}
+body.fiori .brmap .uf.sel{outline-color:var(--accent)}
+body.fiori .sample{border:1px solid var(--line);border-radius:8px}
+body.fiori .logotile{box-shadow:none;border:1px solid var(--line);border-radius:10px}
+body.fiori .complogo img{filter:none}
+body.fiori .auth{background:var(--bg)}
+body.fiori .authcard{border-radius:16px;box-shadow:var(--f-md)}
+body.fiori .pm-tela{border-radius:6px}
+body.fiori .pm-tela.on{background:color-mix(in srgb,var(--accent) 9%,transparent);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+body.fiori .estprod img,body.fiori .estimg,body.fiori .estficha img{border:1px solid var(--line)}
+body.fiori .plogo{border-radius:8px}
+body.fiori .platdot{box-shadow:0 0 0 2px color-mix(in srgb,var(--panel) 80%,transparent)}
+body.fiori .cctip b,body.fiori .mgtl b,body.fiori .vg-tip div b{font-weight:500}
+
+/* ─── Celular ─── */
+@media(max-width:760px){
+ body.fiori .erp>main>header{height:52px;padding:0 10px;gap:6px}
+ body.fiori .searchbox{flex:0 0 auto;width:34px;padding:0;justify-content:center;box-shadow:none;border-color:transparent;background:transparent}
+ body.fiori .searchbox span,body.fiori .searchbox kbd,body.fiori .demo{display:none}
+ body.fiori .erp .newbtn{font-size:0;width:34px;padding:0;gap:0;overflow:hidden}
+ body.fiori .newbtn .icon{width:18px!important;height:18px!important}
+ body.fiori .erp .content{padding:18px 14px 40px}
+ body.fiori .pagehead{margin-bottom:16px;gap:12px}
+ body.fiori .pagehead h1{font-size:21px}
+ body.fiori .pagehead p{font-size:13px}
+ body.fiori .erp .card{padding:16px}
+ body.fiori .kpiv,body.fiori .metric .value{font-size:22px}
+ body.fiori .erp .side{background:var(--panel);box-shadow:var(--shadow);width:280px}
+ body.fiori .bl-top h1{font-size:21px}
+ body.fiori .bl-num b{font-size:21px}
+ body.fiori .fab{height:38px;padding:0 14px;font-size:13px}
+}
+
+/* ─── Impressão ─── */
+@media print{body.fiori{--bg:#fff;--panel:#fff;--panel2:#f3f3f3;--line:#ddd;--text:#111;--muted:#555}body.fiori .card,body.fiori .tablebox{box-shadow:none}}
