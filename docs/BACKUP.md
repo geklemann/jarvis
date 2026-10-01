@@ -1,54 +1,52 @@
 # Backup do Jarvis (Supabase → Cloudflare R2)
 
 Todo dia às 03:17 (Brasília), o GitHub copia **o banco inteiro** (papéis, estrutura e dados, incluindo os logins) e
-**todos os arquivos do Storage** (`contabil`, `produtos`, `documentos`, `ponto`), compacta, **cifra** com uma frase
-que só você conhece e envia ao balde **`jarvis-backups`** no Cloudflare R2. Fluxo: `.github/workflows/backup.yml`.
+**todos os arquivos do Storage** (`contabil`, `produtos`, `documentos`, `ponto`), compacta, **cifra** (AES-256) com a
+frase do backup e envia ao balde **`jarvis-backups`** no Cloudflare R2. Fluxo: `.github/workflows/backup.yml`.
+Primeiro backup completo e restauração conferida em 01/10/2026 (102 tabelas, 67.487 linhas, 234 arquivos, 42 MB).
 
 | Onde | Guarda | Proteção |
 |---|---|---|
-| `diario/AAAA-MM-DD/` | um backup por dia | ninguém apaga antes de 30 dias; some sozinho com 35 |
+| `diario/AAAA-MM-DD/` | os backups do dia (nome com a hora) | ninguém apaga antes de 30 dias; somem sozinhos com 35 |
 | `mensal/AAAA-MM/` | o do dia 1 de cada mês | ninguém apaga antes de 1 ano; some sozinho com 400 dias |
 
 - **Conferência diária:** depois de enviar, o fluxo baixa o arquivo de volta, decifra e compara a soma de verificação.
-- **Teste de restauração:** no dia 1 de cada mês (e sempre que você rodar à mão), o backup é restaurado num banco
-  descartável (mesma versão, Postgres 17) e as linhas de cada tabela são comparadas com o original
+- **Teste de restauração:** no dia 1 de cada mês (e sempre que rodar à mão), o backup é restaurado num banco vazio
+  (Postgres 17, só a base do Supabase) e as linhas de cada tabela são comparadas com o original
   (`ops/backup-contagem.mjs`).
 - **Se falhar:** o GitHub manda e-mail para o dono do repositório.
-- **Cópia 3:** o Supabase já guarda os próprios backups (no plano Pro, 7 dias). Uma vez por mês, vale baixar o backup
-  mensal para um HD seu (regra 3-2-1: três cópias, dois lugares, uma fora do provedor principal).
+- **Cópia 3:** uma vez por mês, vale baixar o backup mensal para um HD seu (regra 3-2-1).
 
-## Ativar (uma vez, uns 10 minutos, feito por você)
+## Como funciona (sem chave do R2 e sem token pessoal do Supabase)
 
-1. **Token do Supabase:** em [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) →
-   **Generate new token**, nome `backup-r2`. Copie o token (só aparece desta vez). Ele tem nome próprio no GitHub
-   (`SUPABASE_BACKUP_TOKEN`) para não ligar o fluxo de publicação automática do `supabase.yml`.
-2. **Chave do R2:** no painel da Cloudflare → **R2** → **Manage API tokens** (ou "Gerenciar tokens da API") →
-   **Create Account API token**: nome `jarvis-backups`, permissão **Object Read & Write**, só o balde
-   **`jarvis-backups`**, sem data de expiração → **Create**. A tela mostra o **Access Key ID** e o **Secret Access Key**
-   (só desta vez): deixe a tela aberta.
-3. **Frase do backup:** invente uma frase longa (ex.: quatro palavras aleatórias e um número) e guarde no seu
-   gerenciador de senhas. **Sem ela, ninguém (nem você) abre os backups.**
-4. Dê dois cliques em `ops\cadastrar-segredos-backup.cmd` e cole, quando pedir, o token do Supabase, o Access Key ID,
-   o Secret Access Key e a frase. Nada aparece na tela; tudo vai direto para os segredos do GitHub.
-5. Pronto: o próximo backup já sobe para o R2. Para testar na hora: GitHub → **Actions** → **Backup (Supabase →
-   Cloudflare R2)** → **Run workflow**.
-
-A variável `R2_ACCOUNT_ID` (número da conta, não é segredo) já está cadastrada no repositório.
+- **Receptor** (`ops/receptor-backup`, worker `jarvis-backup` na Cloudflare): recebe os arquivos do GitHub e grava no
+  balde pela ligação interna da Cloudflare. Só aceita o `RECEPTOR_TOKEN`, só grava em `diario/` e `mensal/` e não
+  tem como apagar nada.
+- **Banco:** `supabase db dump` direto no endereço do banco (pooler `aws-0-sa-east-1`), com a senha que o repositório já
+  guardava (`SUPABASE_DB_PASSWORD`).
+- **Arquivos:** `ops/backup-storage.mjs` baixa tudo pela API do Storage com a chave de serviço do projeto.
+- **Segredos** (todos gerados e gravados por `node ops/ativar-backup.mjs`, sem aparecer na tela):
+  `RECEPTOR_TOKEN` (também no receptor), `SUPABASE_SERVICE_KEY_BACKUP` (lida do Supabase CLI) e `BACKUP_PASSPHRASE`
+  (aleatória; uma cópia fica em `Documents\Backups\jarvis-backup-FRASE.txt` para você guardar no gerenciador de senhas
+  e depois apagar o arquivo). Variáveis: `BACKUP_RECEPTOR_URL` e `SUPABASE_POOLER_HOST`.
+- **Renovar** (ex.: trocou a chave do Supabase): rode `node ops/ativar-backup.mjs` de novo; a frase só muda com
+  `--nova-frase`. Atualizou o receptor: `npx wrangler deploy` dentro de `ops/receptor-backup`.
 
 ## Restaurar
 
-Para abrir um backup no seu computador (Git Bash, que já vem com o `openssl`):
+Baixe o arquivo `.tar.gz.enc` do balde (painel da Cloudflare → R2 → `jarvis-backups`) e, no Git Bash:
 
 ```sh
-sh ops/restaurar-backup.sh jarvis-2026-10-02.tar.gz.enc
+sh ops/restaurar-backup.sh jarvis-2026-10-02-0617.tar.gz.enc
 ```
 
 O script pede a frase, decifra e abre numa pasta: `banco/` (`roles.sql`, `schema.sql`, `data.sql`) e `arquivos/`.
-Para restaurar num projeto Supabase novo, em ordem (com a conexão do projeto novo):
+Para restaurar num projeto Supabase novo (com a conexão do projeto novo):
 
 ```sh
+psql "$NOVO_DB_URL" -f banco/roles.sql
 psql "$NOVO_DB_URL" --single-transaction -v ON_ERROR_STOP=1 \
-  -f banco/roles.sql -f banco/schema.sql -c 'SET session_replication_role = replica' -f banco/data.sql
+  -f banco/schema.sql -c 'SET session_replication_role = replica' -f banco/data.sql
 ```
 
-e envie os arquivos de `arquivos/<balde>/` para os baldes de mesmo nome (`supabase storage cp -r`).
+e envie os arquivos de `arquivos/<balde>/` para os baldes de mesmo nome.
