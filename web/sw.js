@@ -27,7 +27,7 @@ self.addEventListener('fetch', (e) => {
 // Alertas no celular: mostra a notificação enviada pelo servidor e abre o Jarvis na tela certa ao tocar.
 self.addEventListener('push', (e) => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch { d = { titulo: 'Jarvis', corpo: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.titulo || 'Jarvis', { body: d.corpo || '', tag: d.tag || undefined, icon: 'brand/comprastore-logo-240.png', badge: 'brand/comprastore-logo-240.png', data: { url: d.url || '#central' } }));
+  e.waitUntil(self.registration.showNotification(d.titulo || 'Jarvis', { body: d.corpo || '', tag: d.tag || undefined, icon: 'brand/jarvis-192.png', badge: 'brand/jarvis-192.png', data: { url: d.url || '#central' } }));
 });
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();

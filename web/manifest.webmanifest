@@ -1,22 +1,31 @@
 {
+  "id": "./",
   "name": "Jarvis",
   "short_name": "Jarvis",
-  "description": "ERP do e-commerce: vendas, estoque, financeiro, fiscal e contabilidade.",
-  "start_url": "./#central",
+  "description": "O ERP que enxerga o seu negócio por inteiro: vendas, margem, atendimento, financeiro, fiscal, contabilidade e pessoas.",
+  "start_url": "./#resumo",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#090c13",
-  "theme_color": "#090c13",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#0c0e13",
+  "theme_color": "#0c0e13",
   "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
     { "src": "brand/jarvis.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "brand/jarvis-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "brand/jarvis-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "brand/jarvis-512-mask.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "screenshots": [
+    { "src": "brand/telas/resumo-largo.webp", "sizes": "1280x889", "type": "image/webp", "form_factor": "wide", "label": "Resumo da semana: vendas, margem, caixa e o que pede atenção" },
+    { "src": "brand/telas/bolso-estreito.webp", "sizes": "520x1040", "type": "image/webp", "form_factor": "narrow", "label": "Diretoria no bolso: o essencial no celular" }
+  ],
   "shortcuts": [
-    { "name": "Inventário", "url": "./#inventario" },
-    { "name": "Separação do dia", "url": "./#separacao" },
-    { "name": "Atendimento", "url": "./#atendimento" }
+    { "name": "Resumo da semana", "url": "./#resumo", "icons": [{ "src": "brand/jarvis-192.png", "sizes": "192x192" }] },
+    { "name": "Diretoria no bolso", "url": "./#bolso", "icons": [{ "src": "brand/jarvis-192.png", "sizes": "192x192" }] },
+    { "name": "Atendimento", "url": "./#atendimento", "icons": [{ "src": "brand/jarvis-192.png", "sizes": "192x192" }] },
+    { "name": "Contas a pagar", "url": "./#pagar", "icons": [{ "src": "brand/jarvis-192.png", "sizes": "192x192" }] }
   ]
 }
