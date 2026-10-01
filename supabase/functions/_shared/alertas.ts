@@ -100,7 +100,7 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
       tarifas = { ...tarifas, [m.canal]: hojeBR };
       const sobe = m.delta > 0, prods = m.produtos.slice(0, 2).map((p) => `${p.nome.slice(0, 40)} (${pctBR(p.base)} → ${pctBR(p.recente)})`).join(" · ");
       out.push({
-        titulo: `Tarifa ${sobe ? "subiu" : "caiu"} no ${m.canal}: ${pctBR(m.base)} → ${pctBR(m.recente)}`,
+        titulo: `Tarifa ${sobe ? "subiu" : "caiu"} ${/^(Shopee|Magalu|Amazon)/.test(m.canal) ? "na" : "no"} ${m.canal}: ${pctBR(m.base)} → ${pctBR(m.recente)}`,
         corpo: sobe
           ? `Na última semana. No ritmo atual, ${brl(-m.impactoMes)} a menos de margem por mês. Para manter o mesmo líquido, os preços do canal precisam subir cerca de ${pctBR(m.reajuste)}.${prods ? " Mais afetados: " + prods : ""}`
           : `Na última semana. No ritmo atual, ${brl(m.impactoMes)} a mais de margem por mês.${prods ? " Produtos: " + prods : ""}`,
