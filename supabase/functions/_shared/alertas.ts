@@ -70,7 +70,7 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
     const ab = lista.filter((a) => a.status === "abaixo"), nome = (i: string) => (i === "vendas" ? "vendas" : "recebido");
     if (ab.length) out.push({
       titulo: ab.length > 1 ? `${ab.length} metas do mês abaixo do ritmo` : `Meta de ${nome(ab[0].ind)} abaixo do ritmo`,
-      corpo: ab.slice(0, 3).map((a) => `${a.canal || "Empresa toda"} · ${nome(a.ind)}: ${brl(a.real ?? 0)} de ${brl(a.esperado ?? 0)} esperados até hoje (${Math.round((a.ritmo ?? 0) * 100)}%)`).join(" · "),
+      corpo: ab.slice(0, 3).map((a) => a.ind === "vendas" && a.proj != null ? `${a.canal || "Empresa toda"} · vendas: projeção de ${brl(a.proj)} para meta de ${brl(a.meta)} (${Math.round((a.ritmo ?? 0) * 100)}%)` : `${a.canal || "Empresa toda"} · ${nome(a.ind)}: ${brl(a.real ?? 0)} de ${brl(a.esperado ?? 0)} esperados até hoje (${Math.round((a.ritmo ?? 0) * 100)}%)`).join(" · "),
       url: "#metas", tag: "metas",
     });
   }

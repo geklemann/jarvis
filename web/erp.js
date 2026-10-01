@@ -36,7 +36,7 @@ const VISAO={atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fl
 window.ERP_MENU={get MODS(){return MODS},get GERAL(){return GERAL}};
 const GERAL=['equipe','ai','history','auditoria','erros','integridade','fontes','integracoes','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
-const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='integracoes'||p==='central'||p==='bolso'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
+const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='erros'||p==='integracoes'||p==='central'||p==='bolso'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
 let modAtual=modDe(page)||'ini';
 const menuAberto=new Set((()=>{try{return JSON.parse(localStorage.getItem('eb_menu')||'[]')}catch{return []}})());
 const menuFechado=new Set();let menuSel=null;

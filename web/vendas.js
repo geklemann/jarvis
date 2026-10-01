@@ -25,7 +25,7 @@ function view(){const m=month,ant=mesAnt(m),corrente=m===hoje().slice(0,7),corte
  const barras=porDia.map((x,i)=>{let y=H;return canais.map(c=>{const v=x[c]||0,hh=v/max*(H-20);y-=hh;return v?`<rect x="${i*bw+bw*.14}" y="${y}" width="${bw*.72}" height="${hh}" fill="${cor(c)}" rx="2"><title>${String(i+1).padStart(2,'0')}/${m.slice(5)} · ${c}: ${money(v)}</title></rect>`:''}).join('')}).join('');
  const kpi=(t,v,s,nav)=>`<button class="card kpi" ${nav?`data-nav="${nav}"`:''}><span class="kpil">${t}</span><span class="kpiv">${v}</span><span class="kpis">${s}</span></button>`;
  const acoes=[semNf&&['warn','receipt',`${nf(semNf)} pedido(s) sem nota fiscal`,'Veja quais e há quanto tempo','faturamento'],vencidos.length&&['bad','alert',`${nf(vencidos.length)} repasse(s) atrasado(s)`,`${money(valVenc)} deveriam ter caído`,'pending'],div.length&&['warn','alert',`${nf(div.length)} pedido(s) com divergência`,`${money(valDiv)} de diferença entre previsto e recebido`,'pending'],soltas.length&&['info','link',`${nf(soltas.length)} liberação(ões) sem pedido`,`${money(soltas.reduce((s,r)=>s+r.amount,0))} para vincular`,'reconcile']].filter(Boolean);
- const proj=projecao(m,doMes,corrente,corte),meta=Number(db.gerencial?.metas?.[m]||db.gerencial?.metas?.padrao||0);
+ const proj=projecao(m,doMes,corrente,corte),meta=Number(window.Metas?.valor?.(m,'','vendas')??(db.gerencial?.metas?.[m]||db.gerencial?.metas?.padrao||0));
  const RC=Object.fromEntries(canais.map(c=>[c,resumo(doMes.filter(o=>o.platform===c))])),RA=Object.fromEntries(canais.map(c=>[c,resumo(doAnt.filter(o=>o.platform===c))]));
  const Dant=dias(ant),antDia=new Array(Dant).fill(0);for(const o of db.orders)if(o.date.startsWith(ant))antDia[Number(o.date.slice(8,10))-1]+=o.gross;
  const tot=porDia.map(x=>Object.values(x).reduce((s,v)=>s+v,0));vgDados={m,ant,porDia,antDia,canais,tot,proj,corte,corrente};
@@ -87,8 +87,8 @@ function mapaUF(l){const UFS=['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA',
  return `<section class="card"><div class="cardhead"><h2>Estados</h2><button class="small quiet" data-nav="crmgeo">Mapa</button></div><div class="vg-uf">${UFS.map(u=>{const v=mm.get(u)||0,p=v?Math.round(8+v/mx*82):3;return `<span class="${p>55?'hot':''}" style="--p:${p}" title="${u}: ${money(v)} · ${(v/tot*100).toFixed(1).replace('.',',')}%">${u}</span>`}).join('')}</div>
   <p class="caption" style="margin-top:12px">${top.map(([u,v])=>`<b>${u}</b> ${(v/tot*100).toFixed(1).replace('.',',')}%`).join(' · ')||'Sem UF nos pedidos.'}</p></section>`}
 // Projeção de fechamento: realizado até hoje + ritmo dos últimos 14 dias (por dia da semana) nos dias que faltam.
-function projecao(m,doMes,corrente,corte){const real=doMes.reduce((x,o)=>x+o.gross,0);if(!corrente)return {real,proj:real,porCanal:{},fechado:true};
- const h=hoje(),dia=d=>{const x=new Date(h+'T12:00:00');x.setDate(x.getDate()-d);return x.toLocaleDateString('sv-SE')},ult=db.orders.filter(o=>o.date>=dia(14)&&o.date<h);
+function projecao(m,doMes,corrente,corte,h=hoje()){const real=doMes.reduce((x,o)=>x+o.gross,0);if(!corrente)return {real,proj:real,porCanal:{},fechado:true};
+ const dia=d=>{const x=new Date(h+'T12:00:00');x.setDate(x.getDate()-d);return x.toLocaleDateString('sv-SE')},ult=db.orders.filter(o=>o.date>=dia(14)&&o.date<h);
  const porDow=new Array(7).fill(0),porCanalDow={};for(const o of ult){const w=new Date(o.date+'T12:00:00').getDay();porDow[w]+=o.gross/2;(porCanalDow[o.platform]=porCanalDow[o.platform]||new Array(7).fill(0))[w]+=o.gross/2}
  let falta=0;const porCanal={};const [y,mm]=m.split('-').map(Number),fim=new Date(y,mm,0).getDate();
  for(let d=corte+1;d<=fim;d++){const w=new Date(y,mm-1,d,12).getDay();falta+=porDow[w];for(const c in porCanalDow)porCanal[c]=(porCanal[c]||0)+porCanalDow[c][w]}
@@ -106,7 +106,11 @@ function topProdutos(l){const m=new Map();for(const o of l)for(const it of o.ite
 function topEstados(l){const m=new Map();for(const o of l)if(o.state)m.set(o.state,(m.get(o.state)||0)+o.gross);const t=[...m].sort((a,b)=>b[1]-a[1]).slice(0,6),max=t[0]?.[1]||1,tot=l.reduce((s,o)=>s+o.gross,0)||1;
  return `<section class="card"><div class="cardhead"><h2>Principais estados</h2><button class="small quiet" data-nav="crmgeo">Ver mapa</button></div>${t.map(([uf,v])=>`<div class="barline"><span><strong>${esc(uf)}</strong></span><span class="bartrack"><i style="width:${v/max*100}%"></i></span><strong class="num">${money(v)}</strong><small class="caption">${(v/tot*100).toFixed(1).replace('.',',')}%</small></div>`).join('')||'<p class="caption">Sem UF nos pedidos.</p>'}</section>`}
 // Substitui a tela antiga: addPage registra a nova e remove a entrada duplicada que ele acrescenta ao menu.
-document.addEventListener('change',e=>{const i=e.target.closest('[data-vd-meta]');if(!i)return;const v=Number(String(i.value).replace(/[^0-9,]/g,'').replace(',','.'))||0;db.gerencial={...(db.gerencial||{}),metas:{...(db.gerencial?.metas||{}),[month]:v}};save();audit('Meta de vendas',`${month}: ${money(v)}`);render()});
+// A meta de vendas do mês é a mesma da tela Metas do mês (empresa toda); db.gerencial.metas fica como cópia/legado.
+document.addEventListener('change',async e=>{const i=e.target.closest('[data-vd-meta]');if(!i)return;const v=Number(String(i.value).replace(/[^0-9,]/g,'').replace(',','.'))||0;db.gerencial={...(db.gerencial||{}),metas:{...(db.gerencial?.metas||{}),[month]:v}};save();
+ try{await window.Metas?.definir?.(month,'','vendas',v||null)}catch(x){toast('Meta: '+(x.message||x))}audit('Meta de vendas',`${month}: ${money(v)}`);render()});
+// Projeção de fechamento (realizado + ritmo dos últimos 14 dias por dia da semana), usada também em Metas do mês.
+window.VendasProjecao=(m,h=hoje())=>{const corrente=m===h.slice(0,7),corte=corrente?Number(h.slice(8,10)):dias(m);return projecao(m,db.orders.filter(o=>o.date.startsWith(m)),corrente,corte,h)};
 addPage('dashboard','grid','Visão geral',view,'Vendas do mês por canal, comparadas ao mesmo período do mês anterior — e o que pede ação.','',()=>bindGrafico());
 if(navItems.filter(n=>n[0]==='dashboard').length>1)navItems.splice(navItems.map(n=>n[0]).lastIndexOf('dashboard'),1);
 })();

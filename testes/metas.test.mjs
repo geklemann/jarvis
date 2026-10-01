@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { carregarSistema, centavos } from './ambiente.mjs';
-import { avaliar as avaliarServidor, fracaoBR, metasDoMes } from '../supabase/functions/_shared/metas.ts';
+import { avaliar as avaliarServidor, fracaoBR, metasDoMes, projecaoSemana } from '../supabase/functions/_shared/metas.ts';
 
 const { ev, ctx } = carregarSistema();
 const tela = (expr) => JSON.parse(JSON.stringify(ev(expr)));
@@ -52,7 +52,15 @@ test('tela e servidor dão o mesmo resultado', () => {
   }
 });
 
-// Pedidos de outubro: ML 1.000 e Shopee 500; um cancelado (tarifa = venda) e um de setembro ficam de fora.
+test('com projeção de fechamento (vendas), a situação vem da projeção ÷ meta', () => {
+  const t = tela(`Metas.avaliar({ind:'vendas',meta:310000,real:100000,frac:${FRAC},dias:31,proj:300000})`), s = avaliarServidor({ ind: 'vendas', meta: 310000, real: 100000, frac: FRAC, dias: 31, proj: 300000 });
+  assert.equal(t.status, 'atencao', '300.000 ÷ 310.000 = 96,8%');
+  assert.equal(s.status, t.status);
+  assert.equal(centavos(t.proj), centavos(300000));
+  assert.equal(tela(`Metas.avaliar({ind:'vendas',meta:310000,real:100000,frac:1,dias:31,proj:300000})`).status, 'abaixo', 'mês fechado ignora projeção: 100.000 é 32%');
+});
+
+// Pedidos de outubro: ML 1.000 + 200 (cancelado, mas a Visão geral conta) e Shopee 500; o de setembro fica fora do mês.
 const PEDIDOS = [
   { id: '1', platform: 'Mercado Livre', date: '2026-10-02', gross: 1000, fee: 150, items: [] },
   { id: '2', platform: 'Shopee', date: '2026-10-05', gross: 500, fee: 80, items: [] },
@@ -61,14 +69,25 @@ const PEDIDOS = [
 ];
 const LIBERACOES = [{ platform: 'Mercado Livre', date: '2026-10-08', amount: 800 }, { platform: 'Mercado Livre', date: '2026-10-09', amount: -50 }];
 
-test('realizado do mês na tela: vendas sem cancelados e recebido só com entradas', () => {
+test('realizado do mês na tela: vendas iguais às da Visão geral e recebido só com entradas', () => {
   ctx.__d = { o: PEDIDOS, r: LIBERACOES };
   ev(`db.orders=window.__d.o;db.receipts=window.__d.r;db.products=[]`);
   const r = tela(`Metas.realizado('2026-10')`);
-  assert.equal(r[''].vendas, 1500);
-  assert.equal(r['Mercado Livre'].vendas, 1000);
+  assert.equal(r[''].vendas, 1700);
+  assert.equal(r['Mercado Livre'].vendas, 1200);
   assert.equal(r['Shopee'].vendas, 500);
   assert.equal(r[''].recebido, 800);
+});
+
+// 01/10/2026 é quinta. Últimos 14 dias antes de 11/10 (domingo): sex 500, seg 250, ter 100 e qua 499,50 por dia
+// (cada pedido ÷ 2 semanas). Faltam 3 de cada dia da semana (12 a 31/10): 3 × (250 + 100 + 499,50 + 500) = 4.048,50.
+test('projeção de fechamento: tela (Visão geral) e servidor dão 1.700 + 4.048,50 = 5.748,50', () => {
+  const t = tela(`VendasProjecao('2026-10','2026-10-11')`), s = projecaoSemana('2026-10', '2026-10-11', PEDIDOS.map((o) => ({ data: o.date, bruto: o.gross, plataforma: o.platform })));
+  assert.equal(centavos(t.proj), centavos(5748.5));
+  assert.equal(centavos(s.proj), centavos(5748.5));
+  assert.equal(centavos(t.porCanal.Shopee), centavos(s.porCanal.Shopee), 'Shopee: 500 + 3 × (250 + 499,50) = 2.748,50');
+  assert.equal(centavos(s.porCanal.Shopee), centavos(2748.5));
+  assert.equal(centavos(s.porCanal['Mercado Livre']), centavos(3000));
 });
 
 test('servidor: mesmas vendas e recebido a partir do banco (v_pedidos e receipts)', async () => {
@@ -83,9 +102,10 @@ test('servidor: mesmas vendas e recebido a partir do banco (v_pedidos e receipts
     range: () => Promise.resolve({ data: l, error: null }), then: (ok) => ok({ data: l, error: null }) }; return q; };
   const r = await metasDoMes({ from }, 'ws', new Date('2026-10-11T15:00:00Z'));
   const v = r.lista.find((a) => a.ind === 'vendas'), rec = r.lista.find((a) => a.ind === 'recebido');
-  assert.equal(v.real, 1500, 'vendas sem o cancelado e sem setembro');
+  assert.equal(v.real, 1700, 'vendas do mês (setembro fora)');
   assert.equal(centavos(v.esperado), centavos(4650 * FRAC), 'esperado = 4.650 × 10,5/31 = 1.575');
-  assert.equal(v.status, 'atencao', '1.500 ÷ 1.575 = 95%');
+  assert.equal(centavos(v.proj), centavos(5748.5), 'projeção por dia da semana');
+  assert.equal(v.status, 'ok', '5.748,50 ÷ 4.650 = 124%');
   assert.equal(rec.real, 800);
   assert.equal(rec.status, 'abaixo', '800 ÷ 1.050 = 76%');
 });
