@@ -16,7 +16,7 @@ verify_jwt = false
 site_url = "https://jaarvis.com.br/"
 # Cadastro aberto com aprovação: a conta nova vira um pedido de acesso e o dono libera em Integrações › Equipe (workspaces.recebe_solicitacoes).
 enable_signup = true
-additional_redirect_urls = ["https://jaarvis.com.br/**", "https://www.jaarvis.com.br/**", "https://geklemann.github.io/jarvis/**", "https://ecombalance.com.br/**", "https://www.ecombalance.com.br/**", "https://guilhermek-maker.github.io/ecombalance/**", "https://guilhermek-maker.github.io/fechai/**", "https://guilhermek-maker.github.io/concil-ia/**", "http://127.0.0.1:3000/**"]
+additional_redirect_urls = ["https://jaarvis.com.br/**", "https://www.jaarvis.com.br/**", "https://geklemann.github.io/jarvis/**", "https://ecombalance.com.br/**", "https://www.ecombalance.com.br/**", "http://127.0.0.1:3000/**"]
 
 # Central do Cliente: pública (comprador sem login); protegida por número do pedido + 4 dígitos do CPF.
 [functions.portal]
