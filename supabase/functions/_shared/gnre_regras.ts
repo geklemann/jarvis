@@ -3,7 +3,11 @@
 /** Campo extra que pede a chave de OUTRO documento (CT-e, CT-e OS, MDF-e, BP-e). A venda tem só NF-e: mandar a chave
  *  dela ali é rejeitado pela SEFAZ ("Modelo do documento eletrônico inválido", ex.: SE, campo 94 "Chave de Acesso do
  *  CTe/CTe-OS"). Esses campos ficam de fora, como faz o Bling. */
-export const campoDeOutroDocumento = (titulo: string) => /\bct-?e\b|cte[\s/-]*os|\bmdf-?e\b|\bbp-?e\b|conhecimento de transporte|manifesto/i.test(String(titulo ?? ""));
+// Campo que aceita NF-e ("Chave de Acesso da NFe ou do CTe/CTE-OS", SE em produção, campo 77) recebe a chave normalmente.
+export const campoDeOutroDocumento = (titulo: string) => {
+  const t = String(titulo ?? "");
+  return /\bct-?e\b|cte[\s/-]*os|\bmdf-?e\b|\bbp-?e\b|conhecimento de transporte|manifesto/i.test(t) && !/\bnf-?e\b|nota fiscal/i.test(t);
+};
 
 /** Valor de um campo extra a partir da NF-e da guia; null = o Jarvis não tem o dado (ou o campo não é da NF-e). */
 export function valorCampoExtra(titulo: string, nota?: { chave: string; numero: string; emissao: string } | null) {

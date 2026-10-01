@@ -14,6 +14,9 @@ test('SE: campo 94 "Chave de Acesso do CTe/CTe-OS" não recebe a chave da NF-e',
   assert.equal(campoDeOutroDocumento('Chave do MDF-e'), true);
   assert.equal(valorCampoExtra('Chave de Acesso do CTe/CTe-OS', NOTA), null);
   assert.equal(valorCampoExtra('Chave de acesso da NF-e', NOTA), NOTA.chave);
+  // SE em produção: campo 77 aceita NF-e ou CT-e — recebe a chave da NF-e (rejeição 243 quando faltava).
+  assert.equal(campoDeOutroDocumento('Chave de Acesso da NFe ou do CTe/CTE-OS'), false);
+  assert.equal(valorCampoExtra('Chave de Acesso da NFe ou do CTe/CTE-OS', NOTA), NOTA.chave);
   assert.equal(valorCampoExtra('Chave de Acesso', NOTA), NOTA.chave, 'chave genérica = NF-e');
   assert.equal(valorCampoExtra('Número da Nota Fiscal', NOTA), '015158');
   assert.equal(valorCampoExtra('Data de emissão', NOTA), '2026-09-30');

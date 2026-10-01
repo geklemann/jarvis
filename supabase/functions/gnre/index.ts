@@ -34,10 +34,12 @@ Deno.serve(async (req) => {
     const log = (acao: string, det: unknown) => db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: acao, actor: quem, detail: JSON.stringify(det).slice(0, 900) }).then(() => null, () => null);
 
     async function configDe(uf: string) {
+      // A configuração da UF muda entre homologação e produção (ex.: SE pede o campo 94 num e o 77 no outro):
+      // o cache só vale para o mesmo ambiente.
       const { data } = await db.from("gnre_config_uf").select("config,lido_em").eq("workspace_id", ws).eq("uf", uf).eq("receita", "100102").maybeSingle();
-      if (data && Date.now() - new Date(data.lido_em).getTime() < 30 * 864e5) return data.config;
+      if (data && data.config?.ambiente === ambienteGnre() && Date.now() - new Date(data.lido_em).getTime() < 30 * 864e5) return data.config;
       if (!temCertificado()) return data?.config ?? null;
-      const c = await consultarConfigUf(uf, "100102");
+      const c = { ...(await consultarConfigUf(uf, "100102")), ambiente: ambienteGnre() };
       await db.from("gnre_config_uf").upsert({ workspace_id: ws, uf, receita: "100102", config: c, lido_em: new Date().toISOString() });
       return c;
     }
@@ -63,7 +65,7 @@ Deno.serve(async (req) => {
       case "config_uf": {
         const uf = String(body.uf ?? "").toUpperCase();
         if (!/^[A-Z]{2}$/.test(uf)) throw new HttpError(400, "UF inválida.");
-        const c = await consultarConfigUf(uf, String(body.receita ?? "100102"));
+        const c = { ...(await consultarConfigUf(uf, String(body.receita ?? "100102"))), ambiente: ambienteGnre() };
         await db.from("gnre_config_uf").upsert({ workspace_id: ws, uf, receita: String(body.receita ?? "100102"), config: c, lido_em: new Date().toISOString() });
         return json(c);
       }
