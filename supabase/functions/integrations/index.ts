@@ -403,7 +403,7 @@ Deno.serve(handler(async (req) => {
       return json({ ...statusFiscal(cfg), config: cfg, produtos: (prods ?? []).length, sem_ncm: (prods ?? []).filter((p) => !p.ncm).map((p) => p.id) });
     }
     // Regras fiscais: só os parâmetros aprovados pela contabilidade (Fiscal › Regras); o Jarvis não lê mais as do ERP de origem.
-    case "fiscal_ler_produtos": return json(await detalhesFiscaisBling(db, ws, 150));
+    case "fiscal_ler_produtos": return json(await detalhesFiscaisBling(db, ws, 150, true));
     // Fiscal › Emitir NF-e: simulação (só cálculo), nota avulsa e carta de correção. Emissão só para dono, gestão e financeiro.
     // Notas de compra direto da SEFAZ: sincronizar, manifestar e baixar a nota completa (financeiro, contabilidade e dono).
     case "nfr_sync": case "nfr_manifestar": case "nfr_detalhe": {

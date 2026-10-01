@@ -81,9 +81,9 @@ async function fotosPermanentes(db: SupabaseClient, ws: string, rows: Record<str
  *  produto, copia a primeira foto original para o bucket público e troca o link. Poucos por rodada; revisita a cada 14 dias. */
 export async function fotosHdBling(db: SupabaseClient, ws: string, limite = 30, deadline = Date.now() + 60_000) {
   const sec = await validSecret(db, ws, "bling");
-  const antigo = new Date(Date.now() - 14 * 86400_000).toISOString();
+  // Só produtos novos: a foto já copiada fica no Jarvis, sem reler o ERP de origem.
   const { data } = await db.from("produtos").select("id,bling_id,imagem").eq("workspace_id", ws).not("bling_id", "is", null).not("imagem", "is", null)
-    .or(`foto_hd_em.is.null,foto_hd_em.lt.${antigo}`).order("foto_hd_em", { ascending: true, nullsFirst: true }).limit(limite);
+    .is("foto_hd_em", null).limit(limite);
   let hd = 0, semFoto = 0, erros = 0;
   for (const p of data ?? []) {
     if (Date.now() > deadline) break;
@@ -127,11 +127,12 @@ async function gravarVitrine(db: SupabaseClient, ws: string, rows: Record<string
 }
 
 /** Dados fiscais (NCM, CEST, origem, GTIN) de cada produto, pelo detalhe do Bling. Poucos por rodada. */
-export async function detalhesFiscaisBling(db: SupabaseClient, ws: string, limite = 40) {
+// Na rotina automática só lê produtos novos (o que for ajustado no Jarvis não é sobrescrito); renovar=true relê os de mais de 7 dias.
+export async function detalhesFiscaisBling(db: SupabaseClient, ws: string, limite = 40, renovar = false) {
   const sec = await validSecret(db, ws, "bling");
   const antigo = new Date(Date.now() - 7 * 86400_000).toISOString();
-  const { data } = await db.from("produtos").select("id,bling_id,fiscal_em").eq("workspace_id", ws).not("bling_id", "is", null)
-    .or(`fiscal_em.is.null,fiscal_em.lt.${antigo}`).order("fiscal_em", { ascending: true, nullsFirst: true }).limit(limite);
+  const q = db.from("produtos").select("id,bling_id,fiscal_em").eq("workspace_id", ws).not("bling_id", "is", null);
+  const { data } = await (renovar ? q.or(`fiscal_em.is.null,fiscal_em.lt.${antigo}`) : q.is("fiscal_em", null)).order("fiscal_em", { ascending: true, nullsFirst: true }).limit(limite);
   let lidos = 0;
   for (const p of data ?? []) {
     await sleep(350);

@@ -16,7 +16,7 @@ async function focus(method: string, path: string, body?: unknown) {
   const txt = await r.text();
   let j: any = null;
   try { j = txt ? JSON.parse(txt) : null; } catch { j = { mensagem: txt.slice(0, 200) }; }
-  if (!r.ok) throw new HttpError(r.status === 404 ? 404 : 502, `Focus NFe respondeu ${r.status}: ${j?.mensagem ?? j?.codigo ?? "erro"}${r.status === 403 ? " (verifique se o recurso NF-e recebidas está habilitado no plano e se o certificado A1 está cadastrado no Focus)" : ""}`);
+  if (!r.ok) throw new HttpError(r.status === 404 ? 404 : 502, `Focus NFe respondeu ${r.status}: ${j?.mensagem ?? j?.codigo ?? "erro"}${/CNPJ.*(autorizado|informado)/i.test(String(j?.mensagem ?? "")) ? " (no painel do Focus NFe, habilite \"NF-e recebidas / manifestação\" na empresa deste CNPJ, com o certificado A1 cadastrado lá)" : ""}${r.status === 403 ? " (verifique se o recurso NF-e recebidas está habilitado no plano e se o certificado A1 está cadastrado no Focus)" : ""}`);
   return { j, max: Number(r.headers.get("X-Max-Version") ?? 0) };
 }
 
