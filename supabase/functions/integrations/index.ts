@@ -9,14 +9,13 @@ import { importShopeeIncome } from "../_shared/shopee_central.ts";
 import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml.ts";
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
-import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
+import { detalheRecebida, manifestar, processarEntradasSefaz, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
 import { enviarPush, tipoDoAlerta, verificarAlertas } from "../_shared/alertas.ts";
 import { canaisDisponiveis, enviarCanais, enviarEmail } from "../_shared/canais.ts";
 // O relatório semanal (planilha Excel) é carregado só quando usado: um problema nele não derruba a sincronização.
 const relatorio = () => import("../_shared/relatorio_semanal.ts");
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
-import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
 import { difalSync } from "../_shared/difal.ts";
 import { sondarAds } from "../_shared/ml_ads.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
@@ -175,15 +174,18 @@ Deno.serve(handler(async (req) => {
         report.push({ workspace_id: i.workspace_id, atendimento: r });
       } catch (e) { report.push({ workspace_id: i.workspace_id, atendimento_erro: String(e) }); }
     }
-    // Fiscal: diagnóstico dos tokens e fila de notas de teste (homologação), pedidos pelo suporte em settings do Bling.
-    // Regras fiscais praticadas hoje pelo Bling (lidas do XML das notas de venda): pedido manual ou 1x por semana.
-    for (const i of list.filter((x) => x.provider === "bling" && (x.settings?.regras_pedido || !x.settings?.regras_fiscais?.em || Date.now() - new Date(x.settings.regras_fiscais.em).getTime() > 7 * 86400_000))) {
+    // Notas de compra direto da SEFAZ (Focus NFe, distribuição DF-e): a cada 6 horas lista as notas emitidas contra o
+    // CNPJ e transforma as que já têm os itens baixados em notas de entrada do Jarvis (estoque, compras, custo).
+    for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.nfr?.em || Date.now() - new Date(x.settings.nfr.em).getTime() > 6 * 3600_000))) {
+      if (Date.now() > deadline - 30_000) break;
       try {
-        const r = await lerRegrasFiscaisBling(db, i.workspace_id, Math.min(deadline - 25_000, Date.now() + 80_000));
-        await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.regras_pedido; s.regras_fiscais = r; });
-        report.push({ workspace_id: i.workspace_id, regras_fiscais: r.notas_lidas });
-      } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { delete s.regras_pedido; s.regras_fiscais_erro = String(e).slice(0, 300); }); }
+        const s1 = await sincronizarRecebidas(db, i.workspace_id, Math.min(deadline - 20_000, Date.now() + 40_000));
+        const s2 = await processarEntradasSefaz(db, i.workspace_id);
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.nfr = { ...s1, ...s2, em: new Date().toISOString() }; });
+        report.push({ workspace_id: i.workspace_id, nfr: { ...s1, ...s2 } });
+      } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.nfr = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
     }
+    // Fiscal: diagnóstico dos tokens e fila de notas de teste (homologação), pedidos pelo suporte em settings do Bling.
     for (const i of list.filter((x) => x.provider === "bling" && (x.settings?.fiscal_diag_pedido || (x.settings?.fiscal_fila ?? []).length))) {
       try {
         const diag = i.settings?.fiscal_diag_pedido ? await diagnosticoFiscal() : undefined;
@@ -400,11 +402,7 @@ Deno.serve(handler(async (req) => {
       const { data: prods } = await db.from("produtos").select("id,ncm,origem").eq("workspace_id", ws);
       return json({ ...statusFiscal(cfg), config: cfg, produtos: (prods ?? []).length, sem_ncm: (prods ?? []).filter((p) => !p.ncm).map((p) => p.id) });
     }
-    case "fiscal_regras_bling": {
-      const r = await lerRegrasFiscaisBling(db, ws);
-      await writeSettings(db, ws, "bling", (s) => { s.regras_fiscais = r; });
-      return json(r);
-    }
+    // Regras fiscais: só os parâmetros aprovados pela contabilidade (Fiscal › Regras); o Jarvis não lê mais as do ERP de origem.
     case "fiscal_ler_produtos": return json(await detalhesFiscaisBling(db, ws, 150));
     // Fiscal › Emitir NF-e: simulação (só cálculo), nota avulsa e carta de correção. Emissão só para dono, gestão e financeiro.
     // Notas de compra direto da SEFAZ: sincronizar, manifestar e baixar a nota completa (financeiro, contabilidade e dono).
@@ -412,7 +410,7 @@ Deno.serve(handler(async (req) => {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
       if (!["owner", "member", "financeiro", "contador"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa as notas de compra.");
       if (action === "nfr_sync") return json(await sincronizarRecebidas(db, ws));
-      if (action === "nfr_detalhe") return json(await detalheRecebida(db, ws, String(body.chave ?? "")));
+      if (action === "nfr_detalhe") { const d = await detalheRecebida(db, ws, String(body.chave ?? "")); await processarEntradasSefaz(db, ws).catch(() => null); return json(d); }
       const r = await manifestar(db, ws, String(body.chave ?? ""), String(body.tipo ?? ""), body.justificativa ? String(body.justificativa) : undefined);
       await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Manifestação do destinatário", actor: user.email ?? user.id, detail: JSON.stringify(r).slice(0, 900) }).then(() => null, () => null);
       return json(r);

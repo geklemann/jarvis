@@ -40,22 +40,9 @@ export function aliqInterestadual(ufDest: string, origem: number, cfg?: Fiscal) 
 
 export async function configFiscal(db: SupabaseClient, ws: string): Promise<Fiscal> {
   const { data } = await db.from("workspace_settings").select("data").eq("workspace_id", ws).maybeSingle();
+  // Só os parâmetros salvos (Fiscal › Regras, aprovados pela contabilidade). Os valores que antes eram completados com
+  // as notas do ERP de origem foram fixados nos parâmetros em 01/10/2026 (regras_fixadas_em).
   const cfg: Fiscal = { ...PADRAO_FISCAL, ...(data?.data?.gerencial?.fiscal ?? {}) };
-  // Sem valor salvo pela contabilidade, usa o que o Bling pratica hoje (lido das notas autorizadas).
-  const { data: bl } = await db.from("integrations").select("settings").eq("workspace_id", ws).eq("provider", "bling").maybeSingle();
-  const rb = bl?.settings?.regras_fiscais;
-  if (rb) {
-    cfg.intermediadores = { ...(cfg.intermediadores ?? {}) };
-    for (const [plat, cnpj] of Object.entries(INTERMEDIADOR)) {
-      const atual = cfg.intermediadores[plat] ?? {};
-      if (!atual.id && rb.intermediadores?.[cnpj]) cfg.intermediadores[plat] = { cnpj, id: rb.intermediadores[cnpj] };
-    }
-    cfg.por_uf = { ...(cfg.por_uf ?? {}) };
-    for (const [uf, r] of Object.entries(rb.por_uf ?? {}) as [string, any][]) {
-      const atual = cfg.por_uf[uf] ?? {};
-      cfg.por_uf[uf] = { ...atual, interna: atual.interna ?? (r.pICMSUFDest != null ? Number(r.pICMSUFDest) : undefined), fcp: atual.fcp ?? (r.pFCPUFDest != null ? Number(r.pFCPUFDest) : undefined) };
-    }
-  }
   return cfg;
 }
 

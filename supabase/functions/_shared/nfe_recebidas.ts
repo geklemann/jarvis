@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { HttpError, round } from "./common.ts";
 import { configFiscal } from "./nfe_focus.ts";
+import { aprenderMapa, converter } from "./entradas.ts";
 
 const BASE = "https://api.focusnfe.com.br";
 const token = () => Deno.env.get("FOCUS_NFE_TOKEN") ?? "";
@@ -64,4 +65,34 @@ export async function detalheRecebida(db: SupabaseClient, ws: string, chave: str
   };
   await db.from("nfe_recebidas").update({ detalhe: det, completa: true, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("chave", dig(chave));
   return det;
+}
+
+/** Notas da SEFAZ com itens baixados viram notas de ENTRADA do Jarvis (purchase_invoices, origem SEFAZ), com o código
+ *  do fornecedor traduzido para o SKU da loja. Enquanto a mesma nota também vier do ERP de origem, ela não é duplicada
+ *  e serve para aprender a tradução dos códigos. */
+export async function processarEntradasSefaz(db: SupabaseClient, ws: string) {
+  const { data: recs } = await db.from("nfe_recebidas").select("chave,emitente,emitente_doc,emissao,valor,detalhe,situacao").eq("workspace_id", ws).not("detalhe", "is", null).limit(2000);
+  const lista = (recs ?? []).filter((n: any) => !/cancel/i.test(String(n.situacao ?? "")));
+  if (!lista.length) return { notas: 0, aprendidos: 0, gravadas: 0 };
+  const chaves = lista.map((n: any) => n.chave);
+  const existentes: any[] = [];
+  for (let i = 0; i < chaves.length; i += 200) { const { data } = await db.from("purchase_invoices").select("id,chave,source,itens").eq("workspace_id", ws).in("chave", chaves.slice(i, i + 200)); existentes.push(...(data ?? [])); }
+  const porChave = new Map(existentes.map((p) => [p.chave, p]));
+  // Aprende com as notas que existem nas duas fontes.
+  const aprender: any[] = [];
+  for (const n of lista) { const p = porChave.get(n.chave); if (p && p.source !== "SEFAZ") aprender.push(...aprenderMapa(String(n.emitente_doc ?? ""), n.detalhe?.itens ?? [], p.itens ?? [])); }
+  if (aprender.length) {
+    const unicos = [...new Map(aprender.map((a) => [`${a.fornecedor_doc}|${a.codigo}`, a])).values()].map((a) => ({ workspace_id: ws, ...a, origem: "aprendido", updated_at: new Date().toISOString() }));
+    // Ajuste manual tem prioridade: não sobrescreve o que a equipe corrigiu.
+    const { data: manuais } = await db.from("sku_fornecedor").select("fornecedor_doc,codigo").eq("workspace_id", ws).eq("origem", "manual");
+    const man = new Set((manuais ?? []).map((m: any) => `${m.fornecedor_doc}|${m.codigo}`));
+    const novos = unicos.filter((a) => !man.has(`${a.fornecedor_doc}|${a.codigo}`));
+    for (let i = 0; i < novos.length; i += 500) await db.from("sku_fornecedor").upsert(novos.slice(i, i + 500), { onConflict: "workspace_id,fornecedor_doc,codigo" });
+  }
+  const { data: mapas } = await db.from("sku_fornecedor").select("fornecedor_doc,codigo,sku").eq("workspace_id", ws).limit(20000);
+  const mapa = new Map((mapas ?? []).map((m: any) => [`${m.fornecedor_doc}|${m.codigo}`, m.sku]));
+  // Grava (ou regrava, se a tradução melhorou) só as notas que não vieram do ERP de origem.
+  const rows = lista.filter((n: any) => { const p = porChave.get(n.chave); return !p || p.source === "SEFAZ"; }).map((n: any) => { const { sem_mapa: _s, ...r } = converter(n, mapa); return { workspace_id: ws, ...r, updated_at: new Date().toISOString() }; });
+  for (let i = 0; i < rows.length; i += 200) { const { error } = await db.from("purchase_invoices").upsert(rows.slice(i, i + 200), { onConflict: "workspace_id,id" }); if (error) throw error; }
+  return { notas: lista.length, aprendidos: aprender.length, gravadas: rows.length };
 }

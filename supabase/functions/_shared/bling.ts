@@ -50,7 +50,9 @@ export const bling: Provider = {
     const out = emptyResult();
     out.unmapped = {};
     // Etapas na ordem; um job pode pedir só algumas (ex.: histórico só de notas de entrada).
-    const FASES = ["pedidos", "receber", "pagar", "entradas"].filter((f) => !ctx.fases?.length || ctx.fases.includes(f));
+    // Contas a receber e a pagar não vêm mais do ERP de origem (fase 1, 01/10/2026): o financeiro é só do Jarvis.
+    // Notas de entrada seguem enquanto a leitura direta da SEFAZ não estiver confirmada; depois saem também.
+    const FASES = ["pedidos", "entradas"].filter((f) => !ctx.fases?.length || ctx.fases.includes(f));
     const depois = (f: string) => { const i = FASES.indexOf(f); return i >= 0 && i + 1 < FASES.length ? { phase: FASES[i + 1], page: 1, idx: 0 } : null; };
     let cur = ctx.cursor ?? (FASES.length ? { phase: FASES[0], page: 1, idx: 0 } : null);
     const cancelled = new Set((ctx.settings.situacoesIgnoradas ?? [12]).map(String));
