@@ -50,8 +50,24 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
     const { data: pg } = await db.from("payables").select("valor,valor_pago").eq("workspace_id", ws).eq("vencimento", hojeBR).in("status", ["aberto", "parcial"]);
     if (pg?.length) out.push({ titulo: `Hoje vencem ${pg.length} conta(s)`, corpo: brl(pg.reduce((s, p) => s + Number(p.valor) - Number(p.valor_pago || 0), 0)), url: "#pagar", tag: "venc" });
   }
+  // Contas que vencem amanhã e repasses atrasados: um resumo por dia, depois das 8 h.
+  if (horaBR >= 8 && estado?.diario !== hojeBR) {
+    const amanha = new Date(Date.parse(hojeBR + "T12:00:00Z") + 864e5).toISOString().slice(0, 10);
+    const { data: pa } = await db.from("payables").select("valor,valor_pago").eq("workspace_id", ws).eq("vencimento", amanha).in("status", ["aberto", "parcial"]);
+    if (pa?.length) out.push({ titulo: `Amanhã vencem ${pa.length} conta(s)`, corpo: brl(pa.reduce((s, p) => s + Number(p.valor) - Number(p.valor_pago || 0), 0)), url: "#pagar", tag: "venc_amanha" });
+    const limite = new Date(Date.parse(hojeBR + "T12:00:00Z") - 3 * 864e5).toISOString().slice(0, 10);
+    const { data: atr } = await db.from("v_pedidos").select("saldo").eq("workspace_id", ws).eq("status", "A receber").lt("previsao", limite).gt("saldo", 0.01).limit(5000);
+    if (atr?.length) out.push({ titulo: `${atr.length} repasse(s) atrasado(s)`, corpo: `${brl(atr.reduce((s, p) => s + Number(p.saldo), 0))} com a previsão de liberação vencida há mais de 3 dias`, url: "#pending", tag: "repasse" });
+  }
+  // Repasse abaixo do previsto: pedido que passou a "Divergência" (recebeu menos que o líquido) desde a última olhada.
+  const { data: dv } = await db.from("v_pedidos").select("pedido,plataforma,saldo").eq("workspace_id", ws).eq("status", "Divergência").gt("saldo", 0.5).limit(500);
+  const antesD = new Set<string>(estado?.divergentes ?? []), novosD = (dv ?? []).filter((p) => !antesD.has(p.pedido));
+  if (estado?.divergentes && novosD.length) out.push({ titulo: novosD.length > 1 ? `${novosD.length} repasses abaixo do previsto` : "Repasse abaixo do previsto", corpo: novosD.slice(0, 3).map((p) => `${p.plataforma} ${p.pedido}: faltam ${brl(Number(p.saldo))}`).join(" · "), url: "#reconcile", tag: "repasse" });
   // Pagamentos aguardando aprovação lançados desde a última olhada (só o dono recebe).
   const { data: ap } = await db.from("payables").select("fornecedor,valor").eq("workspace_id", ws).eq("aprovacao", "pendente").gt("created_at", desde).limit(20);
   if (ap?.length) out.push({ titulo: `${ap.length} pagamento(s) para aprovar`, corpo: ap.slice(0, 3).map((p) => `${p.fornecedor ?? ""} ${brl(Number(p.valor))}`).join(" · "), url: "#pagar", tag: "aprov", so_dono: true });
-  return { alertas: out, estado: { em: agora.toISOString(), rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null } };
+  return { alertas: out, estado: { em: agora.toISOString(), rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido) } };
 }
+
+/** Tipo do alerta para os destinos de e-mail/WhatsApp (o mesmo nome escolhido na tela de Alertas e relatórios). */
+export const tipoDoAlerta = (tag: string) => (tag.startsWith("atend") ? "atendimento" : tag);

@@ -10,7 +10,10 @@ import { responderML, sincronizarAtendimentoML } from "../_shared/atendimento_ml
 import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
-import { enviarPush, verificarAlertas } from "../_shared/alertas.ts";
+import { enviarPush, tipoDoAlerta, verificarAlertas } from "../_shared/alertas.ts";
+import { canaisDisponiveis, enviarCanais } from "../_shared/canais.ts";
+// O relatório semanal (planilha Excel) é carregado só quando usado: um problema nele não derruba a sincronização.
+const relatorio = () => import("../_shared/relatorio_semanal.ts");
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { lerRegrasFiscaisBling } from "../_shared/regras_bling.ts";
@@ -201,8 +204,30 @@ Deno.serve(handler(async (req) => {
       try {
         const r = await verificarAlertas(db, i.workspace_id, i.settings?.alertas);
         const env = await enviarPush(db, i.workspace_id, r.alertas);
-        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.alertas = { ...r.estado, ultimos: r.alertas.map((a) => a.titulo).slice(0, 5), enviados: env.enviados }; });
+        // Os mesmos avisos por e-mail e WhatsApp, para quem cadastrou em Alertas e relatórios.
+        const can = await enviarCanais(db, i.workspace_id, r.alertas.map((a) => ({ tipo: tipoDoAlerta(a.tag), assunto: `Jarvis: ${a.titulo}`, texto: `${a.corpo}\nAbrir: https://jaarvis.com.br/${a.url}` })));
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.alertas = { ...r.estado, ultimos: r.alertas.map((a) => a.titulo).slice(0, 5), enviados: env.enviados, canais: can }; });
       } catch (e) { report.push({ workspace_id: i.workspace_id, alertas_erro: String(e).slice(0, 200) }); }
+    }
+    // Relatório semanal da diretoria: segunda-feira depois das 8 h (Brasília), uma vez por semana, para quem pediu.
+    {
+      const br = new Date(Date.now() - 3 * 3600_000);
+      if (br.getUTCDay() === 1 && br.getUTCHours() >= 8) {
+        const { montarRelatorio, semanaAnterior } = await relatorio();
+        const chave = semanaAnterior().chave;
+        for (const i of list.filter((x) => x.provider === "bling" && x.settings?.relatorio_semanal?.chave !== chave)) {
+          try {
+            const { count } = await db.from("alertas_destinos").select("id", { count: "exact", head: true }).eq("workspace_id", i.workspace_id).eq("ativo", true).contains("tipos", ["semanal"]);
+            let env = { enviados: 0, falhas: 0, sem_canal: 0 };
+            if (count) {
+              const rel = await montarRelatorio(db, i.workspace_id);
+              env = await enviarCanais(db, i.workspace_id, [{ tipo: "semanal", assunto: rel.assunto, texto: rel.texto, html: rel.html, anexos: [{ nome: rel.arquivo, base64: rel.xlsx }] }]);
+            }
+            await writeSettings(db, i.workspace_id, i.provider, (s) => { s.relatorio_semanal = { chave, em: new Date().toISOString(), ...env }; });
+            report.push({ workspace_id: i.workspace_id, relatorio_semanal: env });
+          } catch (e) { report.push({ workspace_id: i.workspace_id, relatorio_semanal_erro: String(e).slice(0, 200) }); }
+        }
+      }
     }
     // Estoque (Bling): produtos, custo e saldo.
     for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.estoque?.fim || Date.now() - new Date(x.settings.estoque.fim).getTime() > ESTOQUE_MS))) {
@@ -339,6 +364,21 @@ Deno.serve(handler(async (req) => {
       return json(r);
     }
     case "push_teste": return json(await enviarPush(db, ws, [{ titulo: "Jarvis: alertas ligados", corpo: "Você vai receber aqui NF-e rejeitada, reclamação urgente, ruptura, vencimentos do dia e aprovações.", url: "#central", tag: "teste" }]));
+    // Alertas e relatórios por e-mail e WhatsApp: quais canais estão ligados, teste para um destino e o relatório semanal.
+    case "alertas_canais": return json(canaisDisponiveis());
+    case "alertas_teste": case "relatorio_semanal_enviar": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (m?.role !== "owner") throw new HttpError(403, "Só o dono envia testes e relatórios.");
+      if (action === "alertas_teste") return json(await enviarCanais(db, ws, [{ tipo: "teste", assunto: "Jarvis: alertas ligados", texto: "Este destino vai receber os avisos escolhidos em Alertas e relatórios.\nAbrir: https://jaarvis.com.br/" }], String(body.destino ?? "")));
+      const rel = await (await relatorio()).montarRelatorio(db, ws);
+      return json(await enviarCanais(db, ws, [{ tipo: "semanal", assunto: rel.assunto, texto: rel.texto, html: rel.html, anexos: [{ nome: rel.arquivo, base64: rel.xlsx }] }]));
+    }
+    case "relatorio_semanal": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa o relatório da diretoria.");
+      const rel = await (await relatorio()).montarRelatorio(db, ws);
+      return json({ assunto: rel.assunto, texto: rel.texto, html: rel.html, xlsx: rel.xlsx, arquivo: rel.arquivo, periodo: rel.dados.periodo });
+    }
     case "fiscal_simular": return json(await simularNota(db, ws, { pedido: body.pedido ? String(body.pedido) : undefined, dados: body.dados }));
     case "fiscal_emitir_avulsa": case "fiscal_cce": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
