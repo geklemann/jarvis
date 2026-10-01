@@ -118,7 +118,10 @@ jobs:
         if: steps.cfg.outputs.ok == 'true' && ((github.event_name == 'workflow_dispatch' && inputs.restaurar) || (github.event_name == 'schedule' && env.DIA_MES == '01'))
         run: |
           set -euo pipefail
-          supabase db start
+          # Banco de teste vazio (só a base do Supabase: auth, storage, extensões), sem as migrações do repositório:
+          # quem cria as tabelas é o próprio backup.
+          RT="$RUNNER_TEMP/restauracao"; mkdir -p "$RT/supabase"; cp supabase/config.toml "$RT/supabase/"
+          (cd "$RT" && supabase db start)
           # Administrador do banco local (o usuário comum não pode aplicar configurações de servidor dos papéis).
           URL="postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres"
           # Papéis: linhas de configuração de servidor podem não valer no banco local; qualquer outro erro para tudo.
