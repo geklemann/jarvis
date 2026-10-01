@@ -19,15 +19,18 @@ que só você conhece e envia ao balde **`jarvis-backups`** no Cloudflare R2. Fl
 
 ## Ativar (uma vez, uns 10 minutos, feito por você)
 
-1. **Chave do R2:** no painel da Cloudflare → **R2** → **Manage API tokens** (ou "Gerenciar tokens da API") →
+1. **Token do Supabase:** em [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) →
+   **Generate new token**, nome `backup-r2`. Copie o token (só aparece desta vez). Ele tem nome próprio no GitHub
+   (`SUPABASE_BACKUP_TOKEN`) para não ligar o fluxo de publicação automática do `supabase.yml`.
+2. **Chave do R2:** no painel da Cloudflare → **R2** → **Manage API tokens** (ou "Gerenciar tokens da API") →
    **Create Account API token**: nome `jarvis-backups`, permissão **Object Read & Write**, só o balde
    **`jarvis-backups`**, sem data de expiração → **Create**. A tela mostra o **Access Key ID** e o **Secret Access Key**
    (só desta vez): deixe a tela aberta.
-2. **Frase do backup:** invente uma frase longa (ex.: quatro palavras aleatórias e um número) e guarde no seu
+3. **Frase do backup:** invente uma frase longa (ex.: quatro palavras aleatórias e um número) e guarde no seu
    gerenciador de senhas. **Sem ela, ninguém (nem você) abre os backups.**
-3. Dê dois cliques em `ops\cadastrar-segredos-backup.cmd` e cole, quando pedir, o Access Key ID, o Secret Access Key
-   e a frase. Nada aparece na tela; tudo vai direto para os segredos do GitHub.
-4. Pronto: o próximo backup já sobe para o R2. Para testar na hora: GitHub → **Actions** → **Backup (Supabase →
+4. Dê dois cliques em `ops\cadastrar-segredos-backup.cmd` e cole, quando pedir, o token do Supabase, o Access Key ID,
+   o Secret Access Key e a frase. Nada aparece na tela; tudo vai direto para os segredos do GitHub.
+5. Pronto: o próximo backup já sobe para o R2. Para testar na hora: GitHub → **Actions** → **Backup (Supabase →
    Cloudflare R2)** → **Run workflow**.
 
 A variável `R2_ACCOUNT_ID` (número da conta, não é segredo) já está cadastrada no repositório.

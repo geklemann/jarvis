@@ -27,7 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # Token próprio do backup (não liga o fluxo de publicação do supabase.yml, que usa SUPABASE_ACCESS_TOKEN).
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_BACKUP_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
@@ -39,15 +40,28 @@ jobs:
       AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
       AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
     steps:
+      - name: Verificar configuração
+        id: cfg
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$PROJECT_REF" ]; then
+            echo "::notice::Backup ainda não ativado: falta o segredo SUPABASE_BACKUP_TOKEN (docs/BACKUP.md)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ok == 'true'
       - uses: supabase/setup-cli@v1
+        if: steps.cfg.outputs.ok == 'true'
         with:
           version: latest
       - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ok == 'true'
         with:
           node-version: 24
 
       - name: Vincular projeto
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           echo "DIA=$(date -u +%F)" >> "$GITHUB_ENV"
           echo "DIA_MES=$(date -u +%d)" >> "$GITHUB_ENV"
@@ -55,6 +69,7 @@ jobs:
           supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
       - name: Banco (papéis, estrutura e dados)
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           set -euo pipefail
           mkdir -p bk/banco bk/arquivos
@@ -65,6 +80,7 @@ jobs:
           echo "Tabelas com dados no backup: $(node -e "const c=require('./bk/contagem.json');console.log(Object.keys(c).length+' tabelas, '+Object.values(c).reduce((s,n)=>s+n,0)+' linhas')")"
 
       - name: Arquivos (Storage)
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           set -euo pipefail
           saida=$(supabase storage ls ss:/// --linked --experimental 2>/dev/null || true)
@@ -78,6 +94,7 @@ jobs:
           echo "Arquivos no backup: $(find bk/arquivos -type f | wc -l)"
 
       - name: Compactar e cifrar
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           set -euo pipefail
           tar -C bk -czf "jarvis-$DIA.tar.gz" .
@@ -88,7 +105,7 @@ jobs:
           fi
 
       - name: Enviar ao R2 e conferir
-        if: env.R2_ACCESS_KEY_ID != '' && env.R2_SECRET_ACCESS_KEY != '' && env.BACKUP_PASSPHRASE != '' && env.R2_ACCOUNT_ID != ''
+        if: steps.cfg.outputs.ok == 'true' && env.R2_ACCESS_KEY_ID != '' && env.R2_SECRET_ACCESS_KEY != '' && env.BACKUP_PASSPHRASE != '' && env.R2_ACCOUNT_ID != ''
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -108,11 +125,11 @@ jobs:
           echo "Backup no R2 conferido: diario/$DIA/"
 
       - name: Aviso (R2 ainda não configurado)
-        if: env.R2_ACCESS_KEY_ID == '' || env.R2_SECRET_ACCESS_KEY == '' || env.BACKUP_PASSPHRASE == '' || env.R2_ACCOUNT_ID == ''
+        if: steps.cfg.outputs.ok == 'true' && (env.R2_ACCESS_KEY_ID == '' || env.R2_SECRET_ACCESS_KEY == '' || env.BACKUP_PASSPHRASE == '' || env.R2_ACCOUNT_ID == '')
         run: echo "::warning::Backup gerado, mas NÃO enviado ao R2. Faltam os segredos R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY e BACKUP_PASSPHRASE (docs/BACKUP.md)."
 
       - name: Restaurar num banco de teste e conferir
-        if: (github.event_name == 'workflow_dispatch' && inputs.restaurar) || (github.event_name == 'schedule' && env.DIA_MES == '01')
+        if: steps.cfg.outputs.ok == 'true' && ((github.event_name == 'workflow_dispatch' && inputs.restaurar) || (github.event_name == 'schedule' && env.DIA_MES == '01'))
         run: |
           set -euo pipefail
           supabase db start
