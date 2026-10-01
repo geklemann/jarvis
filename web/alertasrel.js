@@ -3,7 +3,7 @@
 // da diretoria (prévia, planilha e envio) e o registro do que foi enviado. Só o dono cadastra e envia; os demais veem.
 // Os canais funcionam depois que as chaves forem gravadas no servidor (RESEND_API_KEY; WHATSAPP_TOKEN e WHATSAPP_PHONE_ID).
 (()=>{
-const TIPOS=[['nfe','NF-e rejeitada'],['atendimento','Reclamação urgente'],['ruptura','Produto sem estoque'],['venc','Contas que vencem hoje'],['venc_amanha','Contas que vencem amanhã'],['repasse','Repasse atrasado ou abaixo do previsto'],['aprov','Pagamento para aprovar'],['metas','Meta do mês abaixo do ritmo'],['gnre','Guias GNRE prontas para enviar'],['erros','Erro novo no sistema (administrador)'],['preco','Concorrente baixou o preço'],['semanal','Relatório semanal da diretoria']];
+const TIPOS=[['nfe','NF-e rejeitada'],['atendimento','Reclamação urgente'],['ruptura','Produto sem estoque'],['venc','Contas que vencem hoje'],['venc_amanha','Contas que vencem amanhã'],['repasse','Repasse atrasado ou abaixo do previsto'],['aprov','Pagamento para aprovar'],['metas','Meta do mês abaixo do ritmo'],['gnre','Guias GNRE prontas para enviar'],['erros','Erro novo no sistema (administrador)'],['preco','Concorrente baixou o preço'],['tarifa','Tarifa de um canal mudou'],['ruptura_prevista','Produto vai faltar antes da reposição'],['diario','Resumo do dia (diretoria)'],['semanal','Relatório semanal da diretoria']];
 const nomeTipo=t=>(TIPOS.find(x=>x[0]===t)||[t,t])[1];
 const st={carregado:false,carregando:false,destinos:[],envios:[],canais:null,erro:'',rel:null,relCarregando:false};
 const dono=()=>window.Cloud?.role==='owner';
@@ -19,13 +19,13 @@ function view(){if(!window.Cloud?.ws)return `<div class="notice">Conecte a nuvem
  const k=st.canais||{},selo=(ok,n)=>`<span class="badge ${ok?'ok':'warn'}">${n}: ${ok?'conectado':'falta conectar'}</span>`;
  const falta=!k.email||!k.whatsapp;
  return `${st.erro?`<div class="notice warnbox">${esc(st.erro)}</div>`:''}
- <div class="notice"><strong>Os mesmos avisos do celular, também por e-mail e WhatsApp.</strong> Cada pessoa escolhe o que quer receber. O relatório da diretoria chega toda segunda de manhã, com a planilha da semana anexa. <span class="row wrap" style="gap:6px;margin-top:8px">${selo(k.email,'E-mail')}${selo(k.whatsapp,'WhatsApp')}</span>
+ <div class="notice"><strong>Os mesmos avisos do celular, também por e-mail e WhatsApp.</strong> Cada pessoa escolhe o que quer receber. O resumo do dia chega todo dia às 7 h e o relatório da diretoria toda segunda de manhã, com a planilha da semana anexa. <span class="row wrap" style="gap:6px;margin-top:8px">${selo(k.email,'E-mail')}${selo(k.whatsapp,'WhatsApp')}</span>
  ${falta?`<p class="caption" style="margin:8px 0 0">${!k.email?'E-mail: crie a conta no Resend, verifique o domínio jaarvis.com.br e grave a chave RESEND_API_KEY no servidor. ':''}${!k.whatsapp?'WhatsApp: na Meta (WhatsApp Business), aprove um modelo de mensagem e grave WHATSAPP_TOKEN, WHATSAPP_PHONE_ID e WHATSAPP_TEMPLATE. ':''}Até lá os destinos ficam cadastrados e nada é enviado.</p>`:''}</div>
  <div class="grid two" style="align-items:start;margin-top:16px">
   <div class="tablebox"><div class="tabletop"><div><h2>Quem recebe</h2><p class="caption">${st.destinos.length} destino(s)</p></div></div>
    ${st.destinos.length?`<div class="tablewrap"><table><thead><tr><th>Destino</th><th>Avisos</th><th></th></tr></thead><tbody>${st.destinos.map(d=>`<tr><td><strong>${esc(d.nome||d.destino)}</strong><br><span class="caption">${d.canal==='email'?'E-mail':'WhatsApp'} · ${esc(d.destino)}${d.ativo?'':' · pausado'}</span></td>
     <td class="caption">${(d.tipos||[]).map(nomeTipo).map(esc).join(' · ')||'nenhum'}</td>
-    <td style="white-space:nowrap">${dono()?`<button class="small" data-ar-teste="${esc(d.id)}">Testar</button> <button class="small" data-ar-pausar="${esc(d.id)}">${d.ativo?'Pausar':'Retomar'}</button> <button class="small quiet" data-ar-remover="${esc(d.id)}" aria-label="Remover ${esc(d.destino)}">Remover</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Ninguém cadastrado ainda.</div>'}
+    <td style="white-space:nowrap">${dono()?`<button class="small" data-ar-editar="${esc(d.id)}">Editar avisos</button> <button class="small" data-ar-teste="${esc(d.id)}">Testar</button> <button class="small" data-ar-pausar="${esc(d.id)}">${d.ativo?'Pausar':'Retomar'}</button> <button class="small quiet" data-ar-remover="${esc(d.id)}" aria-label="Remover ${esc(d.destino)}">Remover</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Ninguém cadastrado ainda.</div>'}
   </div>
   ${dono()?`<form class="formcard" id="arNovo" style="display:grid;gap:10px"><h2 style="margin:0">Novo destino</h2>
    <div class="row wrap" style="gap:10px"><label style="flex:1;min-width:140px">Canal<select name="canal"><option value="email">E-mail</option><option value="whatsapp">WhatsApp</option></select></label>
@@ -37,6 +37,10 @@ function view(){if(!window.Cloud?.ws)return `<div class="notice">Conecte a nuvem
  <div class="tablebox" style="margin-top:16px"><div class="tabletop"><div><h2>Relatório semanal da diretoria</h2><p class="caption">Semana anterior (segunda a domingo): vendas e tarifas por canal, recebido, repasses a receber e atrasados, contas, caixa, atendimento e ruptura.</p></div>
   <div class="row" style="gap:8px"><button class="small" data-ar-prever>${st.relCarregando?'Montando…':'Ver o relatório'}</button>${st.rel?`<button class="small" data-ar-excel>Baixar Excel</button>`:''}${dono()?`<button class="small primary" data-ar-enviar>Enviar agora</button>`:''}</div></div>
   ${st.rel?`<iframe title="Prévia do relatório semanal" sandbox="" srcdoc="${esc(st.rel.html)}" style="width:100%;height:720px;border:0;border-radius:8px;background:#fff"></iframe>`:'<div class="empty">Clique em "Ver o relatório" para montar a prévia da semana passada.</div>'}
+ </div>
+ <div class="tablebox" style="margin-top:16px"><div class="tabletop"><div><h2>Resumo do dia da diretoria</h2><p class="caption">Todo dia às 7 h: vendas de ontem por canal contra a média do mesmo dia da semana, o mês e as metas, caixa e o que vence hoje. Chega para quem marcou "Resumo do dia".</p></div>
+  <div class="row" style="gap:8px"><button class="small" data-ar-dia-prever>${st.diaCarregando?'Montando…':'Ver o resumo de hoje'}</button>${dono()?`<button class="small primary" data-ar-dia-enviar>Enviar agora</button>`:''}</div></div>
+  ${st.dia?`<iframe title="Prévia do resumo do dia" sandbox="" srcdoc="${esc(st.dia.html)}" style="width:100%;height:560px;border:0;border-radius:8px;background:#fff"></iframe>`:'<div class="empty">Clique em "Ver o resumo de hoje" para montar a prévia.</div>'}
  </div>
  <div class="tablebox" style="margin-top:16px"><div class="tabletop"><h2>Últimos envios</h2></div>
   ${st.envios.length?`<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Destino</th><th>Aviso</th><th>Situação</th></tr></thead><tbody>${st.envios.map(e=>`<tr><td>${new Date(e.enviado_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</td><td>${e.canal==='email'?'E-mail':'WhatsApp'} · ${esc(e.destino)}</td><td>${esc(e.assunto||nomeTipo(e.tipo))}</td><td><span class="badge ${e.status==='enviado'?'ok':e.status==='falhou'?'bad':'warn'}">${e.status==='enviado'?'Enviado':e.status==='falhou'?'Falhou':'Canal não conectado'}</span>${e.erro?`<br><span class="caption">${esc(e.erro)}</span>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum envio ainda.</div>'}
@@ -53,7 +57,7 @@ function baixarExcel(){if(!st.rel)return;const b=Uint8Array.from(atob(st.rel.xls
  const a=document.createElement('a');a.href=url;a.download=st.rel.arquivo||'Jarvis - Resumo da semana.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}
 
 document.addEventListener('submit',async e=>{if(e.target.id!=='arNovo')return;e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{await salvarNovo(e.target)}finally{b.disabled=false}});
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-ar-teste],[data-ar-pausar],[data-ar-remover],[data-ar-prever],[data-ar-excel],[data-ar-enviar]');if(!b)return;e.preventDefault();b.disabled=true;
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-ar-teste],[data-ar-pausar],[data-ar-remover],[data-ar-prever],[data-ar-excel],[data-ar-enviar],[data-ar-editar],[data-ar-dia-prever],[data-ar-dia-enviar],[data-ar-salvar-tipos]');if(!b)return;e.preventDefault();b.disabled=true;
  try{const d=b.dataset;
   if(d.arTeste){const r=await Integrations.callFn('integrations',{action:'alertas_teste',destino:d.arTeste});toast(r.enviados?'Teste enviado.':r.sem_canal?'Canal ainda não conectado no servidor: o teste ficou registrado, nada foi enviado.':'O teste falhou: veja em Últimos envios.');await carregar(true)}
   else if(d.arPausar){const x=st.destinos.find(y=>y.id===d.arPausar);const {error}=await Cloud.client.from('alertas_destinos').update({ativo:!x.ativo}).eq('id',x.id);if(error)throw error;await carregar(true)}
@@ -61,6 +65,12 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-ar-t
    const {error}=await Cloud.client.from('alertas_destinos').delete().eq('id',d.arRemover);if(error)throw error;toast('Destino removido.');await carregar(true)}
   else if(d.arPrever!==undefined){st.relCarregando=true;render();try{st.rel=await Integrations.callFn('integrations',{action:'relatorio_semanal'})}finally{st.relCarregando=false}render()}
   else if(d.arExcel!==undefined)baixarExcel();
+  else if(d.arEditar){const x=st.destinos.find(y=>y.id===d.arEditar);if(!x)return;
+   modal('Avisos de '+(x.nome||x.destino),`<form id="arTipos" style="display:grid;gap:6px">${TIPOS.map(([t,n])=>`<label class="row" style="gap:8px;font-weight:400"><input type="checkbox" name="tipos" value="${t}" ${(x.tipos||[]).includes(t)?'checked':''} style="width:auto"> ${esc(n)}</label>`).join('')}<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="primary" data-ar-salvar-tipos="${esc(x.id)}">Salvar</button></div></form>`)}
+  else if(d.arSalvarTipos){const tipos=[...document.querySelectorAll('#arTipos input[name=tipos]:checked')].map(i=>i.value);
+   const {error}=await Cloud.client.from('alertas_destinos').update({tipos}).eq('workspace_id',Cloud.ws).eq('id',d.arSalvarTipos);if(error)throw error;closeModal();toast('Avisos atualizados.');await carregar(true)}
+  else if(d.arDiaPrever!==undefined){st.diaCarregando=true;render();try{st.dia=await Integrations.callFn('integrations',{action:'resumo_diario'})}finally{st.diaCarregando=false}render()}
+  else if(d.arDiaEnviar!==undefined){const r=await Integrations.callFn('integrations',{action:'resumo_diario_enviar'});toast(r.enviados?`Resumo enviado para ${r.enviados} destino(s).`:r.sem_canal?'Canal ainda não conectado: nada foi enviado.':'Ninguém escolheu receber o resumo do dia.');await carregar(true)}
   else if(d.arEnviar!==undefined){const r=await Integrations.callFn('integrations',{action:'relatorio_semanal_enviar'});toast(r.enviados?`Relatório enviado para ${r.enviados} destino(s).`:r.sem_canal?'Canal ainda não conectado: nada foi enviado.':'Ninguém escolheu receber o relatório semanal.');await carregar(true)}}
  catch(x){toast(x.message||String(x))}finally{b.disabled=false}});
 

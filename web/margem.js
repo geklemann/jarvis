@@ -213,5 +213,13 @@ function tendencia(meses){const custo=mapaCusto(),{r:aliq}=aliqTributos();return
 function simular(sku,preco,canal='Mercado Livre'){try{const {peds,aliq,custoDe}=calcular(),a=anuncios(peds,aliq,custoDe).find(x=>x.canal===canal&&String(x.sku)===String(sku));if(!a||!preco)return null;
  const varP=a.venda?(a.com-a.reb+a.outros)/a.venda:0,fixoU=(a.fixa+a.frete)/a.u,lucroU=preco*(1-varP-aliq)-fixoU-a.custo;
  return {preco,lucroU,margem:lucroU/preco,atual:{preco:a.preco,lucroU:a.lucroU,margem:a.margem},eq:a.eq,min:a.min,vendas:a.u}}catch{return null}}
-window.Margem={partes,diagnostico,mes:porMes,simular,raiox,tendencia,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
+// Tarifa, frete e tributos médios do período do Radar (sobre a venda): base do preço mínimo sem prejuízo de outras telas.
+function parametros(){try{const {peds,aliq}=calcular(),v=peds.reduce((x,p)=>x+p.o.gross,0);return v?{aliq,tarifa:peds.reduce((x,p)=>x+p.o.fee,0)/v,frete:peds.reduce((x,p)=>x+p.frete,0)/v}:null}catch{return null}}
+// Lucro de contribuição por canal e SKU num mês (chave "canal|sku"): base da tela Anúncios pagos.
+function lucroSkuCanal(mes){const custo=mapaCusto(),{r:aliq}=aliqTributos(),m=new Map();
+ for(const o of db.orders||[]){if(!String(o.date||'').startsWith(mes))continue;const x=lucroPedido(o,custo,aliq);if(!x)continue;const its=o.items||[],tot=its.reduce((a,i)=>a+nn(i.qty)*nn(i.price),0);
+  for(const i of its){const k=o.platform+'|'+String(i.sku||'').trim(),sh=tot?nn(i.qty)*nn(i.price)/tot:1/its.length,g=m.get(k)||{venda:0,lucro:0,u:0,semCusto:0,nome:i.title||''};
+   g.venda+=nn(o.gross)*sh;g.u+=nn(i.qty);if(x.falta)g.semCusto++;else g.lucro+=x.lucro*sh;m.set(k,g)}}
+ return m}
+window.Margem={lucroSkuCanal,parametros,partes,diagnostico,mes:porMes,simular,raiox,tendencia,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
 })();

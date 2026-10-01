@@ -14,10 +14,11 @@ import { enviarPush, tipoDoAlerta, verificarAlertas } from "../_shared/alertas.t
 import { canaisDisponiveis, enviarCanais, enviarEmail } from "../_shared/canais.ts";
 // O relatório semanal (planilha Excel) é carregado só quando usado: um problema nele não derruba a sincronização.
 const relatorio = () => import("../_shared/relatorio_semanal.ts");
+const resumoDia = () => import("../_shared/resumo_diario.ts");
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
 import { detalhesFiscaisBling, fotosHdBling, sincronizarEstoqueBling } from "../_shared/estoque_bling.ts";
 import { difalSync } from "../_shared/difal.ts";
-import { sondarAds } from "../_shared/ml_ads.ts";
+import { sincronizarAdsML, sondarAds } from "../_shared/ml_ads.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
@@ -245,6 +246,24 @@ Deno.serve(handler(async (req) => {
         }
       }
     }
+    // Resumo do dia da diretoria: todo dia depois das 7 h (Brasília), uma vez, para quem marcou "Resumo do dia".
+    {
+      const br = new Date(Date.now() - 3 * 3600_000), hojeBR = br.toISOString().slice(0, 10);
+      if (br.getUTCHours() >= 7) {
+        for (const i of list.filter((x) => x.provider === "bling" && x.settings?.resumo_diario?.dia !== hojeBR)) {
+          if (Date.now() > deadline - 20_000) break;
+          try {
+            const { count } = await db.from("alertas_destinos").select("id", { count: "exact", head: true }).eq("workspace_id", i.workspace_id).eq("ativo", true).contains("tipos", ["diario"]);
+            let env = { enviados: 0, falhas: 0, sem_canal: 0 };
+            if (count) {
+              const m = await resumoDia(), r = m.montarResumo(await m.coletarDia(db, i.workspace_id));
+              env = await enviarCanais(db, i.workspace_id, [{ tipo: "diario", assunto: r.assunto, texto: r.texto, html: r.html }]);
+            }
+            await writeSettings(db, i.workspace_id, i.provider, (s) => { s.resumo_diario = { dia: hojeBR, em: new Date().toISOString(), ...env }; });
+          } catch (e) { report.push({ workspace_id: i.workspace_id, resumo_diario_erro: String(e).slice(0, 200) }); }
+        }
+      }
+    }
     // Estoque (Bling): produtos, custo e saldo.
     for (const i of list.filter((x) => x.provider === "bling" && (!x.settings?.estoque?.fim || Date.now() - new Date(x.settings.estoque.fim).getTime() > ESTOQUE_MS))) {
       try {
@@ -293,10 +312,17 @@ Deno.serve(handler(async (req) => {
       } catch (e) { report.push({ workspace_id: i.workspace_id, difal_erro: String(e).slice(0, 200) }); }
     }
     // Mercado Ads: sondagem única (só leitura) dos endereços da API de anúncios; o resultado fica em settings.ads_probe.
-    for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.ads_probe || (!x.settings.ads_probe.advertiser && Date.now() - new Date(x.settings.ads_probe.em ?? 0).getTime() > 30 * 60_000)))) {
+    for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.ads_probe || (!x.settings.ads_probe.advertiser && Date.now() - new Date(x.settings.ads_probe.em ?? 0).getTime() > 24 * 3600_000)))) {
       if (Date.now() > deadline - 20_000) break;
       try { const r = await sondarAds(db, i.workspace_id); await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = r; }); report.push({ workspace_id: i.workspace_id, ads_probe: r.testes.map((x: any) => [x.nome, x.status]) }); }
       catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
+    }
+    // Mercado Ads: gasto por anúncio dos últimos 3 dias, uma vez a cada 6 horas, quando a conta tem anunciante.
+    for (const i of list.filter((x) => x.provider === "mercadolivre" && x.settings?.ads_probe?.advertiser?.id && (!x.settings?.ads?.em || Date.now() - new Date(x.settings.ads.em).getTime() > 6 * 3600_000))) {
+      if (Date.now() > deadline - 30_000) break;
+      const ontem = (n: number) => new Date(Date.now() - 3 * 3600_000 - n * 864e5).toISOString().slice(0, 10);
+      try { const r = await sincronizarAdsML(db, i.workspace_id, i.settings.ads_probe.advertiser.id, i.settings.ads_probe.site ?? "MLB", [ontem(0), ontem(1), ontem(2)]); await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads = { ...r, em: new Date().toISOString() }; }); report.push({ workspace_id: i.workspace_id, ads: r }); }
+      catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
     }
     // Vigia de preços da concorrência (Mercado Livre, só leitura): a cada 3 horas.
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.precos?.em || Date.now() - new Date(x.settings.precos.em).getTime() > PRECOS_MS))) {
@@ -467,6 +493,14 @@ Deno.serve(handler(async (req) => {
       await db.from("pedidos_compra").update(mud).eq("workspace_id", ws).eq("id", pc.id);
       await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: agora, action: "Pedido de compra enviado por e-mail", actor: quem || user.id, detail: `nº ${pc.numero} · ${pc.fornecedor} · ${para} · ${e.itens} item(ns) · total ${e.total.toFixed(2)}` }).then(() => null, () => null);
       return json({ ok: true, para, responder: quem, pedido: mud });
+    }
+    case "resumo_diario": case "resumo_diario_enviar": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa o resumo da diretoria.");
+      if (action === "resumo_diario_enviar" && m?.role !== "owner") throw new HttpError(403, "Só o dono envia testes e relatórios.");
+      const mod = await resumoDia(), r = mod.montarResumo(await mod.coletarDia(db, ws));
+      if (action === "resumo_diario_enviar") return json(await enviarCanais(db, ws, [{ tipo: "diario", assunto: r.assunto, texto: r.texto, html: r.html }]));
+      return json(r);
     }
     case "alertas_teste": case "relatorio_semanal_enviar": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();

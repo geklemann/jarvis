@@ -23,9 +23,10 @@ function prioridade(a){let p=0;const h=horasAte(a.prazo);if(h!=null)p+=h<0?1000:
 // ─────────── Diagnóstico por regras (instantâneo, sem IA) ───────────
 function caso(a){const m=normalized([a.motivo,a.motivo_codigo,(a.mensagens||[]).map(x=>x.texto).join(' ')].join(' '));
  if(a.tipo==='pergunta')return 'pergunta';if(a.tipo==='mensagem')return 'mensagem';if(a.tipo==='cancelamento')return 'cancelamento';
- if(/^pnr|nao (recebi|chegou)|nao foi entregue|atras|extravi/.test(m)||/pnr/.test(normalized(a.motivo_codigo||'')))return 'naochegou';
- if(/falt|incomplet|peca/.test(m))return 'faltando';if(/diferent|errad|outro produto|trocad/.test(m))return 'diferente';
- if(/defeit|quebr|danific|avari|nao funciona|estragad/.test(m))return 'defeito';if(/arrepend|nao gostei|desist|nao quero|nao serv/.test(m))return 'arrependimento';return 'outro'}
+ // Os códigos do Mercado Livre vêm em inglês (not_working_item, missing_accessories, repentant_buyer…): entram nas mesmas regras.
+ if(/^pnr|nao (recebi|chegou)|nao foi entregue|atras|extravi|not received|undelivered|delayed|lost /.test(m)||/pnr/.test(normalized(a.motivo_codigo||'')))return 'naochegou';
+ if(/falt|incomplet|peca|missing/.test(m))return 'faltando';if(/diferent|errad|outro produto|trocad|wrong item|different item/.test(m))return 'diferente';
+ if(/defeit|quebr|danific|avari|nao funciona|estragad|not working|broken|defect|damaged/.test(m))return 'defeito';if(/arrepend|nao gostei|desist|nao quero|nao serv|repentant|regret|changed mind/.test(m))return 'arrependimento';return 'outro'}
 const PLAY={
  naochegou:['Produto não chegou','Confira o rastreio. Se consta entregue, informe com gentileza e peça para verificar com vizinhos/portaria; se está atrasado, tranquilize com o novo prazo. Sem rastreio ou extravio: reembolse para não ir à mediação.',a=>`Olá! Sentimos muito pela demora. Já verificamos o envio do seu pedido e estamos acompanhando de perto com a transportadora. Assim que tivermos atualização, avisamos aqui. Se preferir, resolvemos com reembolso. Conte com a gente!`],
  defeito:['Produto com defeito ou avariado',a=>(a.valor||0)<=60?'Valor baixo: o mais rápido é reembolsar sem pedir devolução (a logística reversa custa quase o valor do produto).':'Peça uma foto (se ainda não houver) e ofereça troca ou reembolso. Aceite a devolução pelo Mercado Livre para não virar mediação.',a=>`Olá! Pedimos desculpas pelo problema com o produto. Pode nos enviar uma foto de como ele chegou? Assim resolvemos rapidinho com troca ou reembolso, como preferir.`],
@@ -207,7 +208,7 @@ setInterval(()=>{if(page==='atendimento')presConectar();const m=document.querySe
 document.addEventListener('input',e=>{if(e.target?.id==='atTexto')presEscrevendo()});
 
 addPage('atendimento','headset','Atendimento',view,'Reclamações, devoluções, mediações, perguntas e mensagens numa fila só — com a solução sugerida e a resposta pronta.','',bind);
-window.Atendimento={avisos,abertos:abertosN,carregar,lista:()=>st.lista,resumo:()=>{const ab=st.lista.filter(aberto),urg=ab.filter(x=>{const h=horasAte(x.prazo);return (h!=null&&h<24)||x.tipo==='mediacao'}),d7=Date.now()-7*864e5,res=st.lista.filter(x=>!aberto(x)&&new Date(x.fechado_em||0).getTime()>=d7);return {carregado:st.carregado,fila:ab.length,urgentes:urg.length,resolvidos7:res.length,atendendo:pres.casos.size,online:pres.online.length,ultimo:ab.sort((x,y)=>String(x.prazo||'9').localeCompare(String(y.prazo||'9')))[0]||null}}};
+window.Atendimento={caso,avisos,abertos:abertosN,carregar,lista:()=>st.lista,resumo:()=>{const ab=st.lista.filter(aberto),urg=ab.filter(x=>{const h=horasAte(x.prazo);return (h!=null&&h<24)||x.tipo==='mediacao'}),d7=Date.now()-7*864e5,res=st.lista.filter(x=>!aberto(x)&&new Date(x.fechado_em||0).getTime()>=d7);return {carregado:st.carregado,fila:ab.length,urgentes:urg.length,resolvidos7:res.length,atendendo:pres.casos.size,online:pres.online.length,ultimo:ab.sort((x,y)=>String(x.prazo||'9').localeCompare(String(y.prazo||'9')))[0]||null}}};
 // Primeira leitura assim que a empresa abre; depois a cada 2 minutos (o servidor lê o marketplace a cada 10).
 let ultimoWs=null;setInterval(()=>{if(window.Cloud?.ws&&window.Cloud.ws!==ultimoWs){ultimoWs=Cloud.ws;st.carregado=false;st.lista=[];carregar(true)}},1500);
 setInterval(()=>{if(window.Cloud?.ws&&!document.hidden)carregar(true)},120000);

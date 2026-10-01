@@ -20,8 +20,8 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 const MODS=[
  {id:'ini',ic:'home',t:'Início',grupos:[['Início',['resumo']]]},
  {id:'atd',ic:'headset',t:'Atendimento',grupos:[['Atendimento',['atendimento']],['Pós-venda',['devolucoes']],['Satisfação do cliente',['cx']]]},
- {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['metas','dashboard','margem','raiox','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']]]},
- {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
+ {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['metas','dashboard','margem','raiox','anuncios','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']]]},
+ {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','estparado','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
  {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfdevolucao','nfrecebidas']],['Tributos',['difal']],['Regras',['parametros','nfconfig']]]},
  {id:'cx',ic:'smile',t:'Experiência',grupos:[['Equipe',['cxequipe']]]},

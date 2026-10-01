@@ -12,11 +12,22 @@ const pct=v=>v==null?'—':(v*100).toFixed(1).replace('.',',')+'%';
 const pp=v=>v==null?'—':`${v>0?'+':v<0?'−':''}${Math.abs(v*100).toFixed(2).replace('.',',')} p.p.`;
 const tom=v=>v>0.00005?'green':v<-0.00005?'red':'';
 function barra(v,max){const w=max?Math.min(100,Math.abs(v)/max*100):0;return `<span class="rxbar ${v<0?'neg':'pos'}"><i style="width:${w.toFixed(1)}%"></i></span>`}
+// Tarifa da última semana contra os 28 dias anteriores, por canal (mesma regra do alerta diário: _shared/tarifas.ts).
+const somaDias=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+function tarifasSemana(){const h=new Date().toLocaleDateString('sv-SE'),j={recIni:somaDias(h,-7),recFim:somaDias(h,-1),baseIni:somaDias(h,-35),baseFim:somaDias(h,-8)},c=new Map();
+ for(const o of db.orders||[]){const g=Number(o.gross)||0;if(g<=0||!o.date)continue;const lado=o.date>=j.recIni&&o.date<=j.recFim?'r':o.date>=j.baseIni&&o.date<=j.baseFim?'b':null;if(!lado)continue;
+  const x=c.get(o.platform)||{b:{v:0,t:0,n:0},r:{v:0,t:0,n:0}};c.set(o.platform,x);x[lado].v+=g;x[lado].t+=Number(o.fee)||0;x[lado].n++}
+ return [...c].filter(([,x])=>x.r.n>=5&&x.b.v>0&&x.r.v>0).map(([k,x])=>{const base=x.b.t/x.b.v,rec=x.r.t/x.r.v,delta=rec-base;
+  return {k,base,rec,delta,n:x.r.n,venda:x.r.v,impacto:-delta*x.r.v*30/7,reajuste:rec<1?(1-base)/(1-rec)-1:0,alerta:Math.abs(delta)>=0.015&&x.r.v>=1000&&x.r.n>=20}}).sort((a,b)=>b.venda-a.venda)}
+function tarifaHtml(){const t=tarifasSemana();if(!t.length)return '';const al=t.filter(x=>x.alerta);
+ return `<section class="tablebox"><div class="tabletop"><div><h2>Tarifa por canal: última semana</h2><p class="caption">7 dias fechados contra os 28 anteriores. Mudou 1,5 ponto ou mais, o Jarvis avisa (Alertas e relatórios › Tarifa de um canal mudou).</p></div>${al.length?`<span class="badge ${al.some(x=>x.delta>0)?'bad':'ok'}">${al.length} canal(is) com mudança</span>`:'<span class="badge ok">estável</span>'}</div><div class="tablewrap"><table><thead><tr><th>Canal</th><th class="num">28 dias antes</th><th class="num">Última semana</th><th class="num">Mudança</th><th class="num">Impacto no mês</th><th class="num">Reajuste p/ manter o líquido</th></tr></thead><tbody>
+  ${t.map(x=>`<tr><td><strong>${esc(x.k)}</strong><br><span class="caption">${x.n} pedidos na semana</span></td><td class="num">${pct(x.base)}</td><td class="num">${pct(x.rec)}</td><td class="num ${x.alerta?tom(-x.delta):''}"><strong>${pp(x.delta)}</strong></td><td class="num ${x.alerta?tom(x.impacto):''}">${x.alerta?(x.impacto<0?'−':'+')+money(Math.abs(x.impacto)):'—'}</td><td class="num">${x.alerta&&x.delta>0?'+'+pct(x.reajuste):'—'}</td></tr>`).join('')}</tbody></table></div>
+  <p class="caption" style="padding:0 14px 12px">Reajuste aproximado: trata a tarifa como percentual da venda (a parte fixa por pedido pesa mais nos itens baratos). Pedidos muito recentes podem ainda não ter a tarifa final do marketplace.</p></section>`}
 function view(){if(!window.Margem?.raiox)return '<div class="empty">Carregando…</div>';
  const mB=typeof month==='string'?month:new Date().toLocaleDateString('sv-SE').slice(0,7),meses=[...new Set((db.orders||[]).map(o=>String(o.date||'').slice(0,7)))].filter(m=>m&&m<mB).sort().reverse();
  const mA=st.base&&meses.includes(st.base)?st.base:(meses.includes(mesAnt(mB))?mesAnt(mB):meses[0]);
- if(!mA)return '<div class="empty">Precisa de pelo menos dois meses de vendas para comparar.</div>';
- const r=Margem.raiox(mA,mB),max=Math.max(0.001,...r.fatores.map(f=>Math.abs(f.efeito)),Math.abs(r.canais.mix),Math.abs(r.canais.marg));
+ if(!mA)return tarifaHtml()+'<div class="empty">Precisa de pelo menos dois meses de vendas para comparar.</div>';
+ const tx=tarifaHtml(),r=Margem.raiox(mA,mB),max=Math.max(0.001,...r.fatores.map(f=>Math.abs(f.efeito)),Math.abs(r.canais.mix),Math.abs(r.canais.marg));
  const ult=[...meses.slice(0,5).reverse(),mB],tend=Margem.tendencia(ult);
  const piores=r.produtos.itens.filter(x=>x.contrib<-0.00005).slice(0,15),melhores=[...r.produtos.itens].reverse().filter(x=>x.contrib>0.00005).slice(0,5);
  return `<div class="crmbar"><span>Comparando <strong>${esc(nomeMes(mB))}</strong> (competência do cabeçalho) com</span><select data-rx="base" aria-label="Mês de comparação">${meses.slice(0,18).map(m=>`<option value="${m}" ${m===mA?'selected':''}>${esc(nomeMes(m))}</option>`).join('')}</select>
@@ -25,6 +36,7 @@ function view(){if(!window.Margem?.raiox)return '<div class="empty">Carregando�
   <div class="card kpi"><span class="kpil">Margem ${esc(nomeMes(mB))}</span><span class="kpiv ${tom(r.variacao)}">${pct(r.margemB)}</span><span class="kpis">${money(r.b.lucro)} em ${money(r.b.venda)}</span></div>
   <div class="card kpi"><span class="kpil">Variação</span><span class="kpiv ${tom(r.variacao)}">${pp(r.variacao)}</span><span class="kpis">${r.variacao!=null?`${money(r.b.venda*(r.variacao||0))} a ${r.variacao<0?'menos':'mais'} no mês, no volume atual`:''}</span></div>
   <div class="card kpi"><span class="kpil">Fora da conta</span><span class="kpiv">${r.semCusto.b}</span><span class="kpis">pedido(s) sem custo cadastrado em ${esc(nomeMes(mB))}</span></div></div>
+ ${tx}
  <div class="grid two" style="align-items:start">
  <section class="tablebox"><div class="tabletop"><h2>De onde veio a variação</h2><span class="caption">em pontos percentuais da margem</span></div><div class="tablewrap"><table><thead><tr><th>Fator</th><th class="num">${esc(nomeMes(mA))}</th><th class="num">${esc(nomeMes(mB))}</th><th class="num">Efeito na margem</th><th style="min-width:120px"></th></tr></thead><tbody>
   ${r.fatores.map(f=>`<tr><td>${f.t}</td><td class="num">${pct(f.a)}</td><td class="num">${pct(f.b)}</td><td class="num ${tom(f.efeito)}"><strong>${pp(f.efeito)}</strong></td><td>${barra(f.efeito,max)}</td></tr>`).join('')}

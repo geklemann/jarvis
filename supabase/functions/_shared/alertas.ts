@@ -1,9 +1,12 @@
 // Alertas no celular (Web Push). A cada ~15 minutos o servidor olha o que mudou e avisa quem ativou os alertas:
 // NF-e rejeitada, reclamação/mediação com prazo curto, produto que entrou em ruptura, contas que vencem hoje (uma vez
-// por dia, de manhã) e pagamentos aguardando aprovação (só para o dono). O estado fica em settings.alertas do Bling.
+// por dia, de manhã), pagamentos aguardando aprovação (só para o dono), tarifa de canal que mudou e produto que vai
+// faltar antes da reposição chegar (uma vez por dia). O estado fica em settings.alertas do Bling.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { metasDoMes } from "./metas.ts";
+import { janelas, mudancasTarifa, type PedidoTarifa } from "./tarifas.ts";
+import { emAberto, rupturasPrevistas } from "./ruptura.ts";
 
 type Alerta = { titulo: string; corpo: string; url: string; so_dono?: boolean; tag: string };
 let pronto = false;
@@ -13,6 +16,17 @@ function configurar() {
   if (!pub || !priv) return false;
   webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:suporte@jaarvis.com.br", pub, priv);
   return (pronto = true);
+}
+const pctBR = (v: number) => (v * 100).toFixed(1).replace(".", ",") + "%";
+async function tudo<T>(consulta: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  const out: T[] = [];
+  for (let de = 0; de < 50_000; de += 1000) {
+    const { data, error } = await consulta(de, de + 999);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if ((data ?? []).length < 1000) break;
+  }
+  return out;
 }
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -74,13 +88,52 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
       url: "#metas", tag: "metas",
     });
   }
+  // Tarifa de canal que mudou e produtos que vão faltar antes da reposição chegar: uma olhada por dia, depois das 9 h.
+  // Tarifa: o mesmo canal só volta a avisar depois de 7 dias. Ruptura prevista: só os produtos que entraram na lista.
+  let tarifas: Record<string, string> = estado?.tarifas ?? {}, previstas: string[] | null = estado?.previstas ?? null;
+  if (horaBR >= 9 && estado?.vendas_dia !== hojeBR) {
+    const desde60 = new Date(Date.parse(hojeBR + "T12:00:00Z") - 60 * 864e5).toISOString().slice(0, 10);
+    const ped = await tudo<PedidoTarifa>((a, b) => db.from("orders").select("platform,date,gross,fee,items").eq("workspace_id", ws).gte("date", desde60).lt("date", hojeBR).order("date").range(a, b)).catch(() => [] as PedidoTarifa[]);
+    const j = janelas(hojeBR), sete = new Date(Date.parse(hojeBR + "T12:00:00Z") - 7 * 864e5).toISOString().slice(0, 10);
+    const mud = mudancasTarifa(ped.filter((p) => p.date >= j.baseIni), hojeBR).filter((m) => !tarifas[m.canal] || tarifas[m.canal] <= sete);
+    for (const m of mud) {
+      tarifas = { ...tarifas, [m.canal]: hojeBR };
+      const sobe = m.delta > 0, prods = m.produtos.slice(0, 2).map((p) => `${p.nome.slice(0, 40)} (${pctBR(p.base)} → ${pctBR(p.recente)})`).join(" · ");
+      out.push({
+        titulo: `Tarifa ${sobe ? "subiu" : "caiu"} no ${m.canal}: ${pctBR(m.base)} → ${pctBR(m.recente)}`,
+        corpo: sobe
+          ? `Na última semana. No ritmo atual, ${brl(-m.impactoMes)} a menos de margem por mês. Para manter o mesmo líquido, os preços do canal precisam subir cerca de ${pctBR(m.reajuste)}.${prods ? " Mais afetados: " + prods : ""}`
+          : `Na última semana. No ritmo atual, ${brl(m.impactoMes)} a mais de margem por mês.${prods ? " Produtos: " + prods : ""}`,
+        url: "#raiox", tag: "tarifa",
+      });
+    }
+    const [{ data: prods }, { data: pcs }] = await Promise.all([
+      db.from("produtos").select("id,nome,saldo,prazo_reposicao,fornecedor,ignorar,formato").eq("workspace_id", ws).gt("saldo", 0).limit(5000),
+      db.from("pedidos_compra").select("status,itens").eq("workspace_id", ws).in("status", ["enviado", "parcial"]).limit(500),
+    ]);
+    const vendas = new Map<string, { q30: number; q60: number; preco: number; r: number }>(), d30 = new Date(Date.parse(hojeBR + "T12:00:00Z") - 30 * 864e5).toISOString().slice(0, 10);
+    for (const p of ped) for (const it of p.items ?? []) {
+      const sku = String(it.sku ?? "").trim(); if (!sku) continue;
+      const v = vendas.get(sku) ?? { q30: 0, q60: 0, preco: 0, r: 0 }, q = Number(it.qty) || 0;
+      v.q60 += q; if (p.date >= d30) v.q30 += q; v.r += q * (Number(it.price) || 0); v.preco = v.q60 ? v.r / v.q60 : 0;
+      vendas.set(sku, v);
+    }
+    const lista = rupturasPrevistas((prods ?? []).filter((p) => p.formato !== "V"), vendas, emAberto(pcs ?? []), hojeBR);
+    const antesP = new Set(previstas ?? []), novasP = lista.filter((x) => !antesP.has(x.sku));
+    if (novasP.length) out.push({
+      titulo: novasP.length > 1 ? `${novasP.length} produtos vão faltar antes da reposição` : `${novasP[0].nome.slice(0, 50)} vai faltar antes da reposição`,
+      corpo: novasP.slice(0, 3).map((x) => `${x.nome.slice(0, 40)}: zera por volta de ${x.zeraEm.slice(8, 10)}/${x.zeraEm.slice(5, 7)} (${Math.floor(x.dias)} dias de estoque, reposição em ${x.prazo})`).join(" · ") + (novasP.length > 3 ? ` · e mais ${novasP.length - 3}` : "") + ". Veja a Sugestão de compras.",
+      url: "#estcompras", tag: "ruptura_prevista",
+    });
+    previstas = lista.map((x) => x.sku);
+  }
   // Erro NOVO no sistema (Central de erros): um aviso com os primeiros, só para o dono.
   const { data: er } = await db.from("erros_sistema").select("mensagem,origem,pagina").eq("workspace_id", ws).is("resolvido_em", null).gt("primeiro_em", desde).limit(5);
   if (er?.length) out.push({ titulo: er.length > 1 ? `${er.length} erros novos no sistema` : "Erro novo no sistema", corpo: er.slice(0, 2).map((e) => `${e.origem === "servidor" ? "Servidor" : "Tela " + (e.pagina || "")}: ${String(e.mensagem).slice(0, 90)}`).join(" · "), url: "#erros", tag: "erros", so_dono: true });
   // Pagamentos aguardando aprovação lançados desde a última olhada (só o dono recebe).
   const { data: ap } = await db.from("payables").select("fornecedor,valor").eq("workspace_id", ws).eq("aprovacao", "pendente").gt("created_at", desde).limit(20);
   if (ap?.length) out.push({ titulo: `${ap.length} pagamento(s) para aprovar`, corpo: ap.slice(0, 3).map((p) => `${p.fornecedor ?? ""} ${brl(Number(p.valor))}`).join(" · "), url: "#pagar", tag: "aprov", so_dono: true });
-  return { alertas: out, estado: { em: agora.toISOString(), metas: horaBR >= 9 ? hojeBR : estado?.metas ?? null, rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido) } };
+  return { alertas: out, estado: { em: agora.toISOString(), metas: horaBR >= 9 ? hojeBR : estado?.metas ?? null, rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido), tarifas, previstas, vendas_dia: horaBR >= 9 ? hojeBR : estado?.vendas_dia ?? null } };
 }
 
 /** Tipo do alerta para os destinos de e-mail/WhatsApp (o mesmo nome escolhido na tela de Alertas e relatórios). */

@@ -41,11 +41,25 @@ function lote(ini,fim,modo){const {L,plano}=Contab.diario(),pe=planoEscritorio()
  const g=new Map();for(const x of out){const k=[x.d,x.deb,x.cred,x.o,x.p].join('|');const y=g.get(k)||{...x,v:0,h:HIST[x.o]||x.h,n:0};y.v+=x.v;y.n++;g.set(k,y)}return [...g.values()].map(y=>({...y,h:y.n>1?`${y.h} (${y.n} lançamentos)`:y.h}))}
 
 // ─────────── Checklist ───────────
-function checklist(m){const ini=m+'-01',fim=mesFim(m),itens=[];const add=(ok,t,s,nav)=>itens.push({ok,t,s,nav});
+// Notas com DIFAL sem guia no mês (lidas do banco quando o checklist abre; a tela DIFAL e GNRE carrega só o próprio mês).
+const extra={m:null,difal:null,carregando:false};
+function carregarExtra(m){if(extra.m===m||extra.carregando||!window.Cloud?.ws)return;extra.carregando=true;const [y,mm]=m.split('-').map(Number);
+ Cloud.client.from('difal_notas').select('chave',{count:'exact',head:true}).eq('workspace_id',Cloud.ws).eq('situacao','pendente').gte('emissao',m+'-01').lte('emissao',new Date(y,mm,0).toLocaleDateString('sv-SE')+'T23:59:59')
+  .then(({count,error})=>{extra.m=m;extra.difal=error?null:count||0}).finally(()=>{extra.carregando=false;if(page==='fechcontab')render()})}
+function checklist(m){carregarExtra(m);const ini=m+'-01',fim=mesFim(m),itens=[];const add=(ok,t,s,nav)=>itens.push({ok,t,s,nav});
  const pend=(db.bankTx||[]).filter(t=>t.status==='pendente'&&t.data<=fim);add(!pend.length,'Extrato bancário conciliado até o fim do mês',pend.length?`${pend.length} movimento(s) a conciliar`:'tudo conciliado','concbanco');
  const cc=(db.bankAccounts||[]).filter(a=>a.ativo!==false&&a.saldoExtrato!=null&&window.Tesouraria?.saldoConta);const dif=cc.filter(a=>Math.abs(Tesouraria.saldoConta(a,a.dataSaldoExtrato)-a.saldoExtrato)>=0.01),velho=cc.filter(a=>a.dataSaldoExtrato<fim);const ok=!dif.length&&!velho.length;add(ok,'Saldos bancários batem com o extrato',dif.length?dif.map(a=>a.nome).join(', ')+' diferente do banco':velho.length?'extrato de '+velho.map(a=>a.nome).join(', ')+' não chega ao fim do mês':cc.length+' conta(s) iguais ao extrato','tesouraria');
  const {s:sal}=Contab.saldos(fim,ini),trans=sal.get('9.1.01'),vt=trans?trans.deb-trans.cred:0;add(Math.abs(vt)<0.01,'Nada em conta transitória (a classificar)',Math.abs(vt)<0.01?'zerada':`${money(vt)} sem classificação`,'concbanco');
  const semNf=db.orders.filter(o=>o.date>=ini&&o.date<=fim&&!o.nf).length;add(!semNf,'Pedidos do mês com nota fiscal',semNf?`${semNf} pedido(s) sem nota`:'todos faturados','faturamento');
+ // Repasses: divergência (recebeu diferente do líquido) e atraso (previsão vencida há mais de 5 dias) nos pedidos do mês.
+ const doMes=db.orders.filter(o=>o.date>=ini&&o.date<=fim),div=doMes.filter(o=>status(o)==='Divergência'),lim=new Date(Date.now()-5*864e5).toLocaleDateString('sv-SE'),atr=doMes.filter(o=>status(o)==='A receber'&&o.due&&o.due<lim);
+ add(!div.length,'Repasses do mês sem divergência',div.length?`${div.length} pedido(s) recebidos com valor diferente do líquido`:'nenhuma divergência','reconcile');
+ add(!atr.length,'Nenhum repasse do mês atrasado',atr.length?`${atr.length} pedido(s) com a liberação vencida há mais de 5 dias (${money(atr.reduce((x,o)=>x+net(o)-paid(o),0))})`:'tudo dentro do prazo','pending');
+ const compras=(db.purchases||[]).filter(n=>(n.tipo||'compra')==='compra'&&(n.emissao||'')>=ini&&(n.emissao||'')<=fim),comTitulo=new Set((db.payables||[]).map(p=>p.invoiceId).filter(Boolean)),semTit=compras.filter(n=>!comTitulo.has(n.id)&&(n.parcelas||[]).length);
+ add(!semTit.length,'Notas de compra do mês com conta a pagar',semTit.length?`${semTit.length} nota(s) com duplicatas e sem título: ${semTit.slice(0,3).map(n=>esc(n.fornecedor||'')).join(', ')}${semTit.length>3?'…':''}`:`${compras.length} nota(s) lançadas`,'pagar');
+ add(extra.difal===0,'DIFAL do mês com guia GNRE',extra.difal==null?'conferindo…':extra.difal?`${extra.difal} nota(s) com DIFAL ainda sem guia`:'todas as notas com guia ou dispensadas','difal');
+ const devRej=(db.purchases||[]).filter(n=>n.tipo==='devolucao'&&(n.emissao||'')>=ini&&(n.emissao||'')<=fim&&/rejeit|denegad/i.test(n.situacao||''));
+ add(!devRej.length,'Notas de devolução do mês autorizadas',devRej.length?`${devRej.length} rejeitada(s) pela SEFAZ`:'nenhuma rejeitada','devolucoes');
  const semCat=(db.payables||[]).filter(p=>(p.emissao||p.vencimento||'').startsWith(m)&&!p.categoria).length;add(!semCat,'Títulos do mês com categoria',semCat?`${semCat} sem categoria`:'todos classificados','pagar');
  const atras=tributosARecolher(m).filter(x=>x.sub&&x.ant-x.pago-x.comp>1);add(!atras.length,'Guias de DIFAL de meses anteriores pagas',atras.length?`${atras.length} UF(s) com saldo antigo: ${atras.slice(0,6).map(x=>x.t).join(', ')}${atras.length>6?'…':''} (${money(atras.reduce((s,x)=>s+x.ant-x.pago-x.comp,0))})`:'nada de competências anteriores em aberto',null);
  const pe=planoEscritorio(),us=contasUsadas(ini,fim),sem=us.filter(c=>!destino(c.c,c.n,pe));add(pe.length&&!sem.length,'De-para completo com o plano do escritório',!pe.length?'importe um balancete do escritório para ler o plano de contas':sem.length?`${sem.length} conta(s) sem conta do escritório`:`${us.length} contas mapeadas`,null);
