@@ -1,16 +1,1 @@
-// Service worker mínimo: permite instalar o Jarvis como aplicativo. Não guarda dados nem páginas
-// em cache (tudo vem sempre da rede), para nunca mostrar versão antiga nem informação desatualizada.
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', () => {});
-
-// Alertas no celular: mostra a notificação enviada pelo servidor e abre o Jarvis na tela certa ao tocar.
-self.addEventListener('push', (e) => {
-  let d = {}; try { d = e.data ? e.data.json() : {}; } catch { d = { titulo: 'Jarvis', corpo: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.titulo || 'Jarvis', { body: d.corpo || '', tag: d.tag || undefined, icon: 'brand/comprastore-logo-240.png', badge: 'brand/comprastore-logo-240.png', data: { url: d.url || '#central' } }));
-});
-self.addEventListener('notificationclick', (e) => {
-  e.notification.close();
-  const alvo = new URL(e.notification.data?.url || '#central', self.registration.scope).href;
-  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ws) => { for (const w of ws) { if ('focus' in w) { w.navigate(alvo); return w.focus(); } } return self.clients.openWindow(alvo); }));
-});
+const CACHE="jarvis-estatico-v1";self.addEventListener("install",()=>self.skipWaiting()),self.addEventListener("activate",t=>t.waitUntil((async()=>{for(const a of await caches.keys())a.startsWith("jarvis-")&&a!==CACHE&&await caches.delete(a);await self.clients.claim()})())),self.addEventListener("fetch",t=>{const a=new URL(t.request.url);t.request.method!=="GET"||a.origin!==self.location.origin||!a.searchParams.has("v")||t.respondWith((async()=>{const e=await caches.open(CACHE),i=await e.match(t.request);if(i)return i;const n=await fetch(t.request);if(n.ok){await e.put(t.request,n.clone());for(const s of await e.keys()){const o=new URL(s.url);o.pathname===a.pathname&&o.search!==a.search&&await e.delete(s)}}return n})())}),self.addEventListener("push",t=>{let a={};try{a=t.data?t.data.json():{}}catch{a={titulo:"Jarvis",corpo:t.data?t.data.text():""}}t.waitUntil(self.registration.showNotification(a.titulo||"Jarvis",{body:a.corpo||"",tag:a.tag||void 0,icon:"brand/comprastore-logo-240.png",badge:"brand/comprastore-logo-240.png",data:{url:a.url||"#central"}}))}),self.addEventListener("notificationclick",t=>{t.notification.close();const a=new URL(t.notification.data?.url||"#central",self.registration.scope).href;t.waitUntil(self.clients.matchAll({type:"window",includeUncontrolled:!0}).then(e=>{for(const i of e)if("focus"in i)return i.navigate(a),i.focus();return self.clients.openWindow(a)}))});

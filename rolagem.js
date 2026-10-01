@@ -1,13 +1,1 @@
-'use strict';
-// Tabelas largas: uma barra de rolagem lateral também EM CIMA da tabela (sincronizada com a de baixo), para não ter
-// que descer a página até o fim da tabela para rolar para o lado. Vale para todas as telas.
-(()=>{
-function ligar(w){if(w.previousElementSibling?.classList.contains('rolatopo'))return w.previousElementSibling;
- const t=document.createElement('div');t.className='rolatopo';t.setAttribute('aria-hidden','true');t.innerHTML='<div></div>';w.before(t);
- let de=null;t.addEventListener('scroll',()=>{if(de==='w'){de=null;return}de='t';w.scrollLeft=t.scrollLeft});
- w.addEventListener('scroll',()=>{if(de==='t'){de=null;return}de='w';t.scrollLeft=w.scrollLeft});return t}
-function ajustar(){for(const w of document.querySelectorAll('.tablewrap')){const larga=w.scrollWidth>w.clientWidth+4;let t=w.previousElementSibling?.classList.contains('rolatopo')?w.previousElementSibling:null;
-  if(!larga){if(t)t.hidden=true;continue}t=ligar(w);t.hidden=false;t.firstChild.style.width=w.scrollWidth+'px';t.scrollLeft=w.scrollLeft}}
-let tm=0;const agendar=()=>{clearTimeout(tm);tm=setTimeout(ajustar,120)};
-new MutationObserver(agendar).observe(document.documentElement,{childList:true,subtree:true});addEventListener('resize',agendar);
-})();
+"use strict";(()=>{function n(e){if(e.previousElementSibling?.classList.contains("rolatopo"))return e.previousElementSibling;const l=document.createElement("div");l.className="rolatopo",l.setAttribute("aria-hidden","true"),l.innerHTML="<div></div>",e.before(l);let t=null;return l.addEventListener("scroll",()=>{if(t==="w"){t=null;return}t="t",e.scrollLeft=l.scrollLeft}),e.addEventListener("scroll",()=>{if(t==="t"){t=null;return}t="w",l.scrollLeft=e.scrollLeft}),l}function o(){for(const e of document.querySelectorAll(".tablewrap")){const l=e.scrollWidth>e.clientWidth+4;let t=e.previousElementSibling?.classList.contains("rolatopo")?e.previousElementSibling:null;if(!l){t&&(t.hidden=!0);continue}t=n(e),t.hidden=!1,t.firstChild.style.width=e.scrollWidth+"px",t.scrollLeft=e.scrollLeft}}let r=0;const i=()=>{clearTimeout(r),r=setTimeout(o,120)};new MutationObserver(i).observe(document.documentElement,{childList:!0,subtree:!0}),addEventListener("resize",i)})();
