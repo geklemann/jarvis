@@ -43,3 +43,14 @@ export function dataPagamentoGuia(g: { tipo: string; emissao?: string | null; ve
     : g.tipo === "nota" && g.emissao ? diaUtilSeguinte(g.emissao) : g.vencimento;
   return alvo < hoje ? hoje : alvo;
 }
+
+/** Dias a preparar na rodada automática: do dia seguinte ao último já preparado até ontem (máx. 7 dias para trás). */
+export function diasAPreparar(ultimo: string | null | undefined, hoje: string) {
+  const d = (iso: string, n: number) => { const x = new Date(iso + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const ontem = d(hoje, -1), limite = d(hoje, -7);
+  let ini = ultimo ? d(ultimo, 1) : ontem;
+  if (ini < limite) ini = limite;
+  const out: string[] = [];
+  for (let x = ini; x <= ontem; x = d(x, 1)) out.push(x);
+  return out;
+}

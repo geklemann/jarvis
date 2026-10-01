@@ -22,8 +22,9 @@ import { sondarAds } from "../_shared/ml_ads.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
-import { vigiarPrecosML } from "../_shared/precos_ml.ts";
+import { ajustarPrecosML, vigiarPrecosML } from "../_shared/precos_ml.ts";
 import { consultarResultados } from "../_shared/gnre_consulta.ts";
+import { diasAPreparar, prepararAutomatico } from "../_shared/gnre_preparo.ts";
 import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
 
 const required: Record<string, string[]> = {
@@ -305,6 +306,27 @@ Deno.serve(handler(async (req) => {
         report.push({ workspace_id: i.workspace_id, precos: { ...r, alertas: r.alertas.length } });
       } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.precos = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
     }
+    // GNRE automática: todo dia depois das 7 h (Brasília), rascunhos das guias das notas emitidas nos dias anteriores
+    // e um aviso de que estão prontas. O envio ao portal continua sendo um clique (Fiscal › DIFAL e GNRE › Guias).
+    {
+      const br = new Date(Date.now() - 3 * 3600_000), hojeBR = br.toISOString().slice(0, 10);
+      if (br.getUTCHours() >= 7) for (const i of list.filter((x) => x.provider === "bling" && x.settings?.gnre_auto?.dia !== hojeBR)) {
+        if (Date.now() > deadline - 30_000) break;
+        try {
+          const { data: wsS } = await db.from("workspace_settings").select("data").eq("workspace_id", i.workspace_id).maybeSingle();
+          if (wsS?.data?.gerencial?.fiscal?.gnre_auto === false) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.gnre_auto = { ...(s.gnre_auto ?? {}), dia: hojeBR, desligada: true }; }); continue; }
+          const r = await prepararAutomatico(db, i.workspace_id, diasAPreparar(i.settings?.gnre_auto?.ultimo, hojeBR));
+          if (r.guias) {
+            const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const a = { titulo: `${r.guias} guia(s) GNRE prontas para enviar`, corpo: `DIFAL/FCP de ${brl(r.total)} das notas de ${r.dias.map((d) => d.slice(8, 10) + "/" + d.slice(5, 7)).join(", ")}. Confira e envie em DIFAL e GNRE › Guias.`, url: "#difal", tag: "gnre" };
+            await enviarPush(db, i.workspace_id, [a]).catch(() => null);
+            await enviarCanais(db, i.workspace_id, [{ tipo: "gnre", assunto: `Jarvis: ${a.titulo}`, texto: `${a.corpo}\nAbrir: https://jaarvis.com.br/#difal` }]).catch(() => null);
+          }
+          await writeSettings(db, i.workspace_id, i.provider, (s) => { s.gnre_auto = { dia: hojeBR, ultimo: r.dias.at(-1) ?? s.gnre_auto?.ultimo ?? null, guias: r.guias, total: r.total, em: new Date().toISOString() }; });
+          report.push({ workspace_id: i.workspace_id, gnre_auto: r });
+        } catch (e) { report.push({ workspace_id: i.workspace_id, gnre_auto_erro: String(e).slice(0, 200) }); }
+      }
+    }
     // GNRE: guias enviadas ao portal têm o resultado consultado sozinho (emitida vira título no contas a pagar).
     {
       const { data: pend } = await db.from("gnre_guias").select("workspace_id").eq("status", "enviada").lt("updated_at", new Date(Date.now() - 60_000).toISOString()).limit(500);
@@ -398,6 +420,27 @@ Deno.serve(handler(async (req) => {
     case "push_teste": return json(await enviarPush(db, ws, [{ titulo: "Jarvis: alertas ligados", corpo: "Você vai receber aqui NF-e rejeitada, reclamação urgente, ruptura, vencimentos do dia e aprovações.", url: "#central", tag: "teste" }]));
     // Alertas e relatórios por e-mail e WhatsApp: quais canais estão ligados, teste para um destino e o relatório semanal.
     case "alertas_canais": return json(canaisDisponiveis());
+    case "contas_email_info": {
+      // Caixa de boletos da empresa (cria na primeira vez, com o e-mail de quem abriu como remetente autorizado).
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa contas a pagar.");
+      let { data: cx } = await db.from("caixas_email").select("*").eq("workspace_id", ws).maybeSingle();
+      if (!cx) {
+        const token = [...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(36).padStart(2, "0")).join("").slice(0, 10);
+        ({ data: cx } = await db.from("caixas_email").insert({ workspace_id: ws, token, remetentes: user.email ? [user.email.toLowerCase()] : [] }).select("*").single());
+      }
+      const dominio = Deno.env.get("CONTAS_EMAIL_DOMINIO") || null;
+      const { data: log } = await db.from("contas_email_log").select("recebido_em,de,assunto,criados,resultado").eq("workspace_id", ws).order("recebido_em", { ascending: false }).limit(20);
+      return json({ caixa: cx, endereco: dominio ? `boletos-${cx.token}@${dominio}` : null, configurado: !!(dominio && Deno.env.get("RESEND_WEBHOOK_SECRET") && (Deno.env.get("RESEND_RECEBER_KEY") || Deno.env.get("RESEND_API_KEY"))), log: log ?? [] });
+    }
+    case "precos_ajustar": {
+      // Só o que a pessoa escolheu e confirmou na tela (Vigia de preços), com a margem conferida antes.
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não altera preços.");
+      const itens = Array.isArray(body.itens) ? body.itens.map((x: any) => ({ item_id: String(x.item_id ?? ""), preco: Number(x.preco) })) : [];
+      if (!itens.length) throw new HttpError(400, "Escolha os anúncios.");
+      return json(await ajustarPrecosML(db, ws, itens, user.email ?? user.id));
+    }
     case "precos_vigiar": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
       if (!["owner", "member", "financeiro", "estoque", "atendimento"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa preços.");

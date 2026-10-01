@@ -69,3 +69,51 @@ test('central de erros: o mesmo erro com ids diferentes vira uma linha só (nave
   assert.equal(ev(`Erros.assinatura('Pedido 2000014811757289 não encontrado','')`), ev(`Erros.assinatura('Pedido 2000099999999999 não encontrado','')`));
   assert.equal(assinaturaErro('integrations', 'precos_vigiar', 'Falha 503 no item MLB123456'), 'Falha # no item MLB# @ integrations:precos_vigiar');
 });
+
+// Raio-X. Setembro: A 100 (tarifa 20, custo 40) → margem 100−20−40−24 = 16%. Outubro: A 100 (tarifa 25, custo 40) = 11
+// e B 100 (tarifa 20, custo 70) = −14 → margem (11 − 14) ÷ 200 = −1,5%. Variação −17,5 p.p.:
+// tarifa 20% → 22,5% (−2,5 p.p.), custo 40% → 55% (−15 p.p.), tributos iguais.
+test('Raio-X da margem: fatores e produtos somam exatamente a variação', () => {
+  ctx.__o = [
+    { id: 'S1', platform: 'Mercado Livre', date: '2026-09-10', gross: 100, fee: 20, items: [{ sku: 'A', qty: 1, price: 100 }] },
+    { id: 'O1', platform: 'Mercado Livre', date: '2026-10-10', gross: 100, fee: 25, items: [{ sku: 'A', qty: 1, price: 100 }] },
+    { id: 'O2', platform: 'Shopee', date: '2026-10-11', gross: 100, fee: 20, items: [{ sku: 'B', qty: 1, price: 100 }] },
+  ];
+  ev(`db.orders=window.__o;db.products=[{id:'A',custo:40},{id:'B',custo:70}]`);
+  const r = JSON.parse(JSON.stringify(ev(`Margem.raiox('2026-09','2026-10')`)));
+  assert.equal(centavos(r.margemA * 100), 1600);
+  assert.equal(centavos(r.margemB * 100), -150);
+  const f = Object.fromEntries(r.fatores.map((x) => [x.id, x.efeito]));
+  assert.equal(centavos(f.tarifa * 100), -250);
+  assert.equal(centavos(f.custo * 100), -1500);
+  assert.equal(centavos(f.tributos * 100), 0);
+  const soma = (l) => l.reduce((s, x) => s + x, 0);
+  assert.equal(centavos(soma(Object.values(f)) * 100), centavos(r.variacao * 100), 'fatores = variação');
+  assert.equal(centavos(soma(r.produtos.itens.map((x) => x.contrib)) * 100), centavos(r.variacao * 100), 'produtos = variação');
+  assert.equal(centavos((r.canais.mix + r.canais.marg) * 100), centavos(r.variacao * 100), 'mix + margem = variação');
+  // A: 11/200 − 16/100 = −10,5 p.p. (piorou e perdeu peso); B: −14/200 = −7 p.p. (novo, no prejuízo).
+  assert.deepEqual(r.produtos.itens.map((x) => [x.k, centavos(x.contrib * 100)]), [['A', -1050], ['B', -700]]);
+  const a = r.produtos.itens.find((x) => x.k === 'A');
+  assert.match(a.diag, /Tarifa subiu de 20,0% para 25,0%/);
+});
+
+// Ajuste de preço: regras e margem mínima. SKU A: venda 100, tarifa 20%, custo 40, tributos 24% (últimos 30 dias).
+// A R$ 95: 95 × (1 − 0,20 − 0,24) − 40 = 13,20 (13,9%). A R$ 80: 80 × 0,56 − 40 = 4,80 (6,0%) — abaixo de 10% fica de fora.
+test('ajuste de preço: regras e bloqueio abaixo da margem mínima', () => {
+  ctx.__o = [{ id: 'P1', platform: 'Mercado Livre', date: d(3), gross: 100, fee: 20, items: [{ sku: 'A', qty: 1, price: 100 }] }];
+  ev(`db.orders=window.__o;db.receipts=[];db.products=[{id:'A',custo:40}]`);
+  const x = { item_id: 'MLB1', sku: 'A', meu_preco: 100, menor_preco: 95.01, preco_para_ganhar: 94.5 };
+  ctx.__x = x;
+  assert.equal(ev(`Concorrencia.novoPreco(window.__x,'igualar')`), 95);
+  assert.equal(ev(`Concorrencia.novoPreco(window.__x,'ganhar')`), 94.5);
+  assert.equal(ev(`Concorrencia.novoPreco(window.__x,'pct','−5')`), 95, 'sinal de menos tipográfico também vale');
+  assert.equal(ev(`Concorrencia.novoPreco(window.__x,'pct','+3')`), 103);
+  assert.equal(ev(`Concorrencia.novoPreco(window.__x,'fixo','89,90')`), 89.9);
+  assert.equal(ev(`Concorrencia.novoPreco({...window.__x,menor_preco:null},'igualar')`), null);
+  const [ok] = JSON.parse(JSON.stringify(ev(`Concorrencia.previa([window.__x],'igualar','',10)`)));
+  assert.equal(ok.bloqueado, false);
+  assert.equal(centavos(ok.lucroU), 1320);
+  const [fora] = JSON.parse(JSON.stringify(ev(`Concorrencia.previa([window.__x],'fixo','80',10)`)));
+  assert.equal(fora.bloqueado, true);
+  assert.match(fora.motivo, /margem 6,0% abaixo do mínimo de 10%/);
+});

@@ -29,3 +29,7 @@ verify_jwt = false
 
 [functions.ponto]
 verify_jwt = false
+
+[functions.contas-email]
+# Recebe os avisos do Resend (e-mail chegou na caixa de boletos), sem login; confere a assinatura do webhook.
+verify_jwt = false

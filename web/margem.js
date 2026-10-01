@@ -175,9 +175,43 @@ function porMes(mes){const custo=mapaCusto(),{r:aliq}=aliqTributos(),out={},S=c=
  for(const o of db.orders||[]){if(!String(o.date||'').startsWith(mes))continue;const x=lucroPedido(o,custo,aliq);if(!x)continue;
   for(const c of ['',o.platform]){const s=S(c);if(x.falta){s.semCusto++;continue}s.venda+=Number(o.gross)||0;s.lucro+=x.lucro;s.pedidos++}}
  return out}
+// ─── Raio-X: por que a margem mudou de um mês (A) para outro (B) ───
+// Margem = 1 − tarifa% − frete% − custo% − tributos% (sobre as vendas dos pedidos com custo). A variação se divide
+// exatamente entre esses fatores; por canal e por produto, a contribuição de cada um = lucroB/vendasB − lucroA/vendasA
+// (soma = variação total), separada em efeito MIX (vender mais do que tem margem menor) e efeito MARGEM (o próprio
+// item ficou pior). Itens de um pedido recebem tarifa, frete e tributos na proporção do valor.
+function acumulaMes(mes,custo,aliq){const T={venda:0,fee:0,frete:0,cmv:0,trib:0,lucro:0,pedidos:0,semCusto:0},canais={},prods={};
+ const S=(o,k)=>o[k]||(o[k]={venda:0,fee:0,frete:0,cmv:0,trib:0,lucro:0,u:0,nome:k});
+ for(const o of db.orders||[]){if(!String(o.date||'').startsWith(mes))continue;const x=lucroPedido(o,custo,aliq);if(!x)continue;if(x.falta){T.semCusto++;continue}
+  const g=nn(o.gross),its=o.items||[],tot=its.reduce((a,i)=>a+nn(i.qty)*nn(i.price),0);
+  for(const [obj,dv] of [[T,1],[S(canais,o.platform),1]]){obj.venda+=g*dv;obj.fee+=nn(o.fee);obj.frete+=x.frete;obj.cmv+=x.cmv;obj.trib+=x.trib;obj.lucro+=x.lucro}T.pedidos++;
+  for(const i of its){const q=nn(i.qty),sh=tot?q*nn(i.price)/tot:1/its.length,k=String(i.sku||i.title||'?').trim(),c=custo.get(k),p=S(prods,k);
+   if(i.title)p.nome=i.title;p.sku=k;const cm=c?(c.c+c.e)*q:0;p.venda+=g*sh;p.fee+=nn(o.fee)*sh;p.frete+=x.frete*sh;p.trib+=x.trib*sh;p.cmv+=cm;p.u+=q;p.lucro+=g*sh-nn(o.fee)*sh-x.frete*sh-x.trib*sh-cm}}
+ return {T,canais,prods}}
+const pc=(o,k)=>o&&o.venda?o[k]/o.venda:0;
+function efeitos(A,B,mapA,mapB){const VA=A.venda||1,VB=B.venda||1,mA=A.venda?A.lucro/A.venda:0,ks=new Set([...Object.keys(mapA),...Object.keys(mapB)]);let mix=0,marg=0;const itens=[];
+ for(const k of ks){const a=mapA[k],b=mapB[k],wA=(a?.venda||0)/VA,wB=(b?.venda||0)/VB,ma=a?.venda?a.lucro/a.venda:mA,mb=b?.venda?b.lucro/b.venda:ma;
+  // Mix: peso que mudou × (margem do item − margem média), para o total do mix somar zero quando só redistribui.
+  const eMix=(wB-wA)*(ma-mA),eMarg=wB*(mb-ma),contrib=(b?.lucro||0)/VB-(a?.lucro||0)/VA;mix+=eMix;marg+=eMarg;itens.push({k,a,b,wA,wB,ma:a?.venda?ma:null,mb:b?.venda?mb:null,eMix,eMarg,contrib})}
+ return {mix,marg,itens:itens.sort((x,y)=>x.contrib-y.contrib)}}
+/** O que mudou na margem de A para B: fatores, canais e produtos (com o que piorou em cada um). */
+function raiox(mA,mB){const custo=mapaCusto(),{r:aliq}=aliqTributos(),A=acumulaMes(mA,custo,aliq),B=acumulaMes(mB,custo,aliq),a=A.T,b=B.T;
+ const fat=[['tarifa','Tarifa dos marketplaces','fee'],['frete','Frete pago pela loja','frete'],['custo','Custo dos produtos','cmv'],['tributos','Tributos sobre a venda','trib']].map(([id,t,k])=>({id,t,a:pc(a,k),b:pc(b,k),efeito:-(pc(b,k)-pc(a,k))}));
+ const mA_=a.venda?a.lucro/a.venda:null,mB_=b.venda?b.lucro/b.venda:null,canais=efeitos(a,b,A.canais,B.canais),prods=efeitos(a,b,A.prods,B.prods);
+ // O que mudou em cada produto que puxou a margem para baixo (por unidade).
+ const diag=x=>{const a=x.a,b=x.b;if(!a?.u||!b?.u)return b?.u?'Produto novo no mês':'Deixou de vender';const pa=a.venda/a.u,pb=b.venda/b.u,ca=a.cmv/a.u,cb=b.cmv/b.u,ta=pc(a,'fee'),tb=pc(b,'fee'),fa=a.frete/a.u,fb=b.frete/b.u;
+  const l=[];if(pb<pa*0.97)l.push(['preco',(pb/pa-1),`Preço médio caiu ${((1-pb/pa)*100).toFixed(1).replace('.',',')}% (${money(pa)} → ${money(pb)}): campanha, cupom ou preço baixado`]);
+  if(cb>ca*1.03)l.push(['custo',(cb/ca-1),`Custo subiu ${((cb/ca-1)*100).toFixed(1).replace('.',',')}% (${money(ca)} → ${money(cb)}): renegociar ou repassar no preço`]);
+  if(tb>ta+0.01)l.push(['tarifa',tb-ta,`Tarifa subiu de ${p1(ta)} para ${p1(tb)}: conferir tipo de anúncio, faixa de comissão e campanhas`]);
+  if(fb>fa*1.1&&fb-fa>0.5)l.push(['frete',(fb/(fa||1)-1),`Frete por unidade subiu de ${money(fa)} para ${money(fb)}`]);
+  return l.length?l.sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])).map(x=>x[2]).join(' · '):'Mudança pequena em vários fatores'};
+ for(const x of prods.itens)x.diag=diag(x);
+ return {mA,mB,a,b,margemA:mA_,margemB:mB_,variacao:mA_!=null&&mB_!=null?mB_-mA_:null,fatores:fat,aliq,canais,produtos:prods,semCusto:{a:a.semCusto,b:b.semCusto}}}
+/** Margem e fatores mês a mês (tendência). */
+function tendencia(meses){const custo=mapaCusto(),{r:aliq}=aliqTributos();return meses.map(m=>{const t=acumulaMes(m,custo,aliq).T;return {mes:m,venda:t.venda,tarifa:pc(t,'fee'),frete:pc(t,'frete'),custo:pc(t,'cmv'),tributos:pc(t,'trib'),margem:t.venda?t.lucro/t.venda:null}})}
 // Margem por unidade se o anúncio fosse vendido a outro preço (mesmas tarifas %, taxa fixa, frete e custo do histórico).
 function simular(sku,preco,canal='Mercado Livre'){try{const {peds,aliq,custoDe}=calcular(),a=anuncios(peds,aliq,custoDe).find(x=>x.canal===canal&&String(x.sku)===String(sku));if(!a||!preco)return null;
  const varP=a.venda?(a.com-a.reb+a.outros)/a.venda:0,fixoU=(a.fixa+a.frete)/a.u,lucroU=preco*(1-varP-aliq)-fixoU-a.custo;
  return {preco,lucroU,margem:lucroU/preco,atual:{preco:a.preco,lucroU:a.lucroU,margem:a.margem},eq:a.eq,min:a.min,vendas:a.u}}catch{return null}}
-window.Margem={partes,diagnostico,mes:porMes,simular,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
+window.Margem={partes,diagnostico,mes:porMes,simular,raiox,tendencia,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
 })();

@@ -6,9 +6,9 @@
 // Sem certificado, "xml" devolve o lote para enviar pelo site do Portal GNRE.
 import { authorize, cors, json, HttpError, round } from "../_shared/common.ts";
 import { configFiscal } from "../_shared/nfe_focus.ts";
-import { blingGet, notaAindaValida } from "../_shared/difal.ts";
 import { dataPagamentoGuia } from "../_shared/gnre_regras.ts";
 import { consultarResultados } from "../_shared/gnre_consulta.ts";
+import { prepararPorNota } from "../_shared/gnre_preparo.ts";
 import { ambienteGnre, consultarConfigUf, enviarLote, montarLote, temCertificado, type Emitente, type GuiaIn } from "../_shared/gnre.ts";
 
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // dia em Brasília
@@ -73,15 +73,7 @@ Deno.serve(async (req) => {
       case "preparar": {
         const criadas: any[] = [];
         if (Array.isArray(body.chaves) && body.chaves.length) {
-          const { data: ns } = await db.from("difal_notas").select("*").eq("workspace_id", ws).in("chave", body.chaves.slice(0, 200).map(String)).eq("situacao", "pendente");
-          const get = await blingGet(db, ws).catch(() => null);
-          for (const n of ns ?? []) {
-            if (get && !(await notaAindaValida(get, n.bling_id))) { await db.from("difal_notas").update({ situacao: "cancelada", updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("chave", n.chave); continue; }
-            const g = { workspace_id: ws, id: `GN-${n.uf}-${String(n.numero ?? n.chave.slice(25, 34))}-${Date.now().toString(36)}`, uf: n.uf, tipo: "nota", referencia: n.chave, notas: [n.chave], valor_icms: n.v_difal, valor_fcp: n.v_fcp, total: round(Number(n.v_difal) + Number(n.v_fcp)), vencimento: hoje(), status: "rascunho", criado_por: quem };
-            await db.from("gnre_guias").insert(g);
-            await db.from("difal_notas").update({ situacao: "guia", guia_id: g.id, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("chave", n.chave);
-            criadas.push(g);
-          }
+          criadas.push(...(await prepararPorNota(db, ws, body.chaves.map(String), quem)));
         } else if (body.mensal?.uf && /^\d{4}-\d{2}$/.test(String(body.mensal.mes))) {
           const uf = String(body.mensal.uf), mes = String(body.mensal.mes);
           if (!difalUf[uf]?.ie) throw new HttpError(400, `Sem inscrição estadual cadastrada em ${uf}: o DIFAL de ${uf} é por nota.`);

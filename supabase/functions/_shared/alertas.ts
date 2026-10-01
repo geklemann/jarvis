@@ -74,6 +74,9 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
       url: "#metas", tag: "metas",
     });
   }
+  // Erro NOVO no sistema (Central de erros): um aviso com os primeiros, só para o dono.
+  const { data: er } = await db.from("erros_sistema").select("mensagem,origem,pagina").eq("workspace_id", ws).is("resolvido_em", null).gt("primeiro_em", desde).limit(5);
+  if (er?.length) out.push({ titulo: er.length > 1 ? `${er.length} erros novos no sistema` : "Erro novo no sistema", corpo: er.slice(0, 2).map((e) => `${e.origem === "servidor" ? "Servidor" : "Tela " + (e.pagina || "")}: ${String(e.mensagem).slice(0, 90)}`).join(" · "), url: "#erros", tag: "erros", so_dono: true });
   // Pagamentos aguardando aprovação lançados desde a última olhada (só o dono recebe).
   const { data: ap } = await db.from("payables").select("fornecedor,valor").eq("workspace_id", ws).eq("aprovacao", "pendente").gt("created_at", desde).limit(20);
   if (ap?.length) out.push({ titulo: `${ap.length} pagamento(s) para aprovar`, corpo: ap.slice(0, 3).map((p) => `${p.fornecedor ?? ""} ${brl(Number(p.valor))}`).join(" · "), url: "#pagar", tag: "aprov", so_dono: true });

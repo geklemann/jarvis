@@ -12,6 +12,8 @@ $regras = @{
   'ANTHROPIC_API_KEY' = @(40, 200); 'CNPJA_API_KEY' = @(20, 200); 'FOCUS_NFE_TOKEN_HOMOLOGACAO' = @(20, 100); 'FOCUS_NFE_TOKEN' = @(20, 100)
   # Alertas e relatório por e-mail (Resend) e WhatsApp (Meta), e cobrança da assinatura (Asaas).
   'RESEND_API_KEY' = @(20, 100); 'ALERTAS_REMETENTE' = @(5, 120)
+  # Contas a pagar por e-mail: chave do Resend com acesso ao recebimento, segredo do webhook e o domínio de recebimento.
+  'RESEND_RECEBER_KEY' = @(20, 100); 'RESEND_WEBHOOK_SECRET' = @(20, 120); 'CONTAS_EMAIL_DOMINIO' = @(5, 80)
   'WHATSAPP_TOKEN' = @(50, 800); 'WHATSAPP_PHONE_ID' = @(8, 30); 'WHATSAPP_TEMPLATE' = @(3, 80)
   'ASAAS_API_KEY' = @(30, 400); 'ASAAS_WEBHOOK_TOKEN' = @(16, 200); 'ASAAS_AMBIENTE' = @(7, 8)
 }

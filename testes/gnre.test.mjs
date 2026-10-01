@@ -69,3 +69,11 @@ test('menu: as telas voltam ao estado original e as preferências ficam', () => 
   assert.equal(ev(`window.__o.pref`), 'auto', 'chave fora da lista não é mexida');
   assert.ok(ev(`Reiniciar.quantas()`) >= 40, 'telas do sistema registradas');
 });
+
+import { diasAPreparar } from '../supabase/functions/_shared/gnre_regras.ts';
+test('GNRE automática: dias a preparar vão do dia seguinte ao último preparado até ontem (máx. 7 dias)', () => {
+  assert.deepEqual(diasAPreparar(null, '2026-10-05'), ['2026-10-04'], 'primeira vez: só ontem');
+  assert.deepEqual(diasAPreparar('2026-10-01', '2026-10-05'), ['2026-10-02', '2026-10-03', '2026-10-04'], 'segunda-feira pega sexta, sábado e domingo');
+  assert.deepEqual(diasAPreparar('2026-10-04', '2026-10-05'), [], 'já preparado');
+  assert.deepEqual(diasAPreparar('2026-09-01', '2026-10-05'), ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'], 'parado há muito tempo: no máximo 7 dias');
+});

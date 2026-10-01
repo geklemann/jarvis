@@ -1,0 +1,19 @@
+# Monitor diário: roda todos os testes (inclusive o que abre todas as telas) e confere o site no ar e as funções do
+# servidor. Se falhar, o GitHub avisa o dono do repositório por e-mail.
+name: Monitor diário do Jarvis
+on:
+  schedule:
+    - cron: "0 10 * * *" # 7 h em Brasília
+  workflow_dispatch:
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Testes (todas as telas e regras)
+        run: npm test
+      - name: Site no ar e funções do servidor
+        run: node ops/verificar-site.mjs https://jaarvis.com.br/

@@ -590,3 +590,5 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .ufsel-painel{position:absolute;z-index:30;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:10px 12px;width:min(330px,86vw)}
 .ufsel-todas{display:flex;gap:8px;align-items:center;font-weight:600;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
 .ufsel-grade{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px}.ufsel-grade label{display:flex;gap:6px;align-items:center;font-weight:400;white-space:nowrap}.ufsel-grade label.muted{opacity:.55}.ufsel-grade small{opacity:.7}
+/* Raio-X da margem: barra do efeito de cada fator */
+.rxbar{display:block;height:8px;border-radius:5px;background:color-mix(in srgb,currentColor 10%,transparent);overflow:hidden}.rxbar i{display:block;height:100%;border-radius:5px}.rxbar.neg i{background:var(--red)}.rxbar.pos i{background:var(--green)}

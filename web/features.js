@@ -158,6 +158,8 @@ navItems.splice(navItems.findIndex(n=>n[0]==='reports'),0,['produtos','box','Pro
 const pages={integracoes:[integrationsView,'Conecte ERP e marketplaces. Os dados chegam sozinhos, você confirma o que importa.'],fluxo:[flowView,'Contas a receber e a pagar do ERP lado a lado com os repasses.'],produtos:[productsView,'O que mais vende, onde e quanto representa.'],estados:[statesView,'Para onde a operação vende — por receita, pedidos e ticket.'],clientes:[crmView,'Quem compra, quem voltou, quem precisa de atenção.']};
 // Outras telas (ex.: gestao.js) se registram aqui: entram no menu antes de `before`.
 window.addPage=(id,ic,label,view,sub,before,bind)=>{pages[id]=[view,sub,bind];const i=navItems.findIndex(n=>n[0]===before);navItems.splice(i<0?navItems.length:i,0,[id,ic,label])};
+// Monitor das telas (testes/telas.test.mjs): lista as telas registradas e desenha uma delas.
+window.Telas={ids:()=>Object.keys(pages),html:id=>pages[id][0]()};
 addPage('equipe','users','Equipe e acessos',equipeView,'Libere quem pediu acesso e veja quem usa o portal.','',()=>{});
 const subtitle0=subtitle;subtitle=function(){return pages[page]?.[1]||subtitle0()};
 const known=()=>new Set([...navItems.map(n=>n[0]),...Object.keys(platforms)]);

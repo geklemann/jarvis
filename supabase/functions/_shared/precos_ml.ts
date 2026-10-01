@@ -56,3 +56,30 @@ export async function vigiarPrecosML(db: SupabaseClient, ws: string, deadline: n
   if (ids.length && ids.length < 1000) { const fora = (antes ?? []).map((a: any) => a.item_id).filter((x: string) => !ids.includes(x)); if (fora.length) await db.from("precos_concorrencia").delete().eq("workspace_id", ws).in("item_id", fora.slice(0, 500)); }
   return { ativos: ids.length, verificados: linhas.length, com_concorrencia: linhas.filter((l) => l.concorrentes > 0).length, mais_caros: linhas.filter((l) => ["mais_caro", "perdendo"].includes(l.situacao)).length, alertas, em: agora.toISOString() };
 }
+
+/** Altera o preço de anúncios do Mercado Livre (só o que a pessoa confirmou na tela). Anúncio com variações recebe o
+ *  mesmo preço em todas. Cada alteração vai para a auditoria e para o histórico do vigia. */
+export async function ajustarPrecosML(db: SupabaseClient, ws: string, itens: { item_id: string; preco: number }[], quem: string) {
+  const sec = await validSecret(db, ws, "mercadolivre");
+  const tok = sec.access_token as string, res: { item_id: string; ok: boolean; antes?: number | null; preco: number; erro?: string }[] = [];
+  const put = async (id: string, corpo: unknown) => {
+    const r = await fetch(`${API}/items/${id}`, { method: "PUT", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j?.message || j?.error || `HTTP ${r.status}`);
+    return j;
+  };
+  for (const it of itens.slice(0, 100)) {
+    const preco = Math.round(Number(it.preco) * 100) / 100, id = String(it.item_id);
+    if (!/^MLB\d+$/.test(id) || !(preco > 0)) { res.push({ item_id: id, ok: false, preco, erro: "Anúncio ou preço inválido." }); continue; }
+    try {
+      const atual = await get(tok, `/items/${id}?attributes=price,variations`);
+      const vars = (atual?.variations ?? []) as any[];
+      await put(id, vars.length ? { variations: vars.map((v) => ({ id: v.id, price: preco })) } : { price: preco });
+      res.push({ item_id: id, ok: true, antes: atual?.price ?? null, preco });
+      const { data: lin } = await db.from("precos_concorrencia").select("menor_preco,historico").eq("workspace_id", ws).eq("item_id", id).maybeSingle();
+      if (lin) await db.from("precos_concorrencia").update({ meu_preco: preco, historico: novoHistorico(lin.historico ?? [], preco, lin.menor_preco, new Date()), situacao: classificar(preco, lin.menor_preco) }).eq("workspace_id", ws).eq("item_id", id);
+      await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: new Date().toISOString(), action: "Preço alterado no Mercado Livre", actor: quem, detail: `${id} · ${atual?.price ?? "?"} → ${preco.toFixed(2)}` }).then(() => null, () => null);
+    } catch (e) { res.push({ item_id: id, ok: false, preco, erro: String((e as Error).message ?? e).slice(0, 200) }); }
+  }
+  return { alterados: res.filter((r) => r.ok).length, falhas: res.filter((r) => !r.ok).length, itens: res };
+}
