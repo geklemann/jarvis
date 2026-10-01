@@ -1,0 +1,8 @@
+{
+  "name": "jarvis-backup",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-15",
+  "workers_dev": true,
+  "preview_urls": false,
+  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "jarvis-backups" }]
+}
