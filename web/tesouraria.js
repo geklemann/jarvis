@@ -15,6 +15,7 @@ const hoje=()=>new Date().toLocaleDateString('sv-SE');
 const BANCOS={'001':'Banco do Brasil','033':'Santander','077':'Inter','104':'Caixa','208':'BTG Pactual','237':'Bradesco','260':'Nubank','323':'Mercado Pago','336':'C6 Bank','341':'Itaú','380':'PicPay','422':'Safra','748':'Sicredi','756':'Sicoob','0341':'Itaú'};
 const TIPOS={corrente:'Conta corrente',aplicacao:'Aplicação',carteira:'Carteira de marketplace',caixa:'Caixa'};
 const ui={conta:'',filtro:'pendentes',sel:null};
+window.Reiniciar?.registrar(ui,['conta','filtro','sel']); // estado de tela: volta ao original ao clicar no menu
 
 // ─────────────── Saldos ───────────────
 // Saldo = saldo inicial (na data informada) + movimentos depois dela.

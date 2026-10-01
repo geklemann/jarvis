@@ -38,6 +38,7 @@ function linhaDoTempo(c){const ev=[];const ids=new Set((c.pedidos||[]).map(o=>St
 
 // ─────────────── Próximo brinquedo (lista de oportunidades por fase) ───────────────
 const ui={janela:'30',fase:'',busca:''};
+window.Reiniciar?.registrar(ui,['janela','fase','busca']); // estado de tela: volta ao original ao clicar no menu
 function fasesView(){const cl=(window.CRM?.clientes?.()||[]).map(c=>({c,p:perfil(c)})).filter(x=>x.p?.prox),h=hoje(),lim=addMeses(h,Number(ui.janela)/30.44);
  const desde=addMeses(h,-2);const l=cl.filter(x=>(ui.janela==='todos'||(x.p.janela<=lim&&x.p.janela>=desde))&&(!ui.fase||String(x.p.prox.id)===ui.fase)&&(!ui.busca||normalized(x.c.nome+' '+x.c.cidade).includes(normalized(ui.busca)))).sort((a,b)=>a.p.janela.localeCompare(b.p.janela));
  const porFase=FASES.map(f=>[f,cl.filter(x=>x.p.prox.id===f.id&&x.p.janela<=lim&&x.p.janela>=addMeses(h,-2)).length]);

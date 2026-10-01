@@ -4,6 +4,7 @@
 // 12 semanas (repasses a receber dos marketplaces × títulos a pagar), com o saldo semana a semana.
 (()=>{
 const ui={cenOn:false,cen:{atraso:{},vendas:0,adiar:0,antecipar:false,taxa:2.5},aba:'diario',meses:6,abertos:new Set(),futuras:true,dias:30,passado:14,visao:'semana',sel:null};
+window.Reiniciar?.registrar(ui,['cenOn','cen','aba','meses','abertos','futuras','dias','passado','visao','sel']); // estado de tela: volta ao original ao clicar no menu
 const GRUPOS=[
  ['e','Repasses dos marketplaces',t=>t.valor>0&&t.vinculo?.tipo==='transferencia'&&/shopee|maree|mercado pago|wolfach|magalu/.test(normalized((t.vinculo.desc||'')+' '+t.descricao)),t=>/shopee|maree/.test(normalized((t.vinculo.desc||'')+' '+t.descricao))?'Shopee':/magalu/.test(normalized(t.vinculo.desc||''))?'Magalu':'Mercado Livre / Mercado Pago'],
  ['e','Resgates de aplicações',t=>t.valor>0&&t.vinculo?.tipo==='aplicacao',()=>'Resgates'],

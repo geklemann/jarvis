@@ -9,6 +9,7 @@
 const dBR=d=>d?new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const dig=s=>String(s||'').replace(/\D/g,'');
 const st={rows:null,cand:[],carregando:false,auto:false,filtro:'abertas'};
+window.Reiniciar?.registrar(st,['filtro']); // estado de tela: volta ao original ao clicar no menu
 const ST={rascunho:['Rascunho','info'],emitida:['Enviada · aguardando SEFAZ','warn'],autorizada:['Autorizada','ok'],erro:['Rejeitada / erro','bad'],descartada:['Descartada','']};
 const amb=()=>window.Parametros?.cfg?.().ambiente||'homologacao';
 const podeEmitir=()=>['owner','member','financeiro'].includes(window.Cloud?.role||'owner');

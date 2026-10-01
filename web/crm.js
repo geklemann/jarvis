@@ -11,6 +11,7 @@ const GRADE={RR:[3,0],AP:[5,0],AM:[2,1],PA:[4,1],MA:[5,1],CE:[6,1],RN:[7,1],AC:[
 const SEGS=['VIP','Recorrente','Novo','Em risco','Inativo'],SEGTOM={VIP:'info',Recorrente:'ok',Novo:'',['Em risco']:'warn',Inativo:'bad'};
 const ESTAGIOS=['Novo','Contatado','Negociando','Recomprou','Fidelizado','Sem interesse'];
 const ui={periodo:'12m',plat:'',rank:'receita',uf:'',acao:'previsao',busca:'',seg:'',ordem:'total',pag:0};
+window.Reiniciar?.registrar(ui,['periodo','plat','rank','uf','acao','busca','seg','ordem','pag']); // estado de tela: volta ao original ao clicar no menu
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
 const dias=d=>Math.round((new Date(hoje()+'T12:00:00')-new Date(d+'T12:00:00'))/864e5);
 const addDias=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+Math.round(n));return x.toLocaleDateString('sv-SE')};

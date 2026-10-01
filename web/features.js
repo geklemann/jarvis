@@ -17,6 +17,7 @@ Object.assign(paths,{
 
 const MKT=['Mercado Livre','Shopee','Magalu'];
 const fx={period:'mes',platform:'',search:'',segment:'',stage:'',kind:'',syncRange:'mes'};
+window.Reiniciar?.registrar(fx,['period','platform','search','segment','stage','kind']); // estado de tela: volta ao original ao clicar no menu
 const STAGES=['Novo','Em contato','Negociação','Ativo','Pós-venda','Perdido'];
 const SEGMENTS=['VIP','Recorrente','Novo','Em risco','Inativo'];
 const segTone={VIP:'purple',Recorrente:'ok',Novo:'info','Em risco':'warn',Inativo:'bad'};
@@ -160,9 +161,26 @@ window.addPage=(id,ic,label,view,sub,before,bind)=>{pages[id]=[view,sub,bind];co
 addPage('equipe','users','Equipe e acessos',equipeView,'Libere quem pediu acesso e veja quem usa o portal.','',()=>{});
 const subtitle0=subtitle;subtitle=function(){return pages[page]?.[1]||subtitle0()};
 const known=()=>new Set([...navItems.map(n=>n[0]),...Object.keys(platforms)]);
-const navigate0=navigate;navigate=function(p){Object.assign(fx,{search:'',segment:'',stage:'',sort:'',kind:''});navigate0(p);try{history.replaceState(null,'','#'+encodeURIComponent(p))}catch{}};
+// Histórico do navegador: cada troca de tela vira uma entrada, então o "voltar" volta para a tela anterior do Jarvis.
+// Uma entrada-base fica antes da primeira tela: voltando até ela, o Jarvis abre a tela inicial em vez de sair do site
+// (só sai com um "voltar" a mais, já na tela inicial).
+let voltando=false;const inicioJv=()=>window.Perfis?.inicio?.()||'resumo';
+const navigate0=navigate;navigate=function(p){const antes=page;Object.assign(fx,{search:'',segment:'',stage:'',sort:'',kind:''});
+ // A entrada do histórico vem ANTES de desenhar a tela (o desenho acerta a entrada atual pela tela desenhada).
+ try{const url='#'+encodeURIComponent(p),jv=history.state?.jv;
+  // Antes da marcação-base (carregamento), só troca o endereço; depois, cada tela nova é uma entrada no histórico.
+  if(!jv)history.replaceState(history.state,'',url);else if(!voltando&&antes!==p)history.pushState({jv:p},'',url);else history.replaceState({jv:jv==='__base'?'__base':p},'',url)}catch{}
+ navigate0(p)};
+addEventListener('popstate',e=>{const p=e.state?.jv||decodeURIComponent(location.hash.slice(1).split('?')[0]||'');
+ try{if(document.querySelector('.modalback'))closeModal()}catch{}
+ if(p==='__base'){const ini=inicioJv();if(page!==ini){voltando=true;navigate(ini);voltando=false;history.pushState({jv:ini},'','#'+encodeURIComponent(ini))}else history.back();return}
+ if(p&&p!==page){voltando=true;navigate(p);voltando=false}});
+// Depois de todos os scripts (a tela inicial é decidida por eles): base + tela atual.
+setTimeout(()=>{try{if(!history.state?.jv){const u=location.href;history.replaceState({jv:'__base'},'',u);history.pushState({jv:page},'',u)}}catch{}},0);
 const render0=render;
-render=function(){if(!known().has(page))page='dashboard';if(pages[page]){paymentIndex=null;shell();$('#view').innerHTML=pages[page][0]();bindFilters();bindFx();pages[page][2]?.()}else{render0();bindFx()}decorate()};
+render=function(){if(!known().has(page))page='dashboard';
+ // A entrada atual do histórico acompanha a tela desenhada (o login e os perfis trocam a tela sem passar por navigate).
+ try{const jv=history.state?.jv;if(jv&&jv!=='__base'&&jv!==page)history.replaceState({jv:page},'','#'+encodeURIComponent(page))}catch{}if(pages[page]){paymentIndex=null;shell();$('#view').innerHTML=pages[page][0]();bindFilters();bindFx();pages[page][2]?.()}else{render0();bindFx()}decorate()};
 
 function dashboardExtras(){const rows=scoped(),prods=productRank(rows).sort((a,b)=>b.revenue-a.revenue).slice(0,5),ufs=stateRank(rows).filter(s=>s.uf!=='—').slice(0,5),cs=customers();if(!prods.length&&!ufs.length&&!cs.length)return '';
  return `<div class="cardhead" style="margin-top:6px"><h2>Inteligência comercial</h2><span class="caption">Competência selecionada</span></div><div class="grid three" style="margin-bottom:22px"><div class="card"><div class="cardhead"><h2>Produtos mais vendidos</h2><button class="quiet small" data-nav="produtos">${icon('arrow')}</button></div>${prods.length?hbars(prods,p=>p.title,p=>p.revenue):'<p class="caption">Sem itens nos pedidos.</p>'}</div><div class="card"><div class="cardhead"><h2>Principais estados</h2><button class="quiet small" data-nav="estados">${icon('arrow')}</button></div>${ufs.length?hbars(ufs,s=>s.uf,s=>s.gross):'<p class="caption">Sem UF nos pedidos.</p>'}</div><div class="card"><div class="cardhead"><h2>Clientes</h2><button class="quiet small" data-nav="clientes">${icon('arrow')}</button></div>${SEGMENTS.map(s=>{const n=cs.filter(c=>c.segment===s).length;return `<div class="listline"><span class="badge ${segTone[s]}">${s}</span><strong>${num0(n)}</strong></div>`}).join('')}</div></div>`}

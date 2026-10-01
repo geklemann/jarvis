@@ -7,6 +7,7 @@
 Object.assign(paths,{headset:'M4 14v-2a8 8 0 0 1 16 0v2 M4 14h3v6H5a1 1 0 0 1-1-1z M20 14h-3v6h2a1 1 0 0 0 1-1z M17 20a4 4 0 0 1-4 2h-1',
  send:'M4 12 20 4l-6 16-3-7z M11 13l9-9'});
 const st={canal:'',lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'fila',busca:'',vistos:new Set(),notificar:false};
+window.Reiniciar?.registrar(st,['canal','filtro','busca']); // estado de tela: volta ao original ao clicar no menu
 try{st.notificar=localStorage.getItem('eb_notif_atend')==='1'}catch{}
 const dataHora=s=>s?new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 const TIPOS={reclamacao:['Reclamação','bad'],mediacao:['Mediação','bad'],devolucao:['Devolução','warn'],cancelamento:['Cancelamento','warn'],pergunta:['Pergunta','info'],mensagem:['Mensagem','info']};

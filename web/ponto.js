@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2'});
 const st={acesso:null,carregando:false,ok:false,colabs:[],dias:[],aj:[],sol:[],aud:[],anexos:[],disp:[],aba:'agora',colab:null,mes:null,timer:null};
+window.Reiniciar?.registrar(st,['aba','colab','mes']); // estado de tela: volta ao original ao clicar no menu
 const TIPOS=[['trabalho','Trabalho'],['feriado','Feriado'],['folga','Folga'],['falta','Falta'],['compensacao','Compensação'],['atestado','Atestado'],['ferias','Férias'],['desconsiderado','Desconsiderado']];
 const TIPO=Object.fromEntries(TIPOS),PASSOS=['Entrada','Saída p/ intervalo','Volta do intervalo','Saída','Entrada extra','Saída extra'];
 const SEM=['dom','seg','ter','qua','qui','sex','sáb'];

@@ -172,6 +172,7 @@ const mesBR=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'lon
 const natDev=c=>['1','5','6','9'].includes(c[0]);
 const fim=m=>{const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).toLocaleDateString('sv-SE')};
 const ui={aba:'balancete',acumulado:false,conta:null,busca:''};
+window.Reiniciar?.registrar(ui,['aba','acumulado','conta','busca']); // estado de tela: volta ao original ao clicar no menu
 const periodo=()=>{const ini=ui.acumulado?month.slice(0,4)+'-01-01':month+'-01';return {ini,fim:fim(month)}};
 const valorNat=(c,x)=>natDev(c)?x:-x;
 const mf=v=>{v=Math.abs(v)<0.005?0:v;return `<span class="${v<0?'red':''}">${money(v)}</span>`};

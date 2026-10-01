@@ -22,6 +22,7 @@ const CATEGORIAS=['Compra de mercadorias','Embalagens','Fretes e logística','Ma
 const categorias=()=>{const cad=(db.cadastros||[]).filter(c=>c.tipo==='cat'&&c.ativo!==false).map(c=>c.dados.nome);return [...new Set([...(cad.length?cad:CATEGORIAS),...P().map(t=>t.categoria).filter(Boolean)])]};
 const contas=()=>[...new Set(['Banco principal','Caixa',...P().map(t=>t.conta).filter(Boolean)])];
 const ui={filtro:'abertos',busca:'',periodo:'mes',sel:new Set(),ctipo:'compra'};
+window.Reiniciar?.registrar(ui,['filtro','busca','periodo','sel','ctipo']); // estado de tela: volta ao original ao clicar no menu
 
 // ─────────────── Contas a pagar ───────────────
 function kpis(){const h=hoje(),abertos=P().filter(t=>!['pago','cancelado'].includes(t.status));const soma=l=>round(l.reduce((a,t)=>a+saldo(t),0));

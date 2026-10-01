@@ -7,6 +7,7 @@
 Object.assign(paths,{box:paths.box||'M3 7l9-4 9 4v10l-9 4-9-4z M3 7l9 4 9-4 M12 11v10',cart:'M3 4h2l2.4 11h11L21 7H6.2 M9 20h.01 M18 20h.01',
  truck:'M3 6h11v10H3z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'});
 const st={modo:(()=>{try{return localStorage.getItem('eb_est_modo')||'galeria'}catch{return 'galeria'}})(),lista:[],carregado:false,carregando:false,erro:'',info:null,filtro:'todos',busca:'',abc:'',ordem:'status',pag:0,alvo:45,seguranca:7,prazoPadrao:20};
+window.Reiniciar?.registrar(st,['filtro','busca','abc','ordem','pag']); // estado de tela: volta ao original ao clicar no menu
 try{Object.assign(st,JSON.parse(localStorage.getItem('eb_estoque_param')||'{}'))}catch{}
 const salvarParam=()=>{try{localStorage.setItem('eb_estoque_param',JSON.stringify({alvo:st.alvo,seguranca:st.seguranca,prazoPadrao:st.prazoPadrao}))}catch{}};
 const hoje=()=>new Date().toLocaleDateString('sv-SE');

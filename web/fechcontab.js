@@ -6,6 +6,7 @@
 (()=>{
 Object.assign(paths,{lockbook:'M5 4h11l3 3v13H5z M9 12h6v5H9z M10 12v-2a2 2 0 0 1 4 0v2'});
 const ui={aba:'checklist',modo:'consolidado',busca:''};
+window.Reiniciar?.registrar(ui,['aba','modo','busca']); // estado de tela: volta ao original ao clicar no menu
 const mesFim=m=>{const [y,mm]=m.split('-').map(Number);return new Date(y,mm,0).toLocaleDateString('sv-SE')};
 const cfgC=()=>db.gerencial?.contabil||{};
 const salvarC=o=>{db.gerencial={...(db.gerencial||{}),contabil:{...cfgC(),...o}};save()};

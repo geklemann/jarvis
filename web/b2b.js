@@ -9,6 +9,7 @@ const r2=v=>Math.round((Number(v)||0)*100)/100;
 const cfg=()=>({tabelas:[],representantes:[],clientes:{},...(db.gerencial?.b2b||{})});
 const salvar=n=>{db.gerencial={...(db.gerencial||{}),b2b:{...cfg(),...n}};save()};
 const st={aba:'tabelas',mes:hoje().slice(0,7),tab:null};
+window.Reiniciar?.registrar(st,['aba','mes','tab']); // estado de tela: volta ao original ao clicar no menu
 const pode=()=>['owner','member','financeiro','atendimento'].includes(window.Cloud?.role||'owner');
 const num=v=>Number(String(v??'').replace(/\./g,'').replace(',','.'))||0;
 

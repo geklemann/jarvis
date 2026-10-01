@@ -4,6 +4,7 @@
 // SUGESTÃO para empresa do Lucro Presumido, comércio, em SC — a contabilidade confirma e ajusta aqui mesmo.
 (()=>{
 const ui={ed:false};
+window.Reiniciar?.registrar(ui,['ed']); // estado de tela: volta ao original ao clicar no menu
 // [id, nome, o que é, periodicidade, regra de prazo, responsável padrão, dados do Jarvis]
 // regra: {dia:N,m:meses depois} | {util:N,m} (N-ésimo dia útil) | {ultimoUtil:true,m} | {texto}
 const PADRAO=[

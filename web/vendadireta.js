@@ -10,6 +10,7 @@ const dBR=d=>d?new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('p
 const dig=s=>String(s||'').replace(/\D/g,'');
 const quem=()=>window.Cloud?.session?.user?.email||'—';
 const st={vendas:null,rec:null,prods:null,aberta:null,filtroRec:'aberto'};
+window.Reiniciar?.registrar(st,['aberta','filtroRec']); // estado de tela: volta ao original ao clicar no menu
 async function fn(action,body){const r=await Cloud.client.functions.invoke('integrations',{body:{workspace_id:Cloud.ws,action,...body}});if(r.error){let msg=r.error.message;try{msg=(await r.error.context.json()).error||msg}catch{}throw Error(msg)}return r.data}
 async function carregar(){if(!window.Cloud?.ws)return;const [v,r,p]=await Promise.all([Cloud.client.from('vendas_diretas').select('*').eq('workspace_id',Cloud.ws).order('created_at',{ascending:false}).limit(300),Cloud.client.from('recebiveis').select('*').eq('workspace_id',Cloud.ws).order('vencimento').limit(2000),Cloud.client.from('produtos').select('id,nome,preco,custo,saldo,gtin,ncm').eq('workspace_id',Cloud.ws).limit(5000)]);
  st.vendas=v.data||[];st.rec=r.data||[];st.prods=p.data||[];if(['vendadireta','receber'].includes(page)&&!document.querySelector('.modalback'))render()}

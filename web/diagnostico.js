@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{lupa:'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14z M21 21l-5-5 M8 11h6 M11 8v6'});
 const ui={per:30};
+window.Reiniciar?.registrar(ui,['per']); // estado de tela: volta ao original ao clicar no menu
 const p1=v=>(v*100).toFixed(1).replace('.',',')+'%';
 const R=v=>money(Math.round(v));
 function atrasados(){const lim=new Date(Date.now()-3*864e5).toLocaleDateString('sv-SE'),ini=new Date(Date.now()-ui.per*864e5).toLocaleDateString('sv-SE');

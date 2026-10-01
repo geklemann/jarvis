@@ -6,6 +6,7 @@
 (()=>{
 Object.assign(paths,{binoculo:'M5 14a3.5 3.5 0 1 0 7 0 3.5 3.5 0 0 0-7 0z M12 14a3.5 3.5 0 1 0 7 0 3.5 3.5 0 0 0-7 0z M6 11l2-6h2l1 5 M18 11l-2-6h-2l-1 5'});
 const st={lista:null,info:null,ws:undefined,carregando:false,filtro:'atencao',busca:'',verificando:false};
+window.Reiniciar?.registrar(st,['filtro','busca']); // estado de tela: volta ao original ao clicar no menu
 const SIT={perdendo:['Perdendo a compra','bad'],mais_caro:['Mais caro','bad'],compartilhando:['Dividindo a compra','warn'],ganhando:['Ganhando a compra','ok'],mais_barato:['Mais barato','ok'],listado:['Sem disputa','info'],sozinho:['Sem concorrente','info'],sem_catalogo:['Fora do catálogo','']};
 const FIL={atencao:['Pede atenção',x=>['perdendo','mais_caro','compartilhando'].includes(x.situacao)],ok:['Na frente',x=>['ganhando','mais_barato'].includes(x.situacao)],todos:['Com concorrentes',x=>x.concorrentes>0],sem:['Sem comparação',x=>['sozinho','sem_catalogo','listado'].includes(x.situacao)&&!x.concorrentes]};
 const p1=v=>v==null?'—':(v*100).toFixed(1).replace('.',',')+'%';

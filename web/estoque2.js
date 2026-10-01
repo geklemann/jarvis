@@ -9,6 +9,7 @@ const dBR=d=>d?new Date(String(d).length>10?d:d+'T12:00:00').toLocaleDateString(
 const nf=(v,d=0)=>Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:d});
 const quem=()=>window.Cloud?.session?.user?.email||'—';
 const st={prods:null,inv:null,pcs:null,invAtual:null,ultimo:null,dataSep:hoje(),canalSep:'',versao:0,carregando:false};
+window.Reiniciar?.registrar(st,['invAtual','ultimo','dataSep','canalSep','pcAberto']); // estado de tela: volta ao original ao clicar no menu
 async function carregar(){if(!window.Cloud?.ws||st.carregando)return;st.carregando=true;try{const [p,i,c]=await Promise.all([Cloud.client.from('produtos').select('id,nome,saldo,custo,gtin,localizacao,fornecedor,prazo_reposicao,ignorar,imagem').eq('workspace_id',Cloud.ws).limit(5000),Cloud.client.from('inventarios').select('*').eq('workspace_id',Cloud.ws).order('created_at',{ascending:false}).limit(50),Cloud.client.from('pedidos_compra').select('*').eq('workspace_id',Cloud.ws).order('created_at',{ascending:false}).limit(200)]);
  st.prods=p.data||[];st.inv=i.data||[];st.pcs=c.data||[];st.versao++}finally{st.carregando=false}if(['inventario','pedcompra','separacao','estcompras','estoque'].includes(page)&&!document.querySelector('.modalback'))render()}
 const prod=sku=>(st.prods||[]).find(p=>p.id===sku);

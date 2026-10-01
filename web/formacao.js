@@ -9,6 +9,7 @@ Object.assign(paths,{calc:'M5 3h14v18H5z M8 7h8 M8 11h2 M12 11h2 M16 11h0 M8 15h
 const CAN=[['mlp','ML Premium','Mercado Livre'],['mlc','ML Clássico','Mercado Livre Clássico'],['mag','Magalu','Magalu'],['shp','Shopee','Shopee']];
 const PADRAO_CANAL={'Mercado Livre':{comissao:16.5,fixa:0,servico:0,frete:0,cupom:0,faixaAte:79,faixaValor:6.75,ativo:true},'Mercado Livre Clássico':{comissao:11.5,fixa:0,servico:0,frete:0,cupom:0,faixaAte:79,faixaValor:6.75,ativo:true},'Magalu':{comissao:14,fixa:5,servico:0,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:true},'Shopee':{comissao:14,fixa:4,servico:6,frete:0,cupom:0,faixaAte:0,faixaValor:0,ativo:true}};
 const ui={busca:'',filtro:'todos',marca:'',sel:new Set(),aberto:null,meta:null};
+window.Reiniciar?.registrar(ui,['busca','filtro','marca','sel','aberto']); // estado de tela: volta ao original ao clicar no menu
 // DVV da planilha "TABELA PREÇO DE VENDA E-COMMERCE", por grupo (Maral, Top Play, Terceiros) e canal, em % do preço.
 // Preço de tabela = (custo e-commerce + embalagem + frete + taxa fixa) ÷ (1 − DVV do canal). Maral e Top vendem ao
 // e-commerce pelo DVV de compra (com IPI e crédito de ICMS); terceiros entram pelo custo de compra + quebra.

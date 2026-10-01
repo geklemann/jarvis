@@ -4,6 +4,7 @@
 // cadastro (nome, preço, GTIN, NCM, origem, medidas, fotos), o preço por canal e cria/publica anúncios.
 (()=>{
 const st={vinc:null,carregando:false,erro:'',busca:'',filtro:'todos',pag:0};
+window.Reiniciar?.registrar(st,['busca','filtro','pag']); // estado de tela: volta ao original ao clicar no menu
 const nf=(v,d=0)=>Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:d});
 const ORIGENS=[[0,'0 · Nacional'],[1,'1 · Importação direta'],[2,'2 · Importado no mercado interno'],[3,'3 · Nacional, conteúdo importado > 40%'],[5,'5 · Nacional, conteúdo importado ≤ 40%'],[8,'8 · Nacional, conteúdo importado > 70%']];
 const CORES={'Shopee':'#ee4d2d','MercadoLivre':'#e6b800','Mercado Livre':'#e6b800','Magalu':'#0086ff','MagazineLuiza':'#0086ff','IntegraCommerce':'#0086ff'};

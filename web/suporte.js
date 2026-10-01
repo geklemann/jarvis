@@ -3,6 +3,7 @@
 // e os chamados de suporte — qualquer pessoa da equipe abre; o dono do workspace recebe, responde e resolve.
 (()=>{
 const st={aba:'manual',manualUrl:null,manualErro:'',carregandoManual:false,lista:null,carregando:false,filtro:'abertos',origem:'',sel:null};
+window.Reiniciar?.registrar(st,['aba','filtro','origem','sel']); // estado de tela: volta ao original ao clicar no menu
 const TIPOS={duvida:'Dúvida',erro:'Erro no sistema',sugestao:'Sugestão de melhoria',acesso:'Acesso e permissões',outro:'Outro'};
 const URG={baixa:['Baixa',''],normal:['Normal','info'],alta:['Alta','warn'],parado:['Parou o trabalho','bad']};
 const SIT={aberto:['Aberto','warn'],andamento:['Em andamento','info'],aguardando:['Aguardando você','info'],resolvido:['Resolvido','ok']};

@@ -15,6 +15,7 @@ const n2=v=>Number(v)||0;
 const monthLabel=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
 const tabs=(id,cur,list)=>`<div class="segtabs" role="tablist">${list.map(([k,l])=>`<button role="tab" class="${cur===k?'active':''}" data-g-tab="${id}:${k}">${l}</button>`).join('')}</div>`;
 const ui={cont:'resultado',prec:'tabela',mapFilter:'pendentes',search:'',detalhe:false,modo:'gerencial'};
+window.Reiniciar?.registrar(ui,['cont','prec','mapFilter','search','detalhe','modo']); // estado de tela: volta ao original ao clicar no menu
 function ensure(){db.accLines=db.accLines||[];db.accMap=db.accMap||{};db.accDocs=db.accDocs||[];db.products=db.products||[];db.scenarios=db.scenarios||[];db.pricing=db.pricing||defaultsPricing()}
 
 // ═════════════════════════ CONTABILIDADE E RESULTADO ═════════════════════════

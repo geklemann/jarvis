@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{target:'M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 11a1 1 0 1 0 1 1 M15 9l6-6 M17 3h4v4'});
 const ui={regime:'competencia'};
+window.Reiniciar?.registrar(ui,['regime']); // estado de tela: volta ao original ao clicar no menu
 const mesAnt=(m,n=1)=>{const d=new Date(m+'-15T12:00:00');d.setMonth(d.getMonth()-n);return d.toISOString().slice(0,7)};
 const nomeMes=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
 const pode=()=>['owner','member','financeiro','contador'].includes(window.Cloud?.role||'owner');

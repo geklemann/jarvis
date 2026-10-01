@@ -15,6 +15,7 @@ const MOTIVOS={venda_direta:'Venda direta',cancelamento_venda:'Cancelamento de v
 const MANUAIS={E:['compra_sem_nota','devolucao_venda','ajuste'],S:['perda','avaria','brinde','uso_interno','amostra','devolucao_compra','ajuste']};
 const ST={pendente:['a enviar','warn'],enviado:['no Bling','ok'],erro:['erro no envio','bad'],nao_enviar:['só no Jarvis','']};
 const st={movs:null,carregando:false,sku:'',dias:90,filtro:'todos'};
+window.Reiniciar?.registrar(st,['sku','dias','filtro']); // estado de tela: volta ao original ao clicar no menu
 const cfg=()=>({inicio:'',...(db.gerencial?.kardex||{})});
 // Documentos anteriores ao início do kardex não geram movimento (evita lançar de novo o que já foi ajustado à mão).
 function inicio(){let i=cfg().inicio;if(!i){i=hoje();db.gerencial={...(db.gerencial||{}),kardex:{...cfg(),inicio:i}};save()}return i}

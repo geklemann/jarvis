@@ -23,7 +23,8 @@ function celula(bruto){let s=bruto.replace(/\s+/g,' ').trim().replace(/[−–�
  if(/^-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$/.test(s)&&!/^-?0\d/.test(s)&&!/^\d{6,}$/.test(s)&&s.replace(/\D/g,'').length<=15){const v=num(s);return {t:'n',v,z:s.includes(',')?'#,##0.00':'#,##0'}}
  return {t:'s',v:s}}
 // Célula com valor e legenda em linhas separadas: tenta o valor da primeira linha.
-function celulaTd(td){const t=td.innerText.replace(/ /g,' ').trim();if(!t)return null;const c=celula(t);if(c&&c.t!=='s')return c;
+// data-exp-num="13158": a tela pede que a célula vá como número (ex.: nº da nota sem os zeros à esquerda, para PROCV).
+function celulaTd(td){const en=td.dataset?.expNum;if(typeof en==='string'&&en!==''&&isFinite(Number(en)))return {t:'n',v:Number(en),z:'0'};const t=td.innerText.replace(/ /g,' ').trim();if(!t)return null;const c=celula(t);if(c&&c.t!=='s')return c;
  const l=t.split('\n').map(x=>x.trim()).filter(Boolean);if(l.length>1){const c1=celula(l[0]);if(c1&&c1.t!=='s')return c1}return {t:'s',v:l.join(' · ')}}
 
 function visivel(el){return !!(el.offsetParent||el.getClientRects().length)}
@@ -79,7 +80,7 @@ function aviso(m){if(typeof toast==='function')toast(m);else{const t=document.ge
 function botoes(){const a=document.querySelector('.pagehead .pageactions');if(!a||a.querySelector('.exp-btns'))return;
  a.insertAdjacentHTML('afterbegin',`<div class="exp-btns" role="group" aria-label="Exportar esta tela"><button class="small" data-exp="xlsx" title="Baixar as tabelas desta tela em Excel">Excel</button><button class="small" data-exp="pdf" title="Imprimir ou salvar esta tela em PDF">PDF</button></div>`)}
 if(typeof shell==='function'){const s0=shell;shell=function(){const r=s0.apply(this,arguments);try{botoes()}catch(e){}return r}}
-window.Exportar={celula,excel,pdf};
+window.Exportar={celula,celulaTd,excel,pdf};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-exp]');if(!b)return;e.preventDefault();try{b.dataset.exp==='pdf'?pdf():excel()}catch(err){console.error(err);aviso('Não foi possível exportar: '+(err.message||err))}});
 
 // Estilos dos botões e da impressão (qualquer tela).

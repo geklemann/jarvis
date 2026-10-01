@@ -3,6 +3,7 @@
 // com a manifestação do destinatário e a geração das contas a pagar pelas duplicatas — sem depender do Bling.
 (()=>{
 const ui={filtro:'todas',busca:''};let st={notas:null,carregando:false,erro:''};
+window.Reiniciar?.registrar(ui,['filtro','busca']); // estado de tela: volta ao original ao clicar no menu
 const MAN={ciencia:['Ciência','info'],confirmacao:['Confirmada','ok'],desconhecimento:['Desconhecida','bad'],nao_realizada:['Não realizada','bad']};
 const dBR=d=>d?new Date(d).toLocaleDateString('pt-BR'):'—';
 const fmtDoc=s=>{const d=String(s||'').replace(/\D/g,'');return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d};

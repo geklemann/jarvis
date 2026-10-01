@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{radar:'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z M12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z M12 12l6-6'});
 const ui={periodo:30,canal:'',aba:'anuncios',meta:10,busca:'',ord:{}};
+window.Reiniciar?.registrar(ui,['periodo','canal','aba','busca','ord']); // estado de tela: volta ao original ao clicar no menu
 const menos=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDateString('sv-SE')};
 const p1=v=>(v*100).toFixed(1).replace('.',',')+'%';
 let cache=null;

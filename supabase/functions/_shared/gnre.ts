@@ -5,6 +5,7 @@
 // GnreConfigUF e fica em cache em gnre_config_uf.
 import forge from "npm:node-forge@1.3.1";
 import { HttpError } from "./common.ts";
+import { campoDeOutroDocumento, valorCampoExtra } from "./gnre_regras.ts";
 
 export const ambienteGnre = () => (Deno.env.get("GNRE_AMBIENTE") === "producao" ? "producao" : "homologacao");
 // Homologação: www.testegnre.pe.gov.br apresenta o certificado *.sefaz.pe.gov.br (nome não confere). O mesmo servidor
@@ -90,7 +91,9 @@ function camposExtras(g: GuiaIn) {
   const out: string[] = [], faltam: string[] = [];
   for (const c of cs) {
     const t = String(c.titulo ?? "");
-    const v = /chave/i.test(t) && g.nota ? g.nota.chave : /emiss/i.test(t) && g.nota ? g.nota.emissao : /n[uú]mero.*(nota|nf|documento)/i.test(t) && g.nota ? dig(g.nota.numero) : null;
+    // Campo de chave de CT-e/MDF-e/BP-e não se aplica à venda com NF-e (mesmo marcado obrigatório na configuração da UF).
+    if (campoDeOutroDocumento(t)) continue;
+    const v = valorCampoExtra(t, g.nota);
     if (v == null) { if (c.obrigatorio === "S") faltam.push(t); continue; }
     out.push(`<campoExtra><codigo>${esc(c.codigo)}</codigo><valor>${esc(v)}</valor></campoExtra>`);
   }

@@ -7,6 +7,7 @@
 (()=>{
 Object.assign(paths,{pessoas:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75'});
 const st={aba:'pessoas',ok:false,carregando:false,ferias:[],resc:[],eventos:[]};
+window.Reiniciar?.registrar(st,['aba']); // estado de tela: volta ao original ao clicar no menu
 const pad=n=>String(n).padStart(2,'0'),r2=v=>Math.round((Number(v)||0)*100)/100,R=v=>money(r2(v)),dig=s=>String(s||'').replace(/\D/g,'');
 const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,dt=s=>new Date(s+'T12:00:00'),br=s=>s?dt(s).toLocaleDateString('pt-BR'):'—';
 const addDias=(s,n)=>{const d=dt(s);d.setDate(d.getDate()+n);return iso(d)},addMeses=(s,n)=>{const d=dt(s),dia=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);d.setDate(Math.min(dia,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return iso(d)};

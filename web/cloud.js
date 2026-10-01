@@ -71,7 +71,7 @@ async function load(){
  const next={orders:orders.map(maps.orders.fromRow),receipts:receipts.map(maps.receipts.fromRow),ledger:ledger.map(maps.ledger.fromRow),
   imports:imports.map(maps.imports.fromRow).sort((a,b)=>b.time.localeCompare(a.time)),audit:audit.map(maps.audit.fromRow).sort((a,b)=>b.time.localeCompare(a.time)),
   crm:Object.fromEntries(crm.map(c=>[c.id,{stage:c.stage,tags:c.tags||[],notes:c.notes||'',interactions:c.interactions||[]}])),
-  closures:Object.fromEntries(closures.map(c=>[c.month,c.data])),theme:settings[0]?.data?.theme||db.theme||'dark',schemaVersion:2,
+  closures:Object.fromEntries(closures.map(c=>[c.month,c.data])),theme:window.Aparencia?.modoUsuario?.()||settings[0]?.data?.theme||db.theme||'dark',schemaVersion:2,
   accLines:accLines.map(maps.accLines.fromRow),accMap:Object.fromEntries(accMap.map(a=>[a.conta,{linha:a.linha,descricao:a.descricao||''}])),accDocs:accDocs.map(maps.accDocs.fromRow),
   products:products.map(maps.products.fromRow),scenarios:scenarios.map(maps.scenarios.fromRow),payables:(await pageAll('payables')).map(maps.payables.fromRow),bankAccounts:(await pageAll('bank_accounts')).map(maps.bankAccounts.fromRow),bankTx:(await pageAll('bank_transactions')).map(maps.bankTx.fromRow),cadastros:(await pageAll('cadastros')).map(maps.cadastros.fromRow),
   // Notas de entrada: só leitura (a origem é o Bling), sem o JSON bruto.

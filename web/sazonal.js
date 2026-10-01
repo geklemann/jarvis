@@ -12,6 +12,7 @@ const EVENTOS=()=>{const y=ano(),alvo=(d,y2=y)=>{const x=new Date(d);if(x<new Da
   {id:'natal',nome:'Natal',data:alvo(new Date(y,11,25)),pico:30,fator:2.8,dica:'Dezembro inteiro; o prazo de entrega dos marketplaces fecha por volta de 18/12.'}]};
 const cfg=()=>db.gerencial?.sazonal||{};
 const ui={ev:'criancas'};
+window.Reiniciar?.registrar(ui,['ev']); // estado de tela: volta ao original ao clicar no menu
 const dBR=d=>d.toLocaleDateString('pt-BR');
 const nf=v=>Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:0});
 function plano(ev){const lista=window.Estoque?.lista?.()||[];if(!lista.length)return null;const h=new Date(),c={...ev,...(cfg()[ev.id]||{})};

@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{smile:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M8.5 14.5c1.8 2 5.2 2 7 0 M9 9.5h.01 M15 9.5h.01',team:'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7 M17 11a3 3 0 1 0 0-6 M22 21c0-3-1.8-5.5-4.5-6.5'});
 const st={p:null,at:null,ch:null,carregando:false,dias:90};
+window.Reiniciar?.registrar(st,['dias']); // estado de tela: volta ao original ao clicar no menu
 const ini=d=>new Date(Date.now()-d*864e5).toISOString();
 async function carregar(){if(st.carregando)return;if(!window.Cloud?.ws){st.p=[];st.at=[];st.ch=[];setTimeout(render);return}st.carregando=true;const c=Cloud.client,ws=Cloud.ws;
  const [p,a,h]=await Promise.all([c.from('cx_pesquisas').select('*').eq('workspace_id',ws).gte('created_at',ini(365)).order('created_at',{ascending:false}).limit(2000),c.from('atendimentos').select('id,canal,tipo,status,motivo,produto,pedido,prazo,aberto_em,fechado_em,mensagens,comprador').eq('workspace_id',ws).gte('aberto_em',ini(180)).limit(3000),c.from('chamados').select('numero,status,tipo,urgencia,created_at,updated_at,respostas,nome').eq('workspace_id',ws).limit(1000)]);

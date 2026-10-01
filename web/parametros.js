@@ -15,6 +15,7 @@ const PADRAO={ambiente:'homologacao',cnpj:'65193225000157',razao:'WOLFACH E-COMM
 const PLAT_CNPJ={'Mercado Livre':'03007331000141','Shopee':'35635824000112','Magalu':'47960950000121'};
 const SECOES=[['empresa','Empresa e regime'],['icms','ICMS, DIFAL e FCP por estado'],['inscricoes','Inscrições estaduais (substituto tributário)'],['federais','PIS, COFINS, IPI e IBS/CBS'],['nota','Dados da nota fiscal'],['intermed','Intermediadores (marketplaces)'],['produtos','Produtos: NCM e origem'],['contabil','Contábil']];
 const ui={sec:'empresa',regras:null,prods:null,carregando:false,sim:{uf:'SP',valor:300,origem:5,frete:0,doc:'cpf'}};
+window.Reiniciar?.registrar(ui,['sec','sim']); // estado de tela: volta ao original ao clicar no menu
 const cfg=()=>({...PADRAO,...(db.gerencial?.fiscal||{})});
 const salvarCfg=(novo,msg)=>{db.gerencial={...(db.gerencial||{}),fiscal:{...(db.gerencial?.fiscal||{}),...novo}};save();if(msg)toast(msg)};
 const pct=v=>v==null||v===''?'—':String(v).replace('.',',')+'%';

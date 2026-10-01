@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{undo:'M9 14 4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-4'});
 const ui={periodo:90,aba:'produtos',busca:''};
+window.Reiniciar?.registrar(ui,['periodo','aba','busca']); // estado de tela: volta ao original ao clicar no menu
 const dig=s=>String(s||'').replace(/\D/g,'');
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
 const menos=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDateString('sv-SE')};

@@ -17,6 +17,7 @@ const fiscal=()=>({cnpj:'',razao:'',...(window.Parametros?.cfg?.()||db.gerencial
 const contasItau=()=>(db.bankAccounts||[]).filter(a=>a.ativo!==false&&a.tipo!=='aplicacao'&&String(a.banco||'').replace(/\D/g,'')==='341');
 const contaSel=()=>{const l=contasItau();return l.find(a=>a.id===cfg().conta)||l[0]||null};
 const ui={aba:'remessa',ate:addDias(hoje(),7),vencidos:true,sel:new Set(),selIni:false,ret:null,retSel:new Set()};
+window.Reiniciar?.registrar(ui,['aba','ate','vencidos','sel','selIni','ret','retSel']); // estado de tela: volta ao original ao clicar no menu
 
 // ─── Campos CNAB ───
 const txt=(s,n)=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7E]/g,' ').toUpperCase().slice(0,n).padEnd(n,' ');

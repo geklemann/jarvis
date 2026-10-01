@@ -7,6 +7,7 @@
 import { authorize, cors, json, HttpError, round } from "../_shared/common.ts";
 import { configFiscal } from "../_shared/nfe_focus.ts";
 import { blingGet, notaAindaValida } from "../_shared/difal.ts";
+import { dataPagamentoGuia } from "../_shared/gnre_regras.ts";
 import { ambienteGnre, consultarConfigUf, enviarLote, montarLote, resultadoLote, temCertificado, type Emitente, type GuiaIn } from "../_shared/gnre.ts";
 
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // dia em Brasília
@@ -40,6 +41,9 @@ Deno.serve(async (req) => {
       await db.from("gnre_config_uf").upsert({ workspace_id: ws, uf, receita: "100102", config: c, lido_em: new Date().toISOString() });
       return c;
     }
+    // Data de pagamento escolhida no lote: automática (dia útil seguinte à emissão de cada nota) ou fixa.
+    const opcPag = { modo: body.pagamento?.modo === "fixa" ? "fixa" : "auto", data: body.pagamento?.data ? String(body.pagamento.data) : null };
+    if (opcPag.modo === "fixa" && (!/^\d{4}-\d{2}-\d{2}$/.test(String(opcPag.data)) || String(opcPag.data) < hoje())) throw new HttpError(400, "Escolha uma data de pagamento a partir de hoje.");
     async function guiasIn(rows: any[]): Promise<GuiaIn[]> {
       const out: GuiaIn[] = [];
       const chaves = rows.flatMap((g) => (g.tipo === "nota" ? g.notas : []));
@@ -47,7 +51,7 @@ Deno.serve(async (req) => {
       const N = new Map((ns ?? []).map((x: any) => [x.chave, x]));
       for (const g of rows) {
         const n: any = g.tipo === "nota" ? N.get(g.notas[0]) : null;
-        const pag = g.vencimento < hoje() ? hoje() : g.vencimento;
+        const pag = dataPagamentoGuia({ tipo: g.tipo, emissao: n?.emissao ?? null, vencimento: g.vencimento }, hoje(), opcPag);
         out.push({ id: g.id, uf: g.uf, tipo: g.tipo, ie: difalUf[g.uf]?.ie || null, vencimento: g.tipo === "nota" ? pag : g.vencimento, pagamento: pag, icms: Number(g.valor_icms), fcp: Number(g.valor_fcp), fcpSeparado: !!difalUf[g.uf]?.fcp_separado,
           nota: n ? { chave: n.chave, numero: n.numero, emissao: n.emissao, dest_doc: n.dest_doc, dest_nome: n.dest_nome, dest_mun: n.dest_mun } : undefined, mes: g.tipo === "mensal" ? g.referencia : undefined, config: await configDe(g.uf).catch(() => null) });
       }
@@ -95,11 +99,12 @@ Deno.serve(async (req) => {
         if (!rows?.length) throw new HttpError(400, "Nenhuma guia em rascunho entre as escolhidas.");
         rows.sort((a: any, b: any) => a.id.localeCompare(b.id));
         exigirEmitente();
-        const lote = montarLote(await guiasIn(rows), em);
-        if (body.action === "xml") return json({ xml: `<?xml version="1.0" encoding="UTF-8"?>${lote}`, guias: rows.length });
+        const gin = await guiasIn(rows), lote = montarLote(gin, em);
+        if (body.action === "xml") return json({ xml: `<?xml version="1.0" encoding="UTF-8"?>${lote}`, guias: rows.length, pagamentos: gin.map((x) => [x.id, x.pagamento]) });
         const r = await enviarLote(lote);
-        for (const g of rows) await db.from("gnre_guias").update({ status: "enviada", recibo: r.recibo, lote_id: r.recibo, ambiente: ambienteGnre(), xml: lote.length < 200_000 ? lote : null, motivos: null, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
-        await log("GNRE: lote enviado", { recibo: r.recibo, guias: rows.length, ambiente: ambienteGnre() });
+        const pagPor = new Map(gin.map((x) => [x.id, x.pagamento]));
+        for (const g of rows) await db.from("gnre_guias").update({ status: "enviada", vencimento: g.tipo === "nota" ? pagPor.get(g.id) ?? g.vencimento : g.vencimento, recibo: r.recibo, lote_id: r.recibo, ambiente: ambienteGnre(), xml: lote.length < 200_000 ? lote : null, motivos: null, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
+        await log("GNRE: lote enviado", { recibo: r.recibo, guias: rows.length, ambiente: ambienteGnre(), pagamento: opcPag });
         return json({ recibo: r.recibo, guias: rows.length, tempo: r.tempo, ambiente: ambienteGnre() });
       }
       case "consultar": {

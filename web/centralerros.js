@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{bug:'M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z M12 9v9 M4 11h4 M16 11h4 M5 17l3-2 M19 17l-3-2 M5 5l3 3 M19 5l-3 3'});
 const st={lista:null,carregando:false,erro:'',filtro:'abertos',ws:null};
+window.Reiniciar?.registrar(st,['filtro']); // estado de tela: volta ao original ao clicar no menu
 const dh=d=>d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 const dono=()=>window.Cloud?.role==='owner';
 async function carregar(){if(!window.Cloud?.ws||st.carregando)return;st.carregando=true;st.ws=Cloud.ws;

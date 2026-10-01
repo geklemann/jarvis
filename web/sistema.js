@@ -10,31 +10,42 @@ const STUDIO=[['studio','Studio','Azul, preciso e sóbrio','#2f5bd9','#15171c','
 const ler=k=>{try{return localStorage.getItem(k)}catch{return null}};
 const valido=t=>STUDIO.some(x=>x[0]===t)?t:'studio';
 function temaAtual(){const m=window.Cloud?.session?.user?.user_metadata||{};return valido(m.tema2||ler('eb_tema2'))}
+// Modo claro/noite também é do usuário (antes era da empresa e mudava ao entrar). Sem escolha própria, vale o da empresa.
+const modoValido=m=>m==='light'||m==='dark'?m:null;
+function modoUsuario(){const m=window.Cloud?.session?.user?.user_metadata||{};return modoValido(m.modo)||modoValido(ler('eb_modo'))}
+const gravar=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+function aplicarModo(){const m=modoUsuario();if(m&&db.theme!==m)db.theme=m;document.body.classList.toggle('light',db.theme==='light')}
 function aplicar(t){t=valido(t);const b=document.body;b.classList.add('fiori');b.classList.remove('vidro');
  for(const c of [...b.classList])if(/^(vd|tema)-/.test(c))b.classList.remove(c);
  for(const [id] of STUDIO)b.classList.toggle('st-'+id,id===t&&id!=='studio');
  document.querySelector('meta[name=theme-color]')?.setAttribute('content',b.classList.contains('light')?'#ffffff':'#13161c')}
-aplicar(ler('eb_tema2'));
-let temaSessao=null;setInterval(()=>{const t=temaAtual()+'|'+db.theme;if(t!==temaSessao){temaSessao=t;aplicar(temaAtual())}},1000);
+aplicarModo();aplicar(ler('eb_tema2'));
+// Ao entrar (ou trocar de usuário), aplica as escolhas da conta e guarda neste navegador para a próxima abertura.
+let temaSessao=null;setInterval(()=>{const md=window.Cloud?.session?.user?.user_metadata||{};if(md.tema2&&ler('eb_tema2')!==md.tema2)gravar('eb_tema2',md.tema2);if(modoValido(md.modo)&&ler('eb_modo')!==md.modo)gravar('eb_modo',md.modo);
+ aplicarModo();const t=temaAtual()+'|'+db.theme;if(t!==temaSessao){temaSessao=t;aplicar(temaAtual())}},500);
+async function salvarConta(dados){if(window.Cloud?.session?.user)Cloud.session.user.user_metadata={...(Cloud.session.user.user_metadata||{}),...dados};
+ if(window.Cloud?.client&&Cloud.session){const {data}=await Cloud.client.auth.updateUser({data:dados}).catch(()=>({}));if(data?.user)Cloud.session.user=data.user}}
+function escolherModo(m){m=modoValido(m)||'dark';db.theme=m;gravar('eb_modo',m);document.body.classList.toggle('light',m==='light');save();aplicar(temaAtual());salvarConta({modo:m})}
 async function escolher(t){t=valido(t);try{localStorage.setItem('eb_tema2',t)}catch{}
  const dados={tema2:t};if(window.Cloud?.session?.user)Cloud.session.user.user_metadata={...(Cloud.session.user.user_metadata||{}),...dados};aplicar(t);
  if(window.Cloud?.client&&Cloud.session){const {data}=await Cloud.client.auth.updateUser({data:dados}).catch(()=>({}));if(data?.user)Cloud.session.user=data.user}}
 function aparencia(){const t=temaAtual(),claro=db.theme==='light';
- modal('Aparência',`<p class="caption" style="margin-top:-10px">A cor vale para o seu usuário, em qualquer computador. O modo claro/noite vale para a empresa.</p>
+ modal('Aparência',`<p class="caption" style="margin-top:-10px">A cor e o modo claro/noite valem para o seu usuário, em qualquer computador — cada pessoa da equipe tem a sua escolha.</p>
  <div class="navlabel" style="margin:6px 0 10px">Cor</div>
  <div class="vdgrid">${STUDIO.map(([id,nome,desc,c1,c2,c3])=>`<button class="vdcard ${t===id?'on':''}" data-tema="${id}" style="--c1:${c1};--c2:${c2};--c3:${c3};--c0:#ffffff"><i></i><strong>${nome}</strong><small>${desc}</small></button>`).join('')}</div>
  <div class="navlabel" style="margin:20px 0 8px">Modo</div><div class="segtabs"><button class="${claro?'':'active'}" data-modo="dark">${icon('moon')} Noite</button><button class="${claro?'active':''}" data-modo="light">${icon('sun')} Claro</button></div>
  <div class="modalfoot"><button class="primary" data-action="close">${icon('check')} Pronto</button></div>`)}
 document.addEventListener('click',e=>{if(e.target.closest('[data-erp-tema]')){$('#erpdrop')&&($('#erpdrop').innerHTML='');aparencia();return}
  const b=e.target.closest('[data-tema]');if(b){escolher(b.dataset.tema);$$('.vdcard,.temacard').forEach(x=>x.classList.toggle('on',x===b));return}
- const m=e.target.closest('[data-modo]');if(m){db.theme=m.dataset.modo;document.body.classList.toggle('light',db.theme==='light');save();aplicar(temaAtual());$$('[data-modo]').forEach(x=>x.classList.toggle('active',x===m))}});
-window.Aparencia={abrir:aparencia,alternarModo(){db.theme=db.theme==='light'?'dark':'light';document.body.classList.toggle('light',db.theme==='light');save();aplicar(temaAtual())}};
+ const m=e.target.closest('[data-modo]');if(m){escolherModo(m.dataset.modo);$$('[data-modo]').forEach(x=>x.classList.toggle('active',x===m))}});
+window.Aparencia={abrir:aparencia,modoUsuario,alternarModo(){escolherModo(db.theme==='light'?'dark':'light')}};
 
 // ─────────────── Log e auditoria ───────────────
 const AREAS={payables:'Contas a pagar',bank_accounts:'Contas bancárias',bank_transactions:'Extrato bancário',cadastros:'Cadastros',closures:'Fechamentos',workspace_settings:'Configurações',crm_contacts:'CRM',workspace_members:'Equipe',access_requests:'Pedidos de acesso',accounting_lines:'Contabilidade (linhas)',account_map:'Plano de contas (mapa)',accounting_docs:'Contabilidade (documentos)',pricing_products:'Preços (produtos)',pricing_scenarios:'Preços (cenários)',atendimentos:'Atendimento',imports:'Importações',orders:'Pedidos',receipts:'Liberações/repasses',ledger:'Vínculos',integrations:'Integrações',purchase_invoices:'Notas de entrada'};
 const OPS={inclusao:['Inclusão','ok'],alteracao:['Alteração','info'],exclusao:['Exclusão','bad']};
 const CAMPOS={theme:'modo claro/escuro',status:'situação',valor:'valor',valor_pago:'valor pago',vencimento:'vencimento',pago_em:'pago em',categoria:'categoria',centro_custo:'centro de custo',fornecedor:'fornecedor',descricao:'descrição',vinculo:'vínculo',linked_order:'pedido vinculado',observacao:'observação',dados:'dados',etapa_interna:'etapa',responsavel:'responsável',notas:'notas',role:'papel',saldo_inicial:'saldo inicial',data_saldo_inicial:'data do saldo inicial',ativo:'ativo',data:'data'};
 const ui={aba:'dados',periodo:'30',area:'',op:'',usuario:'',busca:'',pag:0,linhas:[],total:0,carregando:false,erro:'',chave:''};
+window.Reiniciar?.registrar(ui,['aba','periodo','area','op','usuario','busca','pag']); // estado de tela: volta ao original ao clicar no menu
 const POR_PAG=100;
 const fmtV=v=>v==null?'—':typeof v==='object'?JSON.stringify(v).slice(0,120):String(v).slice(0,120);
 // Campos compostos (JSON): mostra só o caminho que mudou (ex.: dados.nome, theme).

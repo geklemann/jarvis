@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{receipt:paths.receipt||'M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6'});
 const ui={canal:'',dias:14,aba:'monitor'};
+window.Reiniciar?.registrar(ui,['canal','dias','aba']); // estado de tela: volta ao original ao clicar no menu
 const nfe={status:null,notas:null,carregando:false,erro:'',tentou:false};
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
 const menos=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDateString('sv-SE')};

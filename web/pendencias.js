@@ -3,6 +3,7 @@
 // o mais antigo e a ação. Repasse "atrasado" usa o prazo real de cada canal (mediana do histórico) + 5 dias.
 (()=>{
 const ui={grupo:null,busca:''};
+window.Reiniciar?.registrar(ui,['grupo','busca']); // estado de tela: volta ao original ao clicar no menu
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
 const somaDias=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toLocaleDateString('sv-SE')};
 const dBR=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';

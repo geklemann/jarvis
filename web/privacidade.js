@@ -4,6 +4,7 @@
 // obrigatória (anotações de CRM). Inclui o registro das operações de tratamento, em linguagem simples.
 (()=>{
 const st={q:'',res:null};
+window.Reiniciar?.registrar(st,['q','res']); // estado de tela: volta ao original ao clicar no menu
 const so=v=>String(v||'').replace(/\D/g,'');
 const mask=d=>{d=so(d);return d.length===11?`${d.slice(0,3)}.***.***-${d.slice(9)}`:d.length===14?`${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`:d};
 function buscar(q){const n=normalized(q).trim(),d=so(q),bate=(nome,doc)=>(d.length>=11&&so(doc)===d)||(!d.length&&n.length>=4&&normalized(nome||'').includes(n));

@@ -64,6 +64,7 @@ function abrir(id){const g=G[id];if(!g)return toast('Esta tela ainda não tem gu
  <div class="modalfoot"><button data-nav="mapa" data-action="close">Ver todas as telas</button><button class="primary" data-action="close">Entendi</button></div>`)}
 // Mapa do ERP: todas as telas por área, com busca.
 const st={q:''};
+window.Reiniciar?.registrar(st,['q']); // estado de tela: volta ao original ao clicar no menu
 function mapaView(){const q=normalized(st.q),M=(window.ERP?.MODS||[]).filter(m=>window.Perfis?.moduloVisivel?.(m.id)!==false);
  const extra={id:'geral',t:'Geral',ic:'users',grupos:[['Sistema',['equipe','auditoria','lancamento','imports','painel']]]};
  return `<div class="crmbar"><div class="searchin" style="flex:1;max-width:520px">${icon('search')}<input type="search" id="mapaQ" placeholder="O que você quer fazer? Ex.: pagar, estoque, nota, margem…" value="${esc(st.q)}"></div></div>

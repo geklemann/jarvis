@@ -11,6 +11,7 @@ const PADRAO={vigencia:'2026-01',salario_minimo:1621,
  irrf_dependente:189.59,irrf_simplificado:607.20,redutor_isento_ate:5000,redutor_ate:7350,redutor_a:978.62,redutor_b:0.133145,
  fgts:8,inss_patronal:20,rat:2,terceiros:5.8,prolabore_inss:11,prolabore_patronal:20,vt:6,divisor:220,he50:50,he100:100};
 const st={ok:false,carregando:false,P:null,lanc:[],fech:[],aba:'mes',comp:null};
+window.Reiniciar?.registrar(st,['aba','comp']); // estado de tela: volta ao original ao clicar no menu
 const pad=n=>String(n).padStart(2,'0'),r2=v=>Math.round((Number(v)||0)*100)/100,R=v=>money(r2(v));
 const compAtual=()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return `${d.getFullYear()}-${pad(d.getMonth()+1)}`};
 const compLabel=v=>{const [y,m]=v.split('-').map(Number);return new Date(y,m-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};

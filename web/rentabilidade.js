@@ -5,6 +5,7 @@
 (()=>{
 Object.assign(paths,{piramide:'M3 20h18 M6 16h12 M9 12h6 M11 8h2 M12 4v4'});
 const ui={mes:null,grupo:'produto',base:'receita',fonte:'dre',canal:'',busca:'',ordem:'ll',dir:-1};
+window.Reiniciar?.registrar(ui,['mes','grupo','base','fonte','canal','busca','ordem','dir']); // estado de tela: volta ao original ao clicar no menu
 const r2=v=>Math.round((Number(v)||0)*100)/100,pct=(v,b)=>b?`${(v/b*100).toFixed(1).replace('.',',')}%`:'—',R=v=>money(r2(v));
 const mesesComVenda=()=>[...new Set(db.orders.map(o=>o.date.slice(0,7)))].sort().reverse();
 const mesPadrao=()=>{const ms=mesesComVenda(),atual=new Date().toISOString().slice(0,7);return ms.find(m=>m<atual)||ms[0]||atual};
