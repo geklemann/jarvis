@@ -46,6 +46,8 @@ jobs:
           echo "DIA=$(date -u +%F)" >> "$GITHUB_ENV"
           echo "DIA_MES=$(date -u +%d)" >> "$GITHUB_ENV"
           echo "MES=$(date -u +%Y-%m)" >> "$GITHUB_ENV"
+          # Nome com a hora: o balde tem trava contra sobrescrever, então cada execução grava um arquivo novo.
+          echo "ARQ=jarvis-$(date -u +%F-%H%M)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         if: steps.cfg.outputs.ok == 'true'
       - uses: supabase/setup-cli@v1
@@ -81,10 +83,10 @@ jobs:
         if: steps.cfg.outputs.ok == 'true'
         run: |
           set -euo pipefail
-          tar -C bk -czf "jarvis-$DIA.tar.gz" .
-          sha256sum "jarvis-$DIA.tar.gz" | cut -d' ' -f1 > sha.txt
-          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "jarvis-$DIA.tar.gz" -out "jarvis-$DIA.tar.gz.enc" -pass env:BACKUP_PASSPHRASE
-          echo "Backup: $(du -h "jarvis-$DIA.tar.gz.enc" | cut -f1) (cifrado)"
+          tar -C bk -czf "$ARQ.tar.gz" .
+          sha256sum "$ARQ.tar.gz" | cut -d' ' -f1 > sha.txt
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "$ARQ.tar.gz" -out "$ARQ.tar.gz.enc" -pass env:BACKUP_PASSPHRASE
+          echo "Backup: $(du -h "$ARQ.tar.gz.enc" | cut -f1) (cifrado)"
 
       - name: Enviar ao R2 e conferir
         if: steps.cfg.outputs.ok == 'true'
@@ -103,11 +105,11 @@ jobs:
               curl -fsS -X POST -H "$AUTH" -H 'content-type: application/json' -d "{\"uploadId\":\"$up\",\"partes\":${lista%,}]}" "$RECEPTOR/concluir?chave=$2" > /dev/null
             fi
           }
-          enviar "jarvis-$DIA.tar.gz.enc" "diario/$DIA/jarvis-$DIA.tar.gz.enc"
-          enviar bk/contagem.json "diario/$DIA/contagem.json"
-          if [ "$DIA_MES" = "01" ]; then enviar "jarvis-$DIA.tar.gz.enc" "mensal/$MES/jarvis-$DIA.tar.gz.enc"; fi
+          enviar "$ARQ.tar.gz.enc" "diario/$DIA/$ARQ.tar.gz.enc"
+          enviar bk/contagem.json "diario/$DIA/$ARQ.contagem.json"
+          if [ "$DIA_MES" = "01" ]; then enviar "$ARQ.tar.gz.enc" "mensal/$MES/$ARQ.tar.gz.enc"; fi
           # Conferência: baixa de volta, decifra e compara com o original.
-          curl -fsS -H "$AUTH" -o volta.enc "$RECEPTOR/baixar?chave=diario/$DIA/jarvis-$DIA.tar.gz.enc"
+          curl -fsS -H "$AUTH" -o volta.enc "$RECEPTOR/baixar?chave=diario/$DIA/$ARQ.tar.gz.enc"
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in volta.enc -out volta.tar.gz -pass env:BACKUP_PASSPHRASE
           [ "$(sha256sum volta.tar.gz | cut -d' ' -f1)" = "$(cat sha.txt)" ] || { echo "::error::O backup no R2 não confere com o original."; exit 1; }
           echo "Backup no R2 conferido: diario/$DIA/"
