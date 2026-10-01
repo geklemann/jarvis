@@ -23,5 +23,9 @@ additional_redirect_urls = ["https://jaarvis.com.br/**", "https://www.jaarvis.co
 verify_jwt = false
 
 # Jarvis Ponto: app do colaborador (sem login do ERP); identificado por aparelho ativado com código de uso único.
+[functions.cobranca]
+# Recebe os avisos do Asaas (sem login); o checkout confere o login do dono por conta própria.
+verify_jwt = false
+
 [functions.ponto]
 verify_jwt = false

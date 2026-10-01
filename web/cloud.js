@@ -155,8 +155,15 @@ async function aguardandoView(session){const {data:req}=await sb.from('access_re
  $('#app').innerHTML=`<div class="auth"><div class="authcard"><div class="brand" style="padding:0;margin-bottom:22px"><span class="mark">${icon('marca')}</span><div>Jarvis<small>CONCILIAÇÃO E RESULTADO</small></div></div>
  <h1 style="font-size:23px">${recusado?'Acesso não liberado':'Aguardando liberação'}</h1><p>${recusado?'O administrador não liberou o acesso para':'Sua conta foi criada e o pedido de acesso foi enviado ao administrador.'} <strong>${esc(session.user.email)}</strong>${recusado?'. Se foi engano, fale com ele.':'. Assim que ele liberar, é só entrar de novo (ou clicar em Verificar).'}</p>
  ${r&&!recusado?`<p class="caption" style="margin-top:10px">Pedido feito em ${new Date(r.created_at).toLocaleString('pt-BR')}.</p>`:''}
- <div class="row wrap" style="margin-top:20px">${recusado?'':'<button class="primary" id="accCheck">Verificar agora</button>'}<button class="quiet" id="accOut">Sair</button></div></div></div>`;
- const c=$('#accCheck');if(c)c.onclick=()=>start(session);$('#accOut').onclick=async()=>{await sb.auth.signOut()}}
+ <div class="row wrap" style="margin-top:20px">${recusado?'':'<button class="primary" id="accCheck">Verificar agora</button>'}<button class="quiet" id="accOut">Sair</button></div>
+ <div class="notice" style="margin-top:22px"><strong>Não faz parte de uma empresa que já usa o Jarvis?</strong> Crie a sua e faça o diagnóstico gratuito por 7 dias: conecte os marketplaces só para leitura e veja quanto cada venda realmente deixa.
+  <form id="novaEmp" class="row wrap" style="gap:8px;margin-top:10px"><label for="novaEmpNome" class="sr-only" style="position:absolute;left:-9999px">Nome da empresa</label><input id="novaEmpNome" required minlength="2" maxlength="120" placeholder="Nome da sua empresa" style="flex:1;min-width:200px"><button class="primary" type="submit">Criar minha empresa</button></form>
+  <p class="caption red" id="novaEmpErro" role="alert"></p></div></div></div>`;
+ const c=$('#accCheck');if(c)c.onclick=()=>start(session);$('#accOut').onclick=async()=>{await sb.auth.signOut()};
+ // Cadastro da própria empresa: vira dono, começa o teste grátis de 7 dias e abre os primeiros passos.
+ $('#novaEmp').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button'),nome=$('#novaEmpNome').value.trim();b.disabled=true;$('#novaEmpErro').textContent='';
+  try{const {error}=await sb.rpc('criar_empresa',{nome});if(error)throw error;try{sessionStorage.setItem('jarvis_primeiros_passos','1')}catch{}location.hash='#comecar';await start(session)}
+  catch(x){$('#novaEmpErro').textContent=x.message||String(x);b.disabled=false}}}
 
 // Verificação em duas etapas: com autenticador cadastrado, os dados só abrem depois do código (o banco exige aal2).
 function pedirCodigo(session){return new Promise(res=>{
