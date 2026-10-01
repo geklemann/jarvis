@@ -19,18 +19,23 @@ export function telefone(t: string) {
   return d.length === 10 || d.length === 11 ? "55" + d : d;
 }
 
-async function porEmail(para: string, e: Envio) {
+/** E-mail pelo Resend. Opcional: quem recebe as respostas (responderPara), cópia e o nome que aparece como remetente. */
+export async function enviarEmail(para: string, e: Envio, opc: { responderPara?: string; copia?: string; nomeRemetente?: string } = {}) {
+  if (!Deno.env.get("RESEND_API_KEY")) throw new Error("O envio de e-mail ainda não foi ligado no servidor (RESEND_API_KEY).");
+  const rem = Deno.env.get("ALERTAS_REMETENTE") || "Jarvis <alertas@jaarvis.com.br>";
+  const from = opc.nomeRemetente ? `${opc.nomeRemetente.replace(/[<>"]/g, "").slice(0, 60)} via Jarvis <${rem.match(/<([^>]+)>/)?.[1] ?? rem}>` : rem;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: Deno.env.get("ALERTAS_REMETENTE") || "Jarvis <alertas@jaarvis.com.br>",
-      to: [para], subject: e.assunto, text: e.texto, html: e.html ?? undefined,
+      from, to: [para], subject: e.assunto, text: e.texto, html: e.html ?? undefined,
+      reply_to: opc.responderPara || undefined, cc: opc.copia ? [opc.copia] : undefined,
       attachments: e.anexos?.map((a) => ({ filename: a.nome, content: a.base64 })),
     }),
   });
   if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
+const porEmail = (para: string, e: Envio) => enviarEmail(para, e);
 
 async function porWhatsApp(para: string, e: Envio) {
   const modelo = Deno.env.get("WHATSAPP_TEMPLATE");

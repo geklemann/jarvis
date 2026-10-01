@@ -22,7 +22,11 @@ async function fn(action,body){const r=await Cloud.client.functions.invoke('inte
 
 // ─────────── Vendas por SKU (dos pedidos) e compras (das notas de entrada) ───────────
 let cache=null;
-function base(){if(cache&&cache.n===db.orders.length&&cache.p===st.lista.length)return cache.v;
+// Quanto comprar: cobre o prazo de reposição + a cobertura alvo + o estoque de segurança, descontando o saldo e o que
+// já foi pedido ao fornecedor e ainda não chegou (senão a sugestão pediria de novo a mercadoria que está a caminho).
+const sugestao=({media,prazo,alvo,minimo,saldo,emPedido=0})=>Math.max(0,Math.ceil(media*(prazo+alvo)+minimo-saldo-emPedido));
+function base(){const vpc=window.Estoque2?.versao?.()||0;if(cache&&cache.n===db.orders.length&&cache.p===st.lista.length&&cache.pc===vpc)return cache.v;
+ const emAberto=window.Estoque2?.emAberto?.()||new Map();
  const d30=menosDias(30),d60=menosDias(60),d90=menosDias(90),d180=menosDias(180),vendas=new Map(),compras=new Map();
  const V=sku=>vendas.get(sku)||(vendas.set(sku,{q30:0,q60:0,q90:0,r90:0,q180:0,ultima:'',canais:{},semanas:new Array(12).fill(0)}),vendas.get(sku));
  const sem0=new Date(hoje()+'T12:00:00');
@@ -36,12 +40,18 @@ function base(){if(cache&&cache.n===db.orders.length&&cache.p===st.lista.length)
   // Ritmo: média ponderada (últimos 30 dias pesam o dobro) para reagir a tendência sem perder estabilidade.
   const media=(v.q30/30*2+v.q60/60)/3,saldo=Number(p.saldo)||0,custo=Number(p.custo)||Number(custoPreco.get(p.id))||c?.custo||0,cobertura=media>0?saldo/media:(saldo>0?Infinity:0);
   const prazo=p.prazo_reposicao??st.prazoPadrao,minimo=Number(p.minimo)||Math.ceil(media*st.seguranca),ponto=Math.ceil(media*prazo+minimo);
-  const sugerida=Math.max(0,Math.ceil(media*(prazo+st.alvo)+minimo-saldo));
-  let status='ok';if(saldo<=0&&v.q60>0)status='ruptura';else if(media>0&&saldo<=ponto)status='comprar';else if(saldo>0&&v.q60===0)status='parado';else if(media>0&&cobertura>st.alvo*3)status='excesso';else if(saldo<=0)status='zerado';
-  return {p,sku:p.id,nome:p.nome,saldo,custo,valor:Math.max(0,saldo)*custo,preco:Number(p.preco)||0,media,cobertura,prazo,minimo,ponto,sugerida,status,v,c,fornecedor:p.fornecedor||c?.fornecedor||''}});
+  const emPedido=emAberto.get(p.id)||0,sugerida=sugestao({media,prazo,alvo:st.alvo,minimo,saldo,emPedido});
+  let status='ok';if(saldo<=0&&v.q60>0)status='ruptura';else if(media>0&&saldo+emPedido<=ponto)status='comprar';else if(saldo>0&&v.q60===0)status='parado';else if(media>0&&cobertura>st.alvo*3)status='excesso';else if(saldo<=0)status='zerado';
+  return {p,sku:p.id,nome:p.nome,saldo,custo,valor:Math.max(0,saldo)*custo,preco:Number(p.preco)||0,media,cobertura,prazo,minimo,ponto,sugerida,emPedido,status,v,c,fornecedor:p.fornecedor||c?.fornecedor||''}});
  // Curva ABC pela receita de 90 dias.
  const tot=linhas.reduce((s,l)=>s+l.v.r90,0);let acc=0;for(const l of [...linhas].sort((a,b)=>b.v.r90-a.v.r90)){acc+=l.v.r90;l.abc=!l.v.r90?'C':acc<=tot*.8?'A':acc<=tot*.95?'B':'C'}
- cache={n:db.orders.length,p:st.lista.length,v:{linhas,vendas}};return cache.v}
+ cache={n:db.orders.length,p:st.lista.length,pc:vpc,v:{linhas,vendas}};return cache.v}
+// Sugestão agrupada por fornecedor (um pedido de compra por fornecedor), maior valor primeiro.
+const SEM_FORN='Sem fornecedor definido';
+function gruposCompra(){const {linhas}=base(),l=linhas.filter(x=>['ruptura','comprar'].includes(x.status)&&x.sugerida>0),por=new Map();
+ for(const x of l){const f=x.fornecedor||SEM_FORN;(por.get(f)||por.set(f,[]).get(f)).push(x)}
+ return [...por].map(([f,it])=>({f,semForn:f===SEM_FORN,it:it.sort((a,b)=>a.cobertura-b.cobertura),total:it.reduce((s,x)=>s+x.sugerida*x.custo,0),
+  itens:it.map(x=>({sku:x.sku,nome:x.nome,qtd:x.sugerida,custo:Math.round(x.custo*100)/100,recebido:0}))})).sort((a,b)=>b.total-a.total)}
 const STATUS={ruptura:['Ruptura','bad','Sem saldo e vendendo: venda perdida todo dia'],comprar:['Comprar','warn','Abaixo do ponto de pedido'],ok:['Saudável','ok','Cobertura dentro do alvo'],excesso:['Excesso','info','Mais de 3× a cobertura alvo'],parado:['Parado','','Com saldo e sem venda há 60 dias'],zerado:['Zerado','','Sem saldo e sem venda recente']};
 const cob=l=>l.cobertura===Infinity?'∞':l.media?`${nf(l.cobertura)} d`:'—';
 function spark(s){const m=Math.max(1,...s),W=84,H=22;return `<svg viewBox="0 0 ${W} ${H}" class="spark" aria-hidden="true"><polyline points="${s.map((x,i)=>`${i*(W/(s.length-1))},${H-2-(x/m)*(H-4)}`).join(' ')}"/></svg>`}
@@ -75,13 +85,13 @@ function posicaoView(){if(!window.Cloud?.ws)return '<div class="empty">Entre no 
 
 // ─────────── Sugestão de compras ───────────
 function comprasView(){if(!window.Cloud?.ws)return '<div class="empty">Entre no portal.</div>';if(!st.carregado){carregar();return '<div class="empty">Carregando produtos…</div>'}
- const {linhas}=base(),l=linhas.filter(x=>['ruptura','comprar'].includes(x.status)&&x.sugerida>0),por=new Map();
- for(const x of l){const f=x.fornecedor||'Sem fornecedor definido';(por.get(f)||por.set(f,[]).get(f)).push(x)}
- const grupos=[...por].map(([f,it])=>({f,it:it.sort((a,b)=>a.cobertura-b.cobertura),total:it.reduce((s,x)=>s+x.sugerida*x.custo,0)})).sort((a,b)=>b.total-a.total);
- return `<div class="notice">Quantidade sugerida = ritmo de venda × (prazo de reposição + ${st.alvo} dias de cobertura) + estoque de segurança − saldo atual. O fornecedor vem do cadastro do produto ou da última nota de entrada. Ajuste prazo e mínimo de cada produto na ficha.</div>
- <div class="grid kpis4"><div class="card kpi"><span class="kpil">Itens para comprar</span><span class="kpiv">${l.length}</span><span class="kpis">${l.filter(x=>x.status==='ruptura').length} já em ruptura</span></div><div class="card kpi"><span class="kpil">Investimento sugerido</span><span class="kpiv">${money(grupos.reduce((s,g)=>s+g.total,0))}</span><span class="kpis">A custo de compra</span></div><div class="card kpi"><span class="kpil">Fornecedores</span><span class="kpiv">${grupos.length}</span><span class="kpis">Um pedido por fornecedor</span></div><div class="card kpi"><span class="kpil">Cobertura alvo</span><span class="kpiv">${st.alvo} d</span><span class="kpis"><button class="small quiet" data-est="params">Alterar</button></span></div></div>
- ${grupos.map((g,gi)=>`<div class="tablebox" style="margin-bottom:16px"><div class="tabletop"><div><h2>${esc(g.f)}</h2><p class="caption">${g.it.length} item(ns) · ${money(g.total)}</p></div><div class="row"><button class="small primary" data-est-gerarpc="${esc(JSON.stringify(g.it.map(x=>({sku:x.sku,nome:x.nome,qtd:x.sugerida,custo:Math.round(x.custo*100)/100,recebido:0}))))}" data-forn="${esc(g.f)}">${icon('plus')} Criar pedido de compra</button><button class="small" data-est-pedido="${gi}">${icon('download')} Planilha</button></div></div><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Situação</th><th class="num">Saldo</th><th class="num">Ritmo/dia</th><th class="num">Cobertura</th><th class="num">Prazo</th><th class="num">Comprar</th><th class="num">Custo</th><th class="num">Total</th><th>Última compra</th></tr></thead><tbody>
-  ${g.it.map(x=>{const [t,tom]=STATUS[x.status];return `<tr class="clickrow" data-est-ficha="${esc(x.sku)}"><td class="comfoto">${window.Estoque?.foto?.(x.sku)||''}<strong>${esc(x.nome)}</strong><br><span class="caption mono">${esc(x.sku)}</span></td><td><span class="badge ${tom}">${t}</span></td><td class="num">${nf(x.saldo)}</td><td class="num">${nf(x.media,1)}</td><td class="num">${cob(x)}</td><td class="num">${x.prazo} d</td><td class="num"><strong>${nf(x.sugerida)}</strong></td><td class="num">${money(x.custo)}</td><td class="num">${money(x.sugerida*x.custo)}</td><td>${x.c?.ultima?dataBR(x.c.ultima):'—'}</td></tr>`}).join('')}</tbody></table></div></div>`).join('')||'<div class="card empty">Nada para comprar agora. ✓</div>'}`}
+ const E2=window.Estoque2;if(E2&&!E2.pronto())E2.carregar();
+ const grupos=gruposCompra(),l=grupos.flatMap(g=>g.it),comForn=grupos.filter(g=>!g.semForn),emPed=base().linhas.filter(x=>x.emPedido>0);
+ return `<div class="notice">Quantidade sugerida = ritmo de venda × (prazo de reposição + ${st.alvo} dias de cobertura) + estoque de segurança − saldo atual − o que já foi pedido e está a caminho. O fornecedor vem do cadastro do produto ou da última nota de entrada. Ajuste prazo e mínimo de cada produto na ficha.</div>
+ <div class="grid kpis4"><div class="card kpi"><span class="kpil">Itens para comprar</span><span class="kpiv">${l.length}</span><span class="kpis">${l.filter(x=>x.status==='ruptura').length} já em ruptura</span></div><div class="card kpi"><span class="kpil">Investimento sugerido</span><span class="kpiv">${money(grupos.reduce((s,g)=>s+g.total,0))}</span><span class="kpis">A custo de compra</span></div><div class="card kpi"><span class="kpil">A caminho</span><span class="kpiv">${emPed.length}</span><span class="kpis">produto(s) em pedidos enviados · já descontados</span></div><div class="card kpi"><span class="kpil">Cobertura alvo</span><span class="kpiv">${st.alvo} d</span><span class="kpis"><button class="small quiet" data-est="params">Alterar</button></span></div></div>
+ ${comForn.length?`<div class="crmbar"><button class="primary" data-est-gerartodos="1">${icon('cart')} Gerar os pedidos de compra de ${comForn.length} fornecedor(es) · ${money(comForn.reduce((s,g)=>s+g.total,0))}</button><span class="caption">Cria um rascunho por fornecedor (ou atualiza o rascunho que já existe). Você confere e envia cada um por e-mail em Pedidos de compra.${grupos.some(g=>g.semForn)?' Itens sem fornecedor ficam de fora: defina o fornecedor na ficha do produto.':''}</span></div>`:''}
+ ${grupos.map((g,gi)=>{const ra=E2?.rascunhoDe?.(g.f);return `<div class="tablebox" style="margin-bottom:16px"><div class="tabletop"><div><h2>${esc(g.f)}</h2><p class="caption">${g.it.length} item(ns) · ${money(g.total)}${ra?` · rascunho nº ${ra.numero} já aberto <button class="small quiet" data-pc-abrir="${esc(ra.id)}">Abrir</button>`:''}</p></div><div class="row">${g.semForn?'':`<button class="small primary" data-est-gerarpc="${esc(JSON.stringify(g.itens))}" data-forn="${esc(g.f)}">${icon(ra?'refresh':'plus')} ${ra?`Atualizar rascunho nº ${ra.numero}`:'Criar pedido de compra'}</button>`}<button class="small" data-est-pedido="${gi}">${icon('download')} Planilha</button></div></div><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Situação</th><th class="num">Saldo</th><th class="num">Em pedido</th><th class="num">Ritmo/dia</th><th class="num">Cobertura</th><th class="num">Prazo</th><th class="num">Comprar</th><th class="num">Custo</th><th class="num">Total</th><th>Última compra</th></tr></thead><tbody>
+  ${g.it.map(x=>{const [t,tom]=STATUS[x.status];return `<tr class="clickrow" data-est-ficha="${esc(x.sku)}"><td class="comfoto">${window.Estoque?.foto?.(x.sku)||''}<strong>${esc(x.nome)}</strong><br><span class="caption mono">${esc(x.sku)}</span></td><td><span class="badge ${tom}">${t}</span></td><td class="num">${nf(x.saldo)}</td><td class="num">${x.emPedido?nf(x.emPedido):'—'}</td><td class="num">${nf(x.media,1)}</td><td class="num">${cob(x)}</td><td class="num">${x.prazo} d</td><td class="num"><strong>${nf(x.sugerida)}</strong></td><td class="num">${money(x.custo)}</td><td class="num">${money(x.sugerida*x.custo)}</td><td>${x.c?.ultima?dataBR(x.c.ultima):'—'}</td></tr>`}).join('')}</tbody></table></div></div>`}).join('')||'<div class="card empty">Nada para comprar agora. ✓</div>'}`}
 
 // ─────────── Ficha do produto ───────────
 function ficha(sku){const {linhas}=base(),x=linhas.find(l=>l.sku===sku);if(!x)return;const p=x.p,[t,tom,desc]=STATUS[x.status];
@@ -108,8 +118,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-est]
  if(d.estFiltro){st.filtro=d.estFiltro;st.pag=0;if(page!=='estoque')navigate('estoque');else render();return}
  if(d.estFicha){ficha(d.estFicha);return}
  if(d.estPag){st.pag+=Number(d.estPag);render();return}
- if(d.estPedido!==undefined){const {linhas}=base(),l=linhas.filter(x=>['ruptura','comprar'].includes(x.status)&&x.sugerida>0),por=new Map();for(const x of l){const f=x.fornecedor||'Sem fornecedor definido';(por.get(f)||por.set(f,[]).get(f)).push(x)}
-  const g=[...por].map(([f,it])=>({f,it,total:it.reduce((s,x)=>s+x.sugerida*x.custo,0)})).sort((a,b)=>b.total-a.total)[Number(d.estPedido)];if(!g)return;
+ if(d.estPedido!==undefined){const g=gruposCompra()[Number(d.estPedido)];if(!g)return;
   csv(`pedido-${normalized(g.f).replace(/[^a-z0-9]+/g,'-').slice(0,40)}-${hoje()}.csv`,['SKU','Produto','Quantidade','Custo unitário','Total'],g.it.map(x=>[x.sku,x.nome,x.sugerida,x.custo.toFixed(2).replace('.',','),(x.sugerida*x.custo).toFixed(2).replace('.',',')]));return}
  if(d.estSalvar){const num=v=>v===''?null:Number(v);const campos={minimo:num($('#efMin').value),prazo_reposicao:num($('#efPrazo').value),fornecedor:$('#efForn').value.trim()||null,localizacao:$('#efLoc').value.trim()||null,observacao:$('#efObs').value.trim()||null,ignorar:$('#efIgn').checked,updated_at:new Date().toISOString()};
   const {error}=await Cloud.client.from('produtos').update(campos).eq('workspace_id',Cloud.ws).eq('id',d.estSalvar);if(error){toast(error.message);return}Object.assign(st.lista.find(p=>p.id===d.estSalvar)||{},campos);cache=null;closeModal();toast('Produto atualizado.');render();return}
@@ -127,7 +136,7 @@ addPage('estcompras','cart','Sugestão de compras',comprasView,'O que comprar, q
 let fotoMap=null,fotoN=-1;
 function foto(sku){if(fotoN!==st.lista.length){fotoMap=new Map(st.lista.map(p=>[String(p.id).trim(),p.imagem]));fotoN=st.lista.length}const u=fotoMap.get(String(sku||'').trim());
  return `<span class="pfoto">${u?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`:''}</span>`}
-window.Estoque={foto,carregar,lista:()=>st.lista,recalc:()=>{cache=null},avisos:()=>{if(!st.carregado)return [];const {linhas}=base(),r=linhas.filter(l=>l.status==='ruptura'),c=linhas.filter(l=>l.status==='comprar');const out=[];
+window.Estoque={foto,carregar,sugestao,gruposCompra,lista:()=>st.lista,recalc:()=>{cache=null},avisos:()=>{if(!st.carregado)return [];const {linhas}=base(),r=linhas.filter(l=>l.status==='ruptura'),c=linhas.filter(l=>l.status==='comprar');const out=[];
  if(r.length)out.push(['bad','box',`${r.length} produto(s) em ruptura`,'Vendendo sem saldo — reponha','estoque']);if(c.length)out.push(['warn','cart',`${c.length} produto(s) para comprar`,'Abaixo do ponto de pedido','estcompras']);return out}};
 let ultimoWs=null;setInterval(()=>{if(window.Cloud?.ws&&Cloud.ws!==ultimoWs&&db.orders?.length){ultimoWs=Cloud.ws;st.carregado=false;carregar()}},2000);
 })();

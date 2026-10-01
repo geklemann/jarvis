@@ -1,0 +1,58 @@
+// Vigia de preços (Mercado Livre): para cada anúncio ativo da conta que está num produto de catálogo, lê as ofertas
+// dos outros vendedores do MESMO produto (/products/{id}/items) e, nos anúncios de catálogo, a disputa pela compra
+// (price_to_win). Só leitura: nenhum preço é alterado. Guarda o resultado em precos_concorrencia e avisa quando um
+// concorrente baixa o preço abaixo do seu. As regras puras ficam exportadas e testadas (testes/precos.test.mjs).
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { validSecret } from "./store.ts";
+import { baixou, classificar, novoHistorico } from "./precos_regras.ts";
+export { baixou, classificar, novoHistorico };
+
+const API = "https://api.mercadolibre.com";
+
+async function get(tok: string, path: string) {
+  const r = await fetch(API + path, { headers: { Authorization: `Bearer ${tok}`, Accept: "application/json" } });
+  if (!r.ok) { await r.body?.cancel(); return null; }
+  return await r.json().catch(() => null);
+}
+
+export async function vigiarPrecosML(db: SupabaseClient, ws: string, deadline: number) {
+  const sec = await validSecret(db, ws, "mercadolivre");
+  const tok = sec.access_token as string, me = await get(tok, "/users/me"), uid = String(me?.id ?? "");
+  if (!uid) throw new Error("Não consegui ler a conta do Mercado Livre.");
+  const ids: string[] = [];
+  for (let off = 0; off < 1000 && Date.now() < deadline; off += 100) {
+    const r = await get(tok, `/users/${uid}/items/search?status=active&limit=100&offset=${off}`);
+    const res: string[] = r?.results ?? []; ids.push(...res); if (res.length < 100) break;
+  }
+  const { data: antes } = await db.from("precos_concorrencia").select("*").eq("workspace_id", ws);
+  const ant = new Map((antes ?? []).map((a: any) => [a.item_id, a]));
+  // Quem foi verificado há mais tempo primeiro: se o tempo acabar, a próxima rodada continua dos outros.
+  ids.sort((a, b) => String(ant.get(a)?.verificado_em ?? "").localeCompare(String(ant.get(b)?.verificado_em ?? "")));
+  const agora = new Date(), linhas: any[] = [], alertas: { titulo: string; meu: number; menor: number }[] = [], porProduto = new Map<string, any[]>();
+  for (let i = 0; i < ids.length && Date.now() < deadline - 3000; i += 20) {
+    const lote = await get(tok, `/items?ids=${ids.slice(i, i + 20).join(",")}&attributes=id,title,price,catalog_product_id,catalog_listing,permalink,thumbnail,seller_custom_field,attributes`);
+    for (const x of (lote ?? []) as any[]) {
+      if (x?.code !== 200 || Date.now() > deadline - 3000) continue;
+      const it = x.body, pid = it.catalog_product_id ? String(it.catalog_product_id) : null, meu = it.price != null ? Number(it.price) : null;
+      const sku = it.seller_custom_field || (it.attributes ?? []).find((a: any) => a.id === "SELLER_SKU")?.value_name || null;
+      let menor: number | null = null, menorItem: string | null = null, conc = 0, ptw: number | null = null, disputa: string | null = null;
+      if (pid) {
+        let lst = porProduto.get(pid);
+        if (!lst) { lst = (await get(tok, `/products/${pid}/items?limit=100`))?.results ?? []; porProduto.set(pid, lst!); }
+        for (const o of lst!) { if (String(o.seller_id) === uid || !(Number(o.price) > 0)) continue; conc++; if (menor == null || Number(o.price) < menor) { menor = Number(o.price); menorItem = String(o.item_id); } }
+      }
+      if (it.catalog_listing) { const p = await get(tok, `/items/${it.id}/price_to_win?siteId=MLB&version=v2`); if (p) { ptw = p.price_to_win != null ? Number(p.price_to_win) : null; disputa = p.status ?? null; } }
+      const a = ant.get(it.id);
+      if (baixou(a, menor, meu)) alertas.push({ titulo: String(it.title).slice(0, 60), meu: meu!, menor: menor! });
+      linhas.push({
+        workspace_id: ws, item_id: it.id, sku, titulo: it.title, link: it.permalink, foto: it.thumbnail, produto_catalogo: pid, catalogo: !!it.catalog_listing,
+        meu_preco: meu, menor_preco: menor, menor_item: menorItem, concorrentes: conc, situacao: pid ? classificar(meu, menor, disputa) : "sem_catalogo", preco_para_ganhar: ptw,
+        historico: novoHistorico(a?.historico ?? [], meu, menor, agora), verificado_em: agora.toISOString(),
+      });
+    }
+  }
+  for (let i = 0; i < linhas.length; i += 200) { const { error } = await db.from("precos_concorrencia").upsert(linhas.slice(i, i + 200), { onConflict: "workspace_id,item_id" }); if (error) throw error; }
+  // Anúncios que deixaram de estar ativos saem da lista (a leitura da lista de ativos precisa ter sido completa).
+  if (ids.length && ids.length < 1000) { const fora = (antes ?? []).map((a: any) => a.item_id).filter((x: string) => !ids.includes(x)); if (fora.length) await db.from("precos_concorrencia").delete().eq("workspace_id", ws).in("item_id", fora.slice(0, 500)); }
+  return { ativos: ids.length, verificados: linhas.length, com_concorrencia: linhas.filter((l) => l.concorrentes > 0).length, mais_caros: linhas.filter((l) => ["mais_caro", "perdendo"].includes(l.situacao)).length, alertas, em: agora.toISOString() };
+}

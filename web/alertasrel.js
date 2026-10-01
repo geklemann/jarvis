@@ -3,7 +3,7 @@
 // da diretoria (prévia, planilha e envio) e o registro do que foi enviado. Só o dono cadastra e envia; os demais veem.
 // Os canais funcionam depois que as chaves forem gravadas no servidor (RESEND_API_KEY; WHATSAPP_TOKEN e WHATSAPP_PHONE_ID).
 (()=>{
-const TIPOS=[['nfe','NF-e rejeitada'],['atendimento','Reclamação urgente'],['ruptura','Produto sem estoque'],['venc','Contas que vencem hoje'],['venc_amanha','Contas que vencem amanhã'],['repasse','Repasse atrasado ou abaixo do previsto'],['aprov','Pagamento para aprovar'],['semanal','Relatório semanal da diretoria']];
+const TIPOS=[['nfe','NF-e rejeitada'],['atendimento','Reclamação urgente'],['ruptura','Produto sem estoque'],['venc','Contas que vencem hoje'],['venc_amanha','Contas que vencem amanhã'],['repasse','Repasse atrasado ou abaixo do previsto'],['aprov','Pagamento para aprovar'],['metas','Meta do mês abaixo do ritmo'],['preco','Concorrente baixou o preço'],['semanal','Relatório semanal da diretoria']];
 const nomeTipo=t=>(TIPOS.find(x=>x[0]===t)||[t,t])[1];
 const st={carregado:false,carregando:false,destinos:[],envios:[],canais:null,erro:'',rel:null,relCarregando:false};
 const dono=()=>window.Cloud?.role==='owner';

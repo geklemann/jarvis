@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import * as XLSX from "npm:xlsx@0.18.5";
 import { semanaAnterior } from "./semana.ts";
+import { metasDoMes } from "./metas.ts";
 export { semanaAnterior };
 
 const brl = (v: number) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -56,8 +57,10 @@ async function coletar(db: SupabaseClient, ws: string, agora: Date) {
   const vencidas = contas.filter((p) => p.vencimento < s.hoje), proximas = contas.filter((p) => p.vencimento >= s.hoje && p.vencimento <= ate7).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
   const caixa = r2((bancos ?? []).reduce((a, b) => a + Number(b.saldo_extrato || 0), 0));
 
+  // Metas do mês corrente (vendas e recebido), na data de envio do relatório.
+  const metas = (await metasDoMes(db, ws, agora).catch(() => ({ lista: [] }))).lista;
   const dados = {
-    periodo: s, canais: linhas, total: tot, variacao: varPct, aReceber, atrasados: { n: atrasados.length, valor: valorAtrasado }, divergentes: { n: divergentes.length, valor: r2(divergentes.reduce((a, x) => a + Number(x.saldo), 0)) },
+    metas, periodo: s, canais: linhas, total: tot, variacao: varPct, aReceber, atrasados: { n: atrasados.length, valor: valorAtrasado }, divergentes: { n: divergentes.length, valor: r2(divergentes.reduce((a, x) => a + Number(x.saldo), 0)) },
     contas: { vencidas: { n: vencidas.length, valor: r2(vencidas.reduce((a, p) => a + aberto(p), 0)) }, proximas: { n: proximas.length, valor: r2(proximas.reduce((a, p) => a + aberto(p), 0)), lista: proximas.slice(0, 10).map((p) => ({ fornecedor: p.fornecedor ?? "", vencimento: p.vencimento, valor: r2(aberto(p)) })) } },
     caixa, atendimento: { abertos: atAbertos ?? 0, urgentes: atUrgentes ?? 0, resolvidos: atResolvidos ?? 0 }, rupturas: rupturas ?? 0,
   };
@@ -71,6 +74,7 @@ export async function montarRelatorio(db: SupabaseClient, ws: string, agora = ne
   return { dados, ...formatos(dados) };
 }
 
+const STM: Record<string, string> = { ok: "no ritmo", atencao: "atenção", abaixo: "abaixo do ritmo", cedo: "começo do mês", futuro: "—" };
 function formatos(d: Dados) {
   const per = `${dataBR(d.periodo.ini)} a ${dataBR(d.periodo.fim)}`;
   const assunto = `Jarvis · Resumo da semana ${per}`;
@@ -84,6 +88,7 @@ function formatos(d: Dados) {
     `Caixa (extrato): ${brl(d.caixa)}`,
     `Atendimento: ${d.atendimento.abertos} aberto(s), ${d.atendimento.urgentes} urgente(s), ${d.atendimento.resolvidos} resolvido(s) na semana`,
     `Ruptura: ${d.rupturas} produto(s) sem estoque`,
+    ...d.metas.map((a) => `Meta de ${a.ind} (${a.canal || "empresa toda"}): ${brl(a.real ?? 0)} de ${brl(a.meta)} · ${STM[a.status] ?? a.status}${a.proj != null && a.status !== "cedo" ? ` · projeção ${brl(a.proj)}` : ""}`),
     `Detalhes: https://jaarvis.com.br/#resumo`,
   ].join("\n");
   const td = "padding:7px 10px;border-bottom:1px solid #e5e7eb", tdn = td + ";text-align:right;font-variant-numeric:tabular-nums";
@@ -99,6 +104,7 @@ function formatos(d: Dados) {
  <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #e5e7eb"><tr style="color:#5f6674;text-align:left"><th style="${td}">Canal</th><th style="${tdn}">Pedidos</th><th style="${tdn}">Vendas</th><th style="${tdn}">Tarifas</th><th style="${tdn}">Líquido</th><th style="${tdn}">Recebido</th></tr>
  ${d.canais.map((x) => `<tr><td style="${td}">${x.canal}</td><td style="${tdn}">${x.n}</td><td style="${tdn}">${brl(x.bruto)}</td><td style="${tdn}">${brl(x.taxa)}</td><td style="${tdn}">${brl(x.liquido)}</td><td style="${tdn}">${brl(x.recebido)}</td></tr>`).join("")}
  <tr style="font-weight:700"><td style="${td}">Total</td><td style="${tdn}">${d.total.n}</td><td style="${tdn}">${brl(d.total.bruto)}</td><td style="${tdn}">${brl(d.total.taxa)}</td><td style="${tdn}">${brl(d.total.liquido)}</td><td style="${tdn}">${brl(d.total.recebido)}</td></tr></table>
+ ${d.metas.length ? `<h2 style="font-size:15px;margin:18px 0 6px">Metas do mês</h2><table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #e5e7eb"><tr style="color:#5f6674;text-align:left"><th style="${td}">Meta</th><th style="${tdn}">Realizado</th><th style="${tdn}">Meta</th><th style="${tdn}">Esperado até hoje</th><th style="${tdn}">Projeção</th><th style="${td}">Situação</th></tr>${d.metas.map((a) => `<tr><td style="${td}">${a.ind === "vendas" ? "Vendas" : "Recebido"} · ${a.canal || "empresa toda"}</td><td style="${tdn}">${brl(a.real ?? 0)}</td><td style="${tdn}">${brl(a.meta)}</td><td style="${tdn}">${brl(a.esperado ?? 0)}</td><td style="${tdn}">${a.proj != null && a.status !== "cedo" ? brl(a.proj) : "—"}</td><td style="${td};color:${a.status === "abaixo" ? "#d13c4c" : a.status === "atencao" ? "#a05f00" : a.status === "ok" ? "#158049" : "#5f6674"}">${STM[a.status] ?? a.status}</td></tr>`).join("")}</table>` : ""}
  <h2 style="font-size:15px;margin:18px 0 6px">Pede atenção</h2>
  <ul style="font-size:14px;line-height:1.7;padding-left:18px;margin:0">
   <li>A receber dos marketplaces: <b>${brl(d.aReceber)}</b>${d.atrasados.n ? ` — <b style="color:#d13c4c">${d.atrasados.n} repasse(s) atrasado(s), ${brl(d.atrasados.valor)}</b>` : ""}</li>
@@ -116,6 +122,7 @@ function formatos(d: Dados) {
   const resumo = [["Jarvis · Resumo da semana", per], [], ["Vendas", r2(d.total.bruto)], ["Pedidos", d.total.n], ["Variação das vendas vs. semana anterior", d.variacao ?? ""], ["Tarifas", r2(d.total.taxa)], ["Líquido", r2(d.total.liquido)], ["Recebido na semana", r2(d.total.recebido)], ["A receber dos marketplaces", d.aReceber], ["Repasses atrasados (qtde)", d.atrasados.n], ["Repasses atrasados (valor)", d.atrasados.valor], ["Repasse abaixo do previsto (qtde)", d.divergentes.n], ["Contas vencidas (valor)", d.contas.vencidas.valor], ["Contas dos próximos 7 dias (valor)", d.contas.proximas.valor], ["Caixa (extratos)", d.caixa], ["Atendimentos abertos", d.atendimento.abertos], ["Atendimentos urgentes", d.atendimento.urgentes], ["Resolvidos na semana", d.atendimento.resolvidos], ["Produtos sem estoque", d.rupturas]];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), "Resumo");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Canal", "Pedidos", "Vendas", "Tarifas", "Líquido", "Recebido", "Pedidos semana anterior", "Vendas semana anterior"], ...d.canais.map((x) => [x.canal, x.n, r2(x.bruto), r2(x.taxa), r2(x.liquido), r2(x.recebido), x.nAnt, r2(x.brutoAnt)])]), "Vendas por canal");
+  if (d.metas.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Indicador", "Canal", "Realizado", "Meta", "Esperado até hoje", "Projeção", "Situação"], ...d.metas.map((a) => [a.ind, a.canal || "Empresa toda", r2(a.real ?? 0), a.meta, r2(a.esperado ?? 0), a.proj != null ? r2(a.proj) : "", STM[a.status] ?? a.status])]), "Metas do mês");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Vencimento", "Fornecedor", "Valor em aberto"], ...d.contas.proximas.lista.map((p) => [p.vencimento, p.fornecedor, p.valor])]), "Contas 7 dias");
   const xlsx = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
   return { assunto, texto, html, xlsx, arquivo: `Jarvis - Resumo da semana ${d.periodo.ini}.xlsx` };

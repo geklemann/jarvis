@@ -3,6 +3,7 @@
 // por dia, de manhã) e pagamentos aguardando aprovação (só para o dono). O estado fica em settings.alertas do Bling.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { metasDoMes } from "./metas.ts";
 
 type Alerta = { titulo: string; corpo: string; url: string; so_dono?: boolean; tag: string };
 let pronto = false;
@@ -63,10 +64,20 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
   const { data: dv } = await db.from("v_pedidos").select("pedido,plataforma,saldo").eq("workspace_id", ws).eq("status", "Divergência").gt("saldo", 0.5).limit(500);
   const antesD = new Set<string>(estado?.divergentes ?? []), novosD = (dv ?? []).filter((p) => !antesD.has(p.pedido));
   if (estado?.divergentes && novosD.length) out.push({ titulo: novosD.length > 1 ? `${novosD.length} repasses abaixo do previsto` : "Repasse abaixo do previsto", corpo: novosD.slice(0, 3).map((p) => `${p.plataforma} ${p.pedido}: faltam ${brl(Number(p.saldo))}`).join(" · "), url: "#reconcile", tag: "repasse" });
+  // Metas do mês fora do ritmo (vendas e recebido abaixo de 90% do esperado até hoje): um aviso por dia, depois das 9 h.
+  if (horaBR >= 9 && estado?.metas !== hojeBR) {
+    const { lista } = await metasDoMes(db, ws).catch(() => ({ lista: [] as Awaited<ReturnType<typeof metasDoMes>>["lista"] }));
+    const ab = lista.filter((a) => a.status === "abaixo"), nome = (i: string) => (i === "vendas" ? "vendas" : "recebido");
+    if (ab.length) out.push({
+      titulo: ab.length > 1 ? `${ab.length} metas do mês abaixo do ritmo` : `Meta de ${nome(ab[0].ind)} abaixo do ritmo`,
+      corpo: ab.slice(0, 3).map((a) => `${a.canal || "Empresa toda"} · ${nome(a.ind)}: ${brl(a.real ?? 0)} de ${brl(a.esperado ?? 0)} esperados até hoje (${Math.round((a.ritmo ?? 0) * 100)}%)`).join(" · "),
+      url: "#metas", tag: "metas",
+    });
+  }
   // Pagamentos aguardando aprovação lançados desde a última olhada (só o dono recebe).
   const { data: ap } = await db.from("payables").select("fornecedor,valor").eq("workspace_id", ws).eq("aprovacao", "pendente").gt("created_at", desde).limit(20);
   if (ap?.length) out.push({ titulo: `${ap.length} pagamento(s) para aprovar`, corpo: ap.slice(0, 3).map((p) => `${p.fornecedor ?? ""} ${brl(Number(p.valor))}`).join(" · "), url: "#pagar", tag: "aprov", so_dono: true });
-  return { alertas: out, estado: { em: agora.toISOString(), rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido) } };
+  return { alertas: out, estado: { em: agora.toISOString(), metas: horaBR >= 9 ? hojeBR : estado?.metas ?? null, rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido) } };
 }
 
 /** Tipo do alerta para os destinos de e-mail/WhatsApp (o mesmo nome escolhido na tela de Alertas e relatórios). */

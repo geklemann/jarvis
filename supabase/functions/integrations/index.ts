@@ -11,7 +11,7 @@ import { sugerirAtendimento } from "../_shared/atendimento_ia.ts";
 import { lerContaPagar } from "../_shared/leitura_conta.ts";
 import { detalheRecebida, manifestar, sincronizarRecebidas } from "../_shared/nfe_recebidas.ts";
 import { enviarPush, tipoDoAlerta, verificarAlertas } from "../_shared/alertas.ts";
-import { canaisDisponiveis, enviarCanais } from "../_shared/canais.ts";
+import { canaisDisponiveis, enviarCanais, enviarEmail } from "../_shared/canais.ts";
 // O relatório semanal (planilha Excel) é carregado só quando usado: um problema nele não derruba a sincronização.
 const relatorio = () => import("../_shared/relatorio_semanal.ts");
 import { depositosBling, enviarMovimentosBling, etiquetasBling, lancarEstoqueBling } from "../_shared/expedicao_bling.ts";
@@ -22,6 +22,7 @@ import { sondarAds } from "../_shared/ml_ads.ts";
 import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shared/devolucao.ts";
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
+import { vigiarPrecosML } from "../_shared/precos_ml.ts";
 import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
 
 const required: Record<string, string[]> = {
@@ -35,6 +36,17 @@ const LOCK_MS = 140_000;
 const HOURLY_MS = 60 * 60_000;
 const ATENDIMENTO_MS = 10 * 60_000; // reclamações, perguntas e mensagens: a cada 10 minutos
 const ESTOQUE_MS = 60 * 60_000; // produtos, custo e saldo do Bling: de hora em hora
+const PRECOS_MS = 3 * 60 * 60_000; // vigia de preços da concorrência (Mercado Livre): a cada 3 horas
+
+/** Avisa (celular, e-mail e WhatsApp) os anúncios em que um concorrente passou a vender mais barato. */
+async function avisarPrecos(db: Db, ws: string, alertas: { titulo: string; meu: number; menor: number }[]) {
+  if (!alertas.length) return;
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const a = { titulo: alertas.length > 1 ? `Concorrente baixou o preço em ${alertas.length} anúncios` : "Concorrente baixou o preço", corpo: alertas.slice(0, 3).map((x) => `${x.titulo}: ${brl(x.menor)} (você ${brl(x.meu)})`).join(" · "), url: "#concorrencia", tag: "preco" };
+  await enviarPush(db, ws, [a]).catch(() => null);
+  await enviarCanais(db, ws, [{ tipo: "preco", assunto: `Jarvis: ${a.titulo}`, texto: `${a.corpo}
+Abrir: https://jaarvis.com.br/${a.url}` }]).catch(() => null);
+}
 
 type Db = ReturnType<typeof admin>;
 interface Job { from: string; to: string; fases?: string[]; cursor: unknown; locked_until?: number | null; started_at?: string; saved?: Record<string, number> }
@@ -282,6 +294,16 @@ Deno.serve(handler(async (req) => {
       try { const r = await sondarAds(db, i.workspace_id); await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = r; }); report.push({ workspace_id: i.workspace_id, ads_probe: r.testes.map((x: any) => [x.nome, x.status]) }); }
       catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.ads_probe = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
     }
+    // Vigia de preços da concorrência (Mercado Livre, só leitura): a cada 3 horas.
+    for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.precos?.em || Date.now() - new Date(x.settings.precos.em).getTime() > PRECOS_MS))) {
+      if (Date.now() > deadline - 30_000) break;
+      try {
+        const r = await vigiarPrecosML(db, i.workspace_id, Math.min(deadline - 15_000, Date.now() + 45_000));
+        await avisarPrecos(db, i.workspace_id, r.alertas);
+        await writeSettings(db, i.workspace_id, i.provider, (s) => { s.precos = { ...r, alertas: r.alertas.length }; });
+        report.push({ workspace_id: i.workspace_id, precos: { ...r, alertas: r.alertas.length } });
+      } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.precos = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
+    }
     // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {
       if (Date.now() > deadline - 12_000) break;
@@ -366,6 +388,35 @@ Deno.serve(handler(async (req) => {
     case "push_teste": return json(await enviarPush(db, ws, [{ titulo: "Jarvis: alertas ligados", corpo: "Você vai receber aqui NF-e rejeitada, reclamação urgente, ruptura, vencimentos do dia e aprovações.", url: "#central", tag: "teste" }]));
     // Alertas e relatórios por e-mail e WhatsApp: quais canais estão ligados, teste para um destino e o relatório semanal.
     case "alertas_canais": return json(canaisDisponiveis());
+    case "precos_vigiar": {
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "financeiro", "estoque", "atendimento"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não acessa preços.");
+      const r = await vigiarPrecosML(db, ws, Date.now() + 100_000);
+      await avisarPrecos(db, ws, r.alertas);
+      await writeSettings(db, ws, "mercadolivre", (s) => { s.precos = { ...r, alertas: r.alertas.length }; });
+      return json({ ...r, alertas: r.alertas.length });
+    }
+    case "pedido_compra_email": {
+      // Envia o pedido de compra ao fornecedor (Resend). A resposta do fornecedor vai para quem enviou, que recebe cópia.
+      const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
+      if (!["owner", "member", "estoque", "financeiro"].includes(String(m?.role))) throw new HttpError(403, "Seu papel não permite enviar pedidos de compra.");
+      const para = String(body.para ?? "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) throw new HttpError(400, "E-mail do fornecedor inválido.");
+      const { data: pc } = await db.from("pedidos_compra").select("*").eq("workspace_id", ws).eq("id", String(body.id ?? "")).maybeSingle();
+      if (!pc) throw new HttpError(404, "Pedido de compra não encontrado.");
+      if (["recebido", "cancelado"].includes(pc.status)) throw new HttpError(400, "Pedido recebido ou cancelado não é reenviado.");
+      if (!(pc.itens ?? []).some((i: any) => Number(i.qtd) > 0)) throw new HttpError(400, "O pedido está sem itens.");
+      const { data: w } = await db.from("workspaces").select("name").eq("id", ws).maybeSingle();
+      const { montarEmailPedido } = await import("../_shared/pedido_compra.ts");
+      const quem = user.email ?? "";
+      const e = montarEmailPedido(pc, w?.name ?? "Jarvis", quem);
+      await enviarEmail(para, { tipo: "pedido_compra", assunto: e.assunto, texto: e.texto, html: e.html, anexos: [e.anexo] }, { responderPara: quem || undefined, copia: quem || undefined, nomeRemetente: w?.name ?? undefined });
+      const agora = new Date().toISOString();
+      const mud = { email: para, enviado_para: para, status: pc.status === "rascunho" ? "enviado" : pc.status, enviado_em: pc.status === "rascunho" ? agora : pc.enviado_em, updated_at: agora };
+      await db.from("pedidos_compra").update(mud).eq("workspace_id", ws).eq("id", pc.id);
+      await db.from("audit_log").insert({ workspace_id: ws, id: crypto.randomUUID(), time: agora, action: "Pedido de compra enviado por e-mail", actor: quem || user.id, detail: `nº ${pc.numero} · ${pc.fornecedor} · ${para} · ${e.itens} item(ns) · total ${e.total.toFixed(2)}` }).then(() => null, () => null);
+      return json({ ok: true, para, responder: quem, pedido: mud });
+    }
     case "alertas_teste": case "relatorio_semanal_enviar": {
       const { data: m } = await db.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", user.id).maybeSingle();
       if (m?.role !== "owner") throw new HttpError(403, "Só o dono envia testes e relatórios.");

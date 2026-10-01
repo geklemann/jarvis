@@ -1,4 +1,6 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.0";
+import { assinaturaErro } from "./erros.ts";
+export { assinaturaErro };
 
 export const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -38,14 +40,30 @@ export async function authorize(req: Request, workspaceId: string) {
 
 export const handler = (fn: (req: Request) => Promise<Response>) => async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const copia = req.method === "POST" ? req.clone() : null;
   try {
     return await fn(req);
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     console.error(e);
+    // Falha inesperada (não é aviso de validação): vai para a Central de erros do workspace.
+    if (status >= 500) await registrarErroServidor(e, req, copia).catch(() => null);
     return json({ error: e instanceof Error ? e.message : String(e) }, status);
   }
 };
+
+async function registrarErroServidor(e: unknown, req: Request, copia: Request | null) {
+  const corpo = copia ? await copia.json().catch(() => ({})) : {};
+  const ws = /^[0-9a-f-]{36}$/i.test(String(corpo?.workspace_id ?? "")) ? String(corpo.workspace_id) : null;
+  const funcao = new URL(req.url).pathname.split("/").filter(Boolean).pop() ?? "funcao";
+  const acao = String(corpo?.action ?? "").slice(0, 40), msg = e instanceof Error ? e.message : String(e);
+  const assinatura = assinaturaErro(funcao, acao, msg).slice(0, 200), db = admin();
+  let q = db.from("erros_sistema").select("id,ocorrencias").eq("assinatura", assinatura).is("resolvido_em", null);
+  q = ws ? q.eq("workspace_id", ws) : q.is("workspace_id", null);
+  const { data: ja } = await q.maybeSingle();
+  if (ja) { await db.from("erros_sistema").update({ ocorrencias: ja.ocorrencias + 1, ultimo_em: new Date().toISOString() }).eq("id", ja.id); return; }
+  await db.from("erros_sistema").insert({ workspace_id: ws, origem: "servidor", assinatura, mensagem: msg.slice(0, 1000), pilha: (e instanceof Error ? e.stack ?? "" : "").slice(0, 4000), pagina: acao || null, url: funcao, usuario: "servidor", usuarios: [] });
+}
 
 // ── Assinatura do parâmetro "state" do OAuth (evita que terceiros vinculem contas ao seu workspace)
 const enc = new TextEncoder();

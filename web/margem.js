@@ -9,14 +9,18 @@ const menos=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDat
 const p1=v=>(v*100).toFixed(1).replace('.',',')+'%';
 let cache=null;
 function aliqTributos(){try{const ms=[...new Set(db.orders.map(o=>o.date.slice(0,7)))].sort().reverse();for(const m of ms){const d=window.Gestao?.dreMes?.(m);if(d?.fonte==='balancete'&&d.v?.receita>0)return {r:-(d.v.impostos||0)/d.v.receita,m}}}catch{}return {r:0.24,m:null}}
+// Custo por SKU: cadastro de produtos (custo + embalagem), com o custo do estoque (Bling) por cima quando existir.
+function mapaCusto(){const custo=new Map((db.products||[]).map(p=>[p.id,{c:Number(p.custo)||0,e:Number(p.embalagem)||0}]));for(const p of window.Estoque?.lista?.()||[])if(Number(p.custo))custo.set(p.id,{c:Number(p.custo),e:custo.get(p.id)?.e||0,f:'estoque'});return custo}
+// Lucro de contribuição de um pedido. null = cancelado/reembolsado (tarifa ≥ 95% da venda: o marketplace não repassa
+// nada, fica fora da margem); {falta:true} = algum item sem custo cadastrado.
+function lucroPedido(o,custo,aliq){if(o.gross>0&&o.fee>=o.gross*0.95)return null;let cmv=0;for(const it of o.items||[]){const c=custo.get(String(it.sku||'').trim());if(!c)return {falta:true};cmv+=(c.c+c.e)*(Number(it.qty)||0)}
+ const frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')&&o.feeSource!=='Shopee'?o.shipping:0,trib=o.gross*aliq;return {cmv,frete,trib,lucro:o.gross-o.fee-frete-cmv-trib}}
 function calcular(){const k=[db.orders.length,ui.periodo,(window.Estoque?.lista?.()||[]).length].join('|');if(cache?.k===k)return cache.v;
- taxaML=null;const ini=menos(ui.periodo),custo=new Map((db.products||[]).map(p=>[p.id,{c:Number(p.custo)||0,e:Number(p.embalagem)||0}]));for(const p of window.Estoque?.lista?.()||[])if(Number(p.custo))custo.set(p.id,{c:Number(p.custo),e:custo.get(p.id)?.e||0,f:'estoque'});
+ taxaML=null;const ini=menos(ui.periodo),custo=mapaCusto();
  const {r:aliq,m:mesAliq}=aliqTributos(),peds=[],cancelados=[];let semCusto=0;
- for(const o of db.orders){if(o.date<ini)continue;
-  // Tarifa ≥ 95% da venda = pedido cancelado/reembolsado (o marketplace não repassa nada): fora da margem.
-  if(o.gross>0&&o.fee>=o.gross*0.95){cancelados.push(o);continue}let cmv=0,falta=false;for(const it of o.items||[]){const c=custo.get(String(it.sku||'').trim());if(c){cmv+=(c.c+c.e)*(Number(it.qty)||0)}else falta=true}
-  if(falta){semCusto++;continue}const frete=o.shipping&&/API/.test(o.source||'')&&!/Bling/.test(o.source||'')&&o.feeSource!=='Shopee'?o.shipping:0,trib=o.gross*aliq,lucro=o.gross-o.fee-frete-cmv-trib;
-  peds.push({o,cmv,frete,trib,lucro,m:o.gross?lucro/o.gross:0,feeP:o.gross?o.fee/o.gross:0})}
+ for(const o of db.orders){if(o.date<ini)continue;const x=lucroPedido(o,custo,aliq);
+  if(!x){cancelados.push(o);continue}if(x.falta){semCusto++;continue}
+  peds.push({o,...x,m:o.gross?x.lucro/o.gross:0,feeP:o.gross?o.fee/o.gross:0})}
  // Tarifa fora do padrão: acima de 1,5× a mediana do canal para o mesmo produto principal.
  const med=new Map();for(const x of peds){const k=x.o.platform+'|'+(x.o.items?.[0]?.sku||'');(med.get(k)||med.set(k,[]).get(k)).push(x.feeP)}
  for(const [k,l] of med){l.sort((a,b)=>a-b);med.set(k,l[Math.floor(l.length/2)])}
@@ -165,5 +169,14 @@ function diagCore(){const {peds,aliq,custoDe,semCusto,cancelados}=calcular(),ini
   fora:{n:fora,valor:excesso},menores:{n:menores.length,valor:menores.reduce((s,m)=>s+m.valor,0),lista:menores.sort((a,b)=>b.valor-a.valor).slice(0,5)},
   prejuizo:{n:pj.length,valor:pj.reduce((s,a)=>s+a.perda,0),top:pj.slice(0,5)},abaixo,anuncios:A.length}}
 const diagnostico=per=>{const o=ui.periodo;if(per)ui.periodo=per;try{return diagCore()}finally{ui.periodo=o}};
-window.Margem={partes,diagnostico,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
+// Margem de contribuição de um mês (AAAA-MM), por canal ('' = empresa toda): só pedidos com custo de todos os itens.
+function porMes(mes){const custo=mapaCusto(),{r:aliq}=aliqTributos(),out={},S=c=>out[c]||(out[c]={venda:0,lucro:0,pedidos:0,semCusto:0});
+ for(const o of db.orders||[]){if(!String(o.date||'').startsWith(mes))continue;const x=lucroPedido(o,custo,aliq);if(!x)continue;
+  for(const c of ['',o.platform]){const s=S(c);if(x.falta){s.semCusto++;continue}s.venda+=Number(o.gross)||0;s.lucro+=x.lucro;s.pedidos++}}
+ return out}
+// Margem por unidade se o anúncio fosse vendido a outro preço (mesmas tarifas %, taxa fixa, frete e custo do histórico).
+function simular(sku,preco,canal='Mercado Livre'){try{const {peds,aliq,custoDe}=calcular(),a=anuncios(peds,aliq,custoDe).find(x=>x.canal===canal&&String(x.sku)===String(sku));if(!a||!preco)return null;
+ const varP=a.venda?(a.com-a.reb+a.outros)/a.venda:0,fixoU=(a.fixa+a.frete)/a.u,lucroU=preco*(1-varP-aliq)-fixoU-a.custo;
+ return {preco,lucroU,margem:lucroU/preco,atual:{preco:a.preco,lucroU:a.lucroU,margem:a.margem},eq:a.eq,min:a.min,vendas:a.u}}catch{return null}}
+window.Margem={partes,diagnostico,mes:porMes,simular,produto:produtoDesempenho,ranking:rankingProdutos,avisos:()=>{try{const {peds,aliq,custoDe}=calcular();const n=anuncios(peds,aliq,custoDe).filter(a=>a.st==='prejuizo'&&a.u>=3).length;return n?[['bad','radar',n+' anúncio(s) vendendo com prejuízo','Veja o preço mínimo por canal no Radar de margem','margem']]:[]}catch{return []}},resumo:()=>{const {peds}=calcular();const neg=peds.filter(x=>x.lucro<0);return {pedidos:peds.length,prejuizo:neg.length,perda:neg.reduce((s,x)=>s+x.lucro,0),venda:peds.reduce((s,x)=>s+x.o.gross,0),lucro:peds.reduce((s,x)=>s+x.lucro,0)}}};
 })();

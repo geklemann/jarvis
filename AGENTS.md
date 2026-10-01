@@ -37,9 +37,16 @@ E no navegador (`npm start`): temas, navegação, importação com mapeamento, c
 - `testes/ambiente.mjs` carrega os scripts de `web/` na ordem do `index.html` num contexto isolado do Node, com um
   navegador simulado: os testes chamam as funções de verdade (`status`, `Folha.calcular`, `Margem.partes`,
   `Contab.diario`, `Sugestoes.sugerir`, `Exportar.celula`…), sem copiar fórmulas. Funções do servidor sem dependência
-  externa (`_shared/ponto_calc.ts`, `semana.ts`, `precos_jarvis.ts`, `canais.ts`) são importadas direto do `.ts` (Node 24).
+  externa (`_shared/ponto_calc.ts`, `semana.ts`, `precos_jarvis.ts`, `canais.ts`, `metas.ts`, `pedido_compra.ts`,
+  `precos_regras.ts`, `erros.ts`) são importadas direto do `.ts` (Node 24). Regra que existe na tela e no servidor (ex.: metas)
+  tem teste comparando as duas.
 - Regra nova de negócio = teste novo com o valor conferido à mão. `JARVIS_WEB=_site npm test` testa a versão compactada.
 - O GitHub roda sintaxe, testes e `deno check` a cada envio (`.github/workflows/ci.yml`).
+
+## Central de erros
+Falhas não tratadas no navegador (`web/erros.js`, carregado antes de tudo) e erros 5xx das funções (`handler` em
+`_shared/common.ts`) vão para `erros_sistema`, agrupados por assinatura. Consulta rápida:
+`supabase db query --linked "select origem, assinatura, ocorrencias, ultimo_em from erros_sistema where resolvido_em is null order by ultimo_em desc"`.
 
 ## Publicação do site
 `sh ops/publicar-site.sh` (com tudo commitado): roda os testes, carimba a versão nos `?v=` do `index.html`, monta
