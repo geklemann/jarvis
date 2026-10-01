@@ -109,3 +109,12 @@ test('servidor: mesmas vendas e recebido a partir do banco (v_pedidos e receipts
   assert.equal(rec.real, 800);
   assert.equal(rec.status, 'abaixo', '800 ÷ 1.050 = 76%');
 });
+
+// Margem: 16% em julho e agosto, −14% em setembro (venda 100, tarifa 50, custo 40, tributos 24) → média 6%.
+test('sugestão pelo histórico conta mês com margem negativa', () => {
+  ctx.__o = [['2026-07-10', 20], ['2026-08-10', 20], ['2026-09-10', 50]].map(([date, fee], i) => ({ id: 'S' + i, platform: 'Mercado Livre', date, gross: 100, fee, items: [{ sku: 'A', qty: 1, price: 100 }] }));
+  ev(`db.orders=window.__o;db.receipts=[];db.products=[{id:'A',custo:40}]`);
+  const s = tela(`Metas.sugerir('2026-10')`), mg = s.find((x) => x.canal === '' && x.indicador === 'margem');
+  assert.equal(mg.valor, 6, '(16 + 16 − 14) ÷ 3');
+  assert.equal(s.find((x) => x.canal === '' && x.indicador === 'vendas').valor, 100, '100 × 1,10 = 110 → centena mais próxima');
+});

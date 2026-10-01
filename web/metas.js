@@ -70,9 +70,10 @@ async function gravar(m,linhas){const quem=window.Cloud?.session?.user?.email||'
 /** Define (ou apaga, com null) uma meta só, mantendo as outras do mês. Usada pelo campo de meta da Visão geral. */
 async function definir(m,canal,ind,v){if(!st.lista)await carregar();const atuais=(st.lista||[]).filter(x=>x.mes===m&&!(x.canal===canal&&x.indicador===ind)).map(x=>({canal:x.canal,indicador:x.indicador,valor:Number(x.valor)}));
  if(window.Cloud?.ws&&!podeEditar())throw new Error('Seu papel não altera metas.');await gravar(m,[...atuais,{canal,indicador:ind,valor:v!=null&&v>0?v:null}])}
-// Sugestão: média dos 3 meses completos anteriores (+10% em vendas e recebido; margem igual à média).
+// Sugestão: média dos 3 meses completos anteriores (+10% em vendas e recebido; margem igual à média, contando meses
+// com margem negativa — senão a meta de um canal no prejuízo sairia otimista).
 function sugerir(m){const ms=[1,2,3].map(n=>somaMes(m,-n)),reais=ms.map(realizado),canais=canaisDe(m),out=[];
- for(const c of canais)for(const ind of ORDEM){const vals=reais.map(r=>ind==='margem'?r[c]?.margem:r[c]?.[ind]).filter(v=>v!=null&&v>0);if(!vals.length)continue;
+ for(const c of canais)for(const ind of ORDEM){const vals=reais.map(r=>ind==='margem'?r[c]?.margem:r[c]?.[ind]).filter(v=>v!=null&&(ind==='margem'||v>0));if(!vals.length)continue;
   const med=vals.reduce((a,b)=>a+b,0)/vals.length;out.push({canal:c,indicador:ind,valor:ind==='margem'?Math.round(med*2)/2:Math.round(med*1.1/100)*100})}
  return out}
 function canaisDe(m){const desde=somaMes(m,-3),s=new Set(['']);for(const o of db.orders||[])if(String(o.date||'')>=desde)s.add(o.platform);for(const x of st.lista||[])if(x.mes===m)s.add(x.canal);return [...s].filter(c=>c!=null)}
