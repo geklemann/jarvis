@@ -12,9 +12,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Sintaxe do site
         run: npm run check
+      - name: Testes (conciliação, folha, margem, ponto, contabilidade, exportação)
+        run: npm test
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

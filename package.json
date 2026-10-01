@@ -5,9 +5,13 @@
   "description": "Jarvis — ERP de e-commerce (antigo CONCIL-IA): conciliação (Bling × Mercado Livre, Shopee e Magalu) com IA, produtos, estados e CRM",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && for f in web/*.js; do node --check \"$f\" || exit 1; done"
+    "check": "node --check server.mjs && for f in web/*.js; do node --check \"$f\" || exit 1; done",
+    "test": "node --test \"testes/*.test.mjs\""
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

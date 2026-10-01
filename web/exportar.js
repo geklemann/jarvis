@@ -29,7 +29,9 @@ function celulaTd(td){const t=td.innerText.replace(/ /g,' ').trim();if(!t)retur
 function visivel(el){return !!(el.offsetParent||el.getClientRects().length)}
 // Nome da aba: o último título (h2/h3/h4) que aparece antes da tabela na tela; sem título, o nome da tela.
 function tituloTabela(t,i,n){const view=document.getElementById('view')||document.body;
- const hs=[...view.querySelectorAll('h2,h3,h4')].filter(h=>visivel(h)&&(h.compareDocumentPosition(t)&Node.DOCUMENT_POSITION_FOLLOWING));
+ // Só vale título do mesmo bloco da tabela (o cartão de um gráfico vizinho não dá nome à tabela de baixo).
+ const B='.tablebox,.card,.relout,section,.caixa,.formcard,.dg-folha,.cap';
+ const hs=[...view.querySelectorAll('h2,h3,h4')].filter(h=>visivel(h)&&(h.compareDocumentPosition(t)&Node.DOCUMENT_POSITION_FOLLOWING)&&(h.closest(B)||view).contains(t)&&h.closest(B)!==null);
  const h=hs[hs.length-1];return (h&&txt(h).split('\n')[0])||(n===1?tituloTela():'Tabela '+(i+1))}
 function folhaDeTabela(XLSX,t){const ws={},merges=[];let r=0,cmax=0;const ocup={};
  for(const tr of t.rows){if(!visivel(tr))continue;let c=0;
@@ -77,6 +79,7 @@ function aviso(m){if(typeof toast==='function')toast(m);else{const t=document.ge
 function botoes(){const a=document.querySelector('.pagehead .pageactions');if(!a||a.querySelector('.exp-btns'))return;
  a.insertAdjacentHTML('afterbegin',`<div class="exp-btns" role="group" aria-label="Exportar esta tela"><button class="small" data-exp="xlsx" title="Baixar as tabelas desta tela em Excel">Excel</button><button class="small" data-exp="pdf" title="Imprimir ou salvar esta tela em PDF">PDF</button></div>`)}
 if(typeof shell==='function'){const s0=shell;shell=function(){const r=s0.apply(this,arguments);try{botoes()}catch(e){}return r}}
+window.Exportar={celula,excel,pdf};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-exp]');if(!b)return;e.preventDefault();try{b.dataset.exp==='pdf'?pdf():excel()}catch(err){console.error(err);aviso('Não foi possível exportar: '+(err.message||err))}});
 
 // Estilos dos botões e da impressão (qualquer tela).
