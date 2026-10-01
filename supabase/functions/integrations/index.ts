@@ -23,6 +23,7 @@ import { consultarDevolucao, emitirDevolucao, prepararDevolucao } from "../_shar
 import { cancelarNFe, configFiscal, consultarNFe, diagnosticoFiscal, emitirNFe, emitirVendaDireta, processarFilaFiscal, statusFiscal, simularNota, emitirAvulsa, cartaCorrecao } from "../_shared/nfe_focus.ts";
 import { executarReguasML } from "../_shared/reguas_ml.ts";
 import { vigiarPrecosML } from "../_shared/precos_ml.ts";
+import { consultarResultados } from "../_shared/gnre_consulta.ts";
 import { anunciosBling, canaisBling, criarAnuncioBling, enviarFotoProduto, precoLojaBling, salvarProdutoBling, situacaoAnuncioBling, vinculosBling } from "../_shared/catalogo_bling.ts";
 
 const required: Record<string, string[]> = {
@@ -303,6 +304,15 @@ Deno.serve(handler(async (req) => {
         await writeSettings(db, i.workspace_id, i.provider, (s) => { s.precos = { ...r, alertas: r.alertas.length }; });
         report.push({ workspace_id: i.workspace_id, precos: { ...r, alertas: r.alertas.length } });
       } catch (e) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.precos = { erro: String(e).slice(0, 300), em: new Date().toISOString() }; }); }
+    }
+    // GNRE: guias enviadas ao portal têm o resultado consultado sozinho (emitida vira título no contas a pagar).
+    {
+      const { data: pend } = await db.from("gnre_guias").select("workspace_id").eq("status", "enviada").lt("updated_at", new Date(Date.now() - 60_000).toISOString()).limit(500);
+      for (const w of new Set((pend ?? []).map((x: any) => x.workspace_id))) {
+        if (Date.now() > deadline - 20_000) break;
+        try { const r = await consultarResultados(db, w, "Jarvis (consulta automática)"); report.push({ workspace_id: w, gnre: r.resultado.length }); }
+        catch (e) { report.push({ workspace_id: w, gnre_erro: String(e).slice(0, 200) }); }
+      }
     }
     // Liberações do Mercado Pago que acontecem depois da janela de pedidos (a cada 10 min).
     for (const i of list.filter((x) => x.provider === "mercadolivre" && (!x.settings?.liberacoes?.fim || Date.now() - new Date(x.settings.liberacoes.fim).getTime() > 10 * 60_000))) {

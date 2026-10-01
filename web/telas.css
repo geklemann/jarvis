@@ -584,3 +584,9 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .metabar i{display:block;height:100%;border-radius:6px;background:var(--green)}.metabar i.warn{background:var(--gold)}.metabar i.bad{background:var(--red)}.metabar i.info,.metabar i[class=""]{background:color-mix(in srgb,currentColor 45%,transparent)}
 .metabar b,.metabar em{position:absolute;top:-4px;width:2px;height:16px;border-radius:1px;background:currentColor;transform:translateX(-1px)}.metabar b{opacity:.75}.metabar em{opacity:.3}
 .metakpi .caption{display:block}
+/* DIFAL: escolha de um ou mais estados */
+.ufsel{position:relative}.ufsel>summary{list-style:none;cursor:pointer;padding:7px 30px 7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ufsel>summary::-webkit-details-marker{display:none}.ufsel>summary::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:.6}
+.ufsel-painel{position:absolute;z-index:30;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:10px 12px;width:min(330px,86vw)}
+.ufsel-todas{display:flex;gap:8px;align-items:center;font-weight:600;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.ufsel-grade{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px}.ufsel-grade label{display:flex;gap:6px;align-items:center;font-weight:400;white-space:nowrap}.ufsel-grade label.muted{opacity:.55}.ufsel-grade small{opacity:.7}

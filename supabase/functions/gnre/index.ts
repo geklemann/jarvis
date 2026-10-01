@@ -8,7 +8,8 @@ import { authorize, cors, json, HttpError, round } from "../_shared/common.ts";
 import { configFiscal } from "../_shared/nfe_focus.ts";
 import { blingGet, notaAindaValida } from "../_shared/difal.ts";
 import { dataPagamentoGuia } from "../_shared/gnre_regras.ts";
-import { ambienteGnre, consultarConfigUf, enviarLote, montarLote, resultadoLote, temCertificado, type Emitente, type GuiaIn } from "../_shared/gnre.ts";
+import { consultarResultados } from "../_shared/gnre_consulta.ts";
+import { ambienteGnre, consultarConfigUf, enviarLote, montarLote, temCertificado, type Emitente, type GuiaIn } from "../_shared/gnre.ts";
 
 const hoje = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // dia em Brasília
 function ultimoDia(mes: string) { const [a, m] = mes.split("-").map(Number); return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`; }
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
       for (const g of rows) {
         const n: any = g.tipo === "nota" ? N.get(g.notas[0]) : null;
         const pag = dataPagamentoGuia({ tipo: g.tipo, emissao: n?.emissao ?? null, vencimento: g.vencimento }, hoje(), opcPag);
-        out.push({ id: g.id, uf: g.uf, tipo: g.tipo, ie: difalUf[g.uf]?.ie || null, vencimento: g.tipo === "nota" ? pag : g.vencimento, pagamento: pag, icms: Number(g.valor_icms), fcp: Number(g.valor_fcp), fcpSeparado: !!difalUf[g.uf]?.fcp_separado,
+        out.push({ id: g.id, uf: g.uf, tipo: g.tipo, ie: difalUf[g.uf]?.ie || null, vencimento: g.tipo === "nota" ? pag : g.vencimento, pagamento: pag, icms: Number(g.valor_icms), fcp: Number(g.valor_fcp), fcpSeparado: !!difalUf[g.uf]?.fcp_separado, cepEmitente: (cfg.gnre_cep_uf ?? {})[g.uf] || null,
           nota: n ? { chave: n.chave, numero: n.numero, emissao: n.emissao, dest_doc: n.dest_doc, dest_nome: n.dest_nome, dest_mun: n.dest_mun } : undefined, mes: g.tipo === "mensal" ? g.referencia : undefined, config: await configDe(g.uf).catch(() => null) });
       }
       return out;
@@ -105,39 +106,11 @@ Deno.serve(async (req) => {
         if (body.action === "xml") return json({ xml: `<?xml version="1.0" encoding="UTF-8"?>${lote}`, guias: rows.length, pagamentos: gin.map((x) => [x.id, x.pagamento]) });
         const r = await enviarLote(lote);
         const pagPor = new Map(gin.map((x) => [x.id, x.pagamento]));
-        for (const g of rows) await db.from("gnre_guias").update({ status: "enviada", vencimento: g.tipo === "nota" ? pagPor.get(g.id) ?? g.vencimento : g.vencimento, recibo: r.recibo, lote_id: r.recibo, ambiente: ambienteGnre(), xml: lote.length < 200_000 ? lote : null, motivos: null, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
+        for (const g of rows) await db.from("gnre_guias").update({ status: "enviada", retorno: null, vencimento: g.tipo === "nota" ? pagPor.get(g.id) ?? g.vencimento : g.vencimento, recibo: r.recibo, lote_id: r.recibo, ambiente: ambienteGnre(), xml: lote.length < 200_000 ? lote : null, motivos: null, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
         await log("GNRE: lote enviado", { recibo: r.recibo, guias: rows.length, ambiente: ambienteGnre(), pagamento: opcPag });
         return json({ recibo: r.recibo, guias: rows.length, tempo: r.tempo, ambiente: ambienteGnre() });
       }
-      case "consultar": {
-        const { data: rows } = await db.from("gnre_guias").select("*").eq("workspace_id", ws).eq("status", "enviada").order("id");
-        const porLote = new Map<string, any[]>();
-        for (const g of rows ?? []) (porLote.get(g.recibo) ?? porLote.set(g.recibo, []).get(g.recibo)!).push(g);
-        const out: any[] = [];
-        for (const [recibo, gs] of porLote) {
-          const r = await resultadoLote(recibo);
-          if (!r.guias.length) { out.push({ recibo, situacao: r.descricao ?? r.codigo ?? "processando" }); continue; }
-          for (const [i, g] of gs.entries()) {
-            const x = r.guias[i]; if (!x) continue;
-            if (x.situacao === "0" && (x.linha || x.barras)) {
-              const payId = `gnre-${g.id}`;
-              const notaTxt = g.tipo === "nota" ? `NF ${g.referencia?.slice(25, 34)?.replace(/^0+/, "") ?? ""}` : `mensal ${g.referencia}`;
-              // Guia de homologação não se paga: não vira título e a nota volta para a fila (a guia real sai em produção).
-              const teste = g.ambiente !== "producao";
-              if (!teste) await db.from("payables").upsert({ workspace_id: ws, id: payId, origem: "gnre", fornecedor: `SEFAZ ${g.uf}`, descricao: `GNRE DIFAL/FCP ${g.uf} · ${notaTxt}`, documento: x.nosso ?? null, emissao: hoje(), vencimento: x.limite ?? g.vencimento, valor: g.total, status: "aberto", categoria: "Impostos e taxas", linha_digitavel: x.linha ?? x.barras, aprovacao: "aprovado", created_by: quem }, { onConflict: "workspace_id,id", ignoreDuplicates: true });
-              await db.from("gnre_guias").update({ status: "emitida", linha_digitavel: x.linha, codigo_barras: x.barras, nosso_numero: x.nosso, vencimento: x.limite ?? g.vencimento, pdf_base64: i === 0 ? r.pdf : null, payable_id: teste ? null : payId, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
-              if (teste && g.tipo === "nota") await db.from("difal_notas").update({ situacao: "pendente", guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
-              if (teste && g.tipo === "mensal") await db.from("difal_notas").update({ guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
-              out.push({ id: g.id, status: "emitida", teste });
-            } else if (x.situacao && x.situacao !== "0" && x.situacao !== "4") {
-              await db.from("gnre_guias").update({ status: "rejeitada", motivos: x.motivos, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", g.id);
-              if (g.tipo === "nota") await db.from("difal_notas").update({ situacao: "pendente", guia_id: null }).eq("workspace_id", ws).in("chave", g.notas);
-              out.push({ id: g.id, status: "rejeitada", motivos: x.motivos });
-            }
-          }
-        }
-        return json({ resultado: out });
-      }
+      case "consultar": return json(await consultarResultados(db, ws, quem));
       case "cancelar_rascunho": {
         const { data: g } = await db.from("gnre_guias").select("*").eq("workspace_id", ws).eq("id", String(body.id ?? "")).maybeSingle();
         if (!g || !["rascunho", "rejeitada"].includes(g.status)) throw new HttpError(400, "Só rascunho ou guia rejeitada pode ser cancelada aqui.");

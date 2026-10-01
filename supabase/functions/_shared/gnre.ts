@@ -75,6 +75,7 @@ export interface GuiaIn {
   icms: number; fcp: number; fcpSeparado?: boolean;
   nota?: { chave: string; numero: string; emissao: string; dest_doc?: string | null; dest_nome?: string | null; dest_mun?: string | null };
   mes?: string; // AAAA-MM
+  cepEmitente?: string | null; // CEP do emitente só para a UF desta guia (Configuração › CEP por estado)
   config?: any; // de consultarConfigUf (receita 100102)
 }
 function docOrigem(g: GuiaIn) {
@@ -113,7 +114,7 @@ export function montarLote(guias: GuiaIn[], em: Emitente) {
     const det = g.config?.flags?.exigeDetalhamentoReceita === "S" && g.config.detalhamentos?.[0] ? `<detalhamentoReceita>${esc(g.config.detalhamentos[0].codigo)}</detalhamentoReceita>` : "";
     const ident = g.ie ? `<IE>${dig(g.ie)}</IE>` : `<CNPJ>${dig(em.cnpj)}</CNPJ>`;
     // Com inscrição na UF, o emitente se identifica pela IE e dispensa o endereço.
-    const emit = `<contribuinteEmitente><identificacao>${ident}</identificacao>${g.ie ? "" : `<razaoSocial>${esc(semAcento(em.razao).slice(0, 60))}</razaoSocial><endereco>${esc(semAcento(em.endereco).slice(0, 60))}</endereco><municipio>${String(em.ibge).slice(-5)}</municipio><uf>${em.uf}</uf><cep>${dig(em.cep)}</cep>${em.telefone ? `<telefone>${dig(em.telefone).slice(0, 11)}</telefone>` : ""}`}</contribuinteEmitente>`;
+    const emit = `<contribuinteEmitente><identificacao>${ident}</identificacao>${g.ie ? "" : `<razaoSocial>${esc(semAcento(em.razao).slice(0, 60))}</razaoSocial><endereco>${esc(semAcento(em.endereco).slice(0, 60))}</endereco><municipio>${String(em.ibge).slice(-5)}</municipio><uf>${em.uf}</uf><cep>${dig(g.cepEmitente || em.cep)}</cep>${em.telefone ? `<telefone>${dig(em.telefone).slice(0, 11)}</telefone>` : ""}`}</contribuinteEmitente>`;
     let itens: string, tipo = "0";
     if (g.fcp > 0.004 && g.fcpSeparado) { tipo = "2"; itens = item(g, "100102", `<valor tipo="11">${v2(g.icms)}</valor>`, det) + item(g, "100129", `<valor tipo="12">${v2(g.fcp)}</valor>`, ""); }
     else itens = item(g, "100102", `<valor tipo="11">${v2(g.icms)}</valor>${g.fcp > 0.004 ? `<valor tipo="12">${v2(g.fcp)}</valor>` : ""}`, det);
