@@ -117,10 +117,13 @@ jobs:
         run: |
           set -euo pipefail
           supabase db start
-          URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          # Administrador do banco local (o usuário comum não pode aplicar configurações de servidor dos papéis).
+          URL="postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres"
+          # Papéis: linhas de configuração de servidor podem não valer no banco local; qualquer outro erro para tudo.
+          psql "$URL" -v ON_ERROR_STOP=0 -f bk/banco/roles.sql > papeis.log 2> papeis.err || true
+          if grep ERROR papeis.err | grep -v -e 'permission denied for parameter' -e 'already exists' ; then exit 1; fi
           psql "$URL" --single-transaction -v ON_ERROR_STOP=1 \
-            -f bk/banco/roles.sql -f bk/banco/schema.sql \
-            -c 'SET session_replication_role = replica' -f bk/banco/data.sql > restauracao.log
+            -f bk/banco/schema.sql -c 'SET session_replication_role = replica' -f bk/banco/data.sql > restauracao.log
           node ops/backup-contagem.mjs sql bk/contagem.json > contar.sql
           psql "$URL" -At -F $'\t' -f contar.sql > restaurado.tsv
           node ops/backup-contagem.mjs conferir bk/contagem.json restaurado.tsv
