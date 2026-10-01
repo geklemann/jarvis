@@ -90,6 +90,37 @@ select cron.schedule('concilia-sync', '0 * * * *', $$
 $$);
 ```
 
+## 8. Alertas por e-mail e WhatsApp, relatório semanal e cobrança
+
+Tudo já está no sistema (Relatórios › **Alertas e relatórios** e menu do usuário › **Plano e assinatura**); cada canal
+liga quando a chave for gravada no servidor. Para gravar: copie o valor (Ctrl+C) e rode
+`powershell -ExecutionPolicy Bypass -File ops\gravar-segredo.ps1 NOME` — o valor sai da área de transferência e não aparece na tela.
+
+**E-mail (Resend)**
+1. Crie a conta em resend.com e adicione o domínio `jaarvis.com.br` (Domains › Add). O Resend mostra 3 registros DNS
+   (SPF, DKIM e MX de retorno): crie-os no registro.br e aguarde a verificação.
+2. Crie uma chave (API Keys › Create, permissão *Sending access*) e grave `RESEND_API_KEY`.
+3. Opcional: grave `ALERTAS_REMETENTE` (padrão: `Jarvis <alertas@jaarvis.com.br>`).
+
+**WhatsApp (API oficial da Meta / WhatsApp Cloud)**
+1. Em business.facebook.com, crie o app do tipo *Business* com o produto WhatsApp e cadastre o número da empresa.
+2. Crie um modelo de mensagem (categoria *Utilidade*, idioma Português (BR)) com duas variáveis, por exemplo:
+   `{{1}}` no título e `Jarvis: {{2}}` no corpo. Espere a aprovação.
+3. Gere um token permanente (usuário do sistema com permissão `whatsapp_business_messaging`) e grave
+   `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` (ID do número, não o telefone) e `WHATSAPP_TEMPLATE` (nome do modelo).
+
+**Cobrança da assinatura (Asaas: boleto, Pix e cartão)**
+1. Crie a conta no Asaas (comece pelo *sandbox* para testar) e gere a chave de API (Integrações › Chave de API).
+2. Grave `ASAAS_API_KEY`, `ASAAS_AMBIENTE` (`sandbox` ou `producao`) e invente um `ASAAS_WEBHOOK_TOKEN` (uma senha longa).
+3. No Asaas, em Integrações › Webhooks, cadastre a URL
+   `https://olxapwaxmzqclitlylzv.supabase.co/functions/v1/cobranca` com o mesmo token e os eventos de cobrança
+   (pagamento confirmado/recebido, vencido) e de assinatura.
+4. A função `cobranca` é publicada sem verificação de login (o Asaas não manda login):
+   `supabase functions deploy cobranca --no-verify-jwt` (já configurado em `supabase/config.toml`).
+
+Depois de gravar as chaves não é preciso republicar nada: os segredos valem na próxima chamada. Em Alertas e relatórios,
+use **Testar** em cada destino; em **Últimos envios** aparece o que saiu, o que falhou e por quê.
+
 ## Problemas comuns
 
 | Sintoma | Causa provável |

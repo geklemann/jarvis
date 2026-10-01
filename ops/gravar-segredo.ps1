@@ -10,6 +10,10 @@ $regras = @{
   'SHOPEE_PARTNER_ID' = @(4, 12); 'SHOPEE_PARTNER_KEY' = @(30, 100)
   'MAGALU_CLIENT_ID' = @(10, 80); 'MAGALU_CLIENT_SECRET' = @(10, 120)
   'ANTHROPIC_API_KEY' = @(40, 200); 'CNPJA_API_KEY' = @(20, 200); 'FOCUS_NFE_TOKEN_HOMOLOGACAO' = @(20, 100); 'FOCUS_NFE_TOKEN' = @(20, 100)
+  # Alertas e relatório por e-mail (Resend) e WhatsApp (Meta), e cobrança da assinatura (Asaas).
+  'RESEND_API_KEY' = @(20, 100); 'ALERTAS_REMETENTE' = @(5, 120)
+  'WHATSAPP_TOKEN' = @(50, 800); 'WHATSAPP_PHONE_ID' = @(8, 30); 'WHATSAPP_TEMPLATE' = @(3, 80)
+  'ASAAS_API_KEY' = @(30, 400); 'ASAAS_WEBHOOK_TOKEN' = @(16, 200); 'ASAAS_AMBIENTE' = @(7, 8)
 }
 if (-not $regras.ContainsKey($Nome)) { Write-Host "Nome inválido. Use um destes: $($regras.Keys -join ', ')"; exit 1 }
 

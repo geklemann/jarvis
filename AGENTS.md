@@ -28,6 +28,26 @@ Tema escuro e claro com as variáveis de `:root` e `body.light` em `web/style.cs
 ## Verificar antes de publicar
 ```sh
 npm run check                                   # sintaxe do site
+npm test                                        # testes (testes/*.test.mjs) com o código real das telas
 cd supabase/functions && deno check */index.ts  # tipos das funções
 ```
 E no navegador (`npm start`): temas, navegação, importação com mapeamento, conciliação em lote, fechamento/reabertura e o painel da IA.
+
+## Testes
+- `testes/ambiente.mjs` carrega os scripts de `web/` na ordem do `index.html` num contexto isolado do Node, com um
+  navegador simulado: os testes chamam as funções de verdade (`status`, `Folha.calcular`, `Margem.partes`,
+  `Contab.diario`, `Sugestoes.sugerir`, `Exportar.celula`…), sem copiar fórmulas. Funções do servidor sem dependência
+  externa (`_shared/ponto_calc.ts`, `semana.ts`, `precos_jarvis.ts`, `canais.ts`) são importadas direto do `.ts` (Node 24).
+- Regra nova de negócio = teste novo com o valor conferido à mão. `JARVIS_WEB=_site npm test` testa a versão compactada.
+- O GitHub roda sintaxe, testes e `deno check` a cada envio (`.github/workflows/ci.yml`).
+
+## Publicação do site
+`sh ops/publicar-site.sh` (com tudo commitado): roda os testes, carimba a versão nos `?v=` do `index.html`, monta
+`_site/` (cópia de `web/` com `.js`/`.css` compactados pelo esbuild — arquivos separados, mesma ordem), testa de novo e
+publica só o retrato atual em `gh-pages` (segundos). O `sw.js` guarda no aparelho os arquivos com `?v=` (nunca mudam);
+página, dados e outros servidores sempre vêm da rede. Script novo no `index.html` precisa de `?v=1` para ser carimbado.
+
+## Banco: migrações
+O histórico remoto está em dia com `supabase/migrations/` (conferido em 01/10/2026 com `supabase migration list --linked`).
+Antes de um `supabase db push`, confira que nenhuma migração antiga aparece como pendente; se aparecer e já estiver
+aplicada, registre com `supabase migration repair --status applied <versão>` em vez de rodar de novo.
