@@ -1,0 +1,125 @@
+name: Backup (Supabase → Cloudflare R2)
+
+# Toda madrugada (03:17 de Brasília): papéis, estrutura e dados do banco + todos os arquivos do Storage, compactados,
+# cifrados (AES-256, frase BACKUP_PASSPHRASE) e enviados ao balde R2 "jarvis-backups" em diario/AAAA-MM-DD/ (no dia 1,
+# também em mensal/AAAA-MM/). O envio é conferido baixando de volta e comparando a soma de verificação.
+# No dia 1 de cada mês (e quando pedido à mão), o backup é restaurado num banco descartável e as linhas de cada tabela
+# são comparadas com o original. Se algo falhar, o GitHub manda e-mail. Passo a passo: docs/BACKUP.md.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      restaurar:
+        description: "Também restaurar num banco de teste e conferir as linhas"
+        type: boolean
+        default: true
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+      R2_BUCKET: jarvis-backups
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      # O R2 não precisa das somas de verificação novas do AWS CLI.
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Vincular projeto
+        run: |
+          echo "DIA=$(date -u +%F)" >> "$GITHUB_ENV"
+          echo "DIA_MES=$(date -u +%d)" >> "$GITHUB_ENV"
+          echo "MES=$(date -u +%Y-%m)" >> "$GITHUB_ENV"
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Banco (papéis, estrutura e dados)
+        run: |
+          set -euo pipefail
+          mkdir -p bk/banco bk/arquivos
+          supabase db dump --linked --password "$SUPABASE_DB_PASSWORD" --role-only -f bk/banco/roles.sql
+          supabase db dump --linked --password "$SUPABASE_DB_PASSWORD" -f bk/banco/schema.sql
+          supabase db dump --linked --password "$SUPABASE_DB_PASSWORD" --data-only --use-copy -f bk/banco/data.sql
+          node ops/backup-contagem.mjs contar bk/banco/data.sql > bk/contagem.json
+          echo "Tabelas com dados no backup: $(node -e "const c=require('./bk/contagem.json');console.log(Object.keys(c).length+' tabelas, '+Object.values(c).reduce((s,n)=>s+n,0)+' linhas')")"
+
+      - name: Arquivos (Storage)
+        run: |
+          set -euo pipefail
+          saida=$(supabase storage ls ss:/// --linked --experimental 2>/dev/null || true)
+          if echo "$saida" | grep -q '^{'; then baldes=$(echo "$saida" | grep '^{' | jq -r '.paths[]'); else baldes="$saida"; fi
+          for b in $baldes; do
+            b=${b%/}
+            [ -n "$b" ] || continue
+            mkdir -p "bk/arquivos/$b"
+            supabase storage cp -r "ss:///$b" "bk/arquivos/$b" --linked --experimental -j 4 || echo "::warning::Balde $b: nada copiado (pode estar vazio)."
+          done
+          echo "Arquivos no backup: $(find bk/arquivos -type f | wc -l)"
+
+      - name: Compactar e cifrar
+        run: |
+          set -euo pipefail
+          tar -C bk -czf "jarvis-$DIA.tar.gz" .
+          sha256sum "jarvis-$DIA.tar.gz" | cut -d' ' -f1 > sha.txt
+          echo "Tamanho: $(du -h "jarvis-$DIA.tar.gz" | cut -f1) · sha256 $(cat sha.txt)"
+          if [ -n "$BACKUP_PASSPHRASE" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "jarvis-$DIA.tar.gz" -out "jarvis-$DIA.tar.gz.enc" -pass env:BACKUP_PASSPHRASE
+          fi
+
+      - name: Enviar ao R2 e conferir
+        if: env.R2_ACCESS_KEY_ID != '' && env.R2_SECRET_ACCESS_KEY != '' && env.BACKUP_PASSPHRASE != '' && env.R2_ACCOUNT_ID != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -euo pipefail
+          E="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          aws s3 cp "jarvis-$DIA.tar.gz.enc" "s3://$R2_BUCKET/diario/$DIA/jarvis-$DIA.tar.gz.enc" --endpoint-url "$E" --only-show-errors
+          aws s3 cp bk/contagem.json "s3://$R2_BUCKET/diario/$DIA/contagem.json" --endpoint-url "$E" --only-show-errors
+          if [ "$DIA_MES" = "01" ]; then
+            aws s3 cp "jarvis-$DIA.tar.gz.enc" "s3://$R2_BUCKET/mensal/$MES/jarvis-$DIA.tar.gz.enc" --endpoint-url "$E" --only-show-errors
+          fi
+          # Conferência: baixa de volta, decifra e compara com o original.
+          aws s3 cp "s3://$R2_BUCKET/diario/$DIA/jarvis-$DIA.tar.gz.enc" volta.enc --endpoint-url "$E" --only-show-errors
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in volta.enc -out volta.tar.gz -pass env:BACKUP_PASSPHRASE
+          [ "$(sha256sum volta.tar.gz | cut -d' ' -f1)" = "$(cat sha.txt)" ] || { echo "::error::O backup no R2 não confere com o original."; exit 1; }
+          echo "Backup no R2 conferido: diario/$DIA/"
+
+      - name: Aviso (R2 ainda não configurado)
+        if: env.R2_ACCESS_KEY_ID == '' || env.R2_SECRET_ACCESS_KEY == '' || env.BACKUP_PASSPHRASE == '' || env.R2_ACCOUNT_ID == ''
+        run: echo "::warning::Backup gerado, mas NÃO enviado ao R2. Faltam os segredos R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY e BACKUP_PASSPHRASE (docs/BACKUP.md)."
+
+      - name: Restaurar num banco de teste e conferir
+        if: (github.event_name == 'workflow_dispatch' && inputs.restaurar) || (github.event_name == 'schedule' && env.DIA_MES == '01')
+        run: |
+          set -euo pipefail
+          supabase db start
+          URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          psql "$URL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f bk/banco/roles.sql -f bk/banco/schema.sql \
+            -c 'SET session_replication_role = replica' -f bk/banco/data.sql > restauracao.log
+          node ops/backup-contagem.mjs sql bk/contagem.json > contar.sql
+          psql "$URL" -At -F $'\t' -f contar.sql > restaurado.tsv
+          node ops/backup-contagem.mjs conferir bk/contagem.json restaurado.tsv
