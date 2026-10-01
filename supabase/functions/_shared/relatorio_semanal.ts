@@ -20,7 +20,8 @@ async function tudo<T>(consulta: (de: number, ate: number) => PromiseLike<{ data
   return out;
 }
 
-export async function montarRelatorio(db: SupabaseClient, ws: string, agora = new Date()) {
+/** Números da semana (lidos do banco). */
+async function coletar(db: SupabaseClient, ws: string, agora: Date) {
   const s = semanaAnterior(agora);
   type P = { plataforma: string; bruto: number; taxa: number; liquido: number };
   const vendas = await tudo<P>((a, b) => db.from("v_pedidos").select("plataforma,bruto,taxa,liquido").eq("workspace_id", ws).gte("data", s.ini).lte("data", s.fim).range(a, b));
@@ -60,10 +61,16 @@ export async function montarRelatorio(db: SupabaseClient, ws: string, agora = ne
     contas: { vencidas: { n: vencidas.length, valor: r2(vencidas.reduce((a, p) => a + aberto(p), 0)) }, proximas: { n: proximas.length, valor: r2(proximas.reduce((a, p) => a + aberto(p), 0)), lista: proximas.slice(0, 10).map((p) => ({ fornecedor: p.fornecedor ?? "", vencimento: p.vencimento, valor: r2(aberto(p)) })) } },
     caixa, atendimento: { abertos: atAbertos ?? 0, urgentes: atUrgentes ?? 0, resolvidos: atResolvidos ?? 0 }, rupturas: rupturas ?? 0,
   };
+  return dados;
+}
+
+type Dados = Awaited<ReturnType<typeof coletar>>;
+
+export async function montarRelatorio(db: SupabaseClient, ws: string, agora = new Date()) {
+  const dados = await coletar(db, ws, agora);
   return { dados, ...formatos(dados) };
 }
 
-type Dados = Awaited<ReturnType<typeof montarRelatorio>>["dados"];
 function formatos(d: Dados) {
   const per = `${dataBR(d.periodo.ini)} a ${dataBR(d.periodo.fim)}`;
   const assunto = `Jarvis · Resumo da semana ${per}`;
