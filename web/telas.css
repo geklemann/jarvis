@@ -585,7 +585,9 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .metabar b,.metabar em{position:absolute;top:-4px;width:2px;height:16px;border-radius:1px;background:currentColor;transform:translateX(-1px)}.metabar b{opacity:.75}.metabar em{opacity:.3}
 .metakpi .caption{display:block}
 /* DIFAL: escolha de um ou mais estados */
-.ufsel{position:relative}.ufsel>summary{list-style:none;cursor:pointer;padding:7px 30px 7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ufsel{position:relative}
+/* O quadro corta o que passa da borda: com o seletor aberto, o painel precisa aparecer inteiro mesmo com a lista vazia. */
+.tablebox:has(.ufsel[open]),.card:has(.ufsel[open]){overflow:visible}.ufsel>summary{list-style:none;cursor:pointer;padding:7px 30px 7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;position:relative}
 .ufsel>summary::-webkit-details-marker{display:none}.ufsel>summary::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:.6}
 .ufsel-painel{position:absolute;z-index:30;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:10px 12px;width:min(330px,86vw)}
 .ufsel-todas{display:flex;gap:8px;align-items:center;font-weight:600;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
