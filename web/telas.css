@@ -594,3 +594,15 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .ufsel-grade{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px}.ufsel-grade label{display:flex;gap:6px;align-items:center;font-weight:400;white-space:nowrap}.ufsel-grade label.muted{opacity:.55}.ufsel-grade small{opacity:.7}
 /* Raio-X da margem: barra do efeito de cada fator */
 .rxbar{display:block;height:8px;border-radius:5px;background:color-mix(in srgb,currentColor 10%,transparent);overflow:hidden}.rxbar i{display:block;height:100%;border-radius:5px}.rxbar.neg i{background:var(--red)}.rxbar.pos i{background:var(--green)}
+
+/* DIFAL › Guias: filtro por coluna (como no Excel) */
+.gfrot{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.gfbtn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:0 5px;font-size:11px;line-height:18px;min-height:0;height:20px;cursor:pointer;color:var(--muted)}
+.gfbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.gfpainel{position:fixed;z-index:60;width:260px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:10px;text-align:left;font-weight:400;text-transform:none;letter-spacing:0}
+.gfbusca{width:100%;margin-bottom:8px}
+.gftudo{display:flex;gap:8px;align-items:center;font-weight:600;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.gflista{max-height:240px;overflow:auto;display:grid;gap:4px}
+.gflista label{display:flex;gap:8px;align-items:center;font-weight:400;white-space:nowrap}
+.gflista label span{flex:1;overflow:hidden;text-overflow:ellipsis}
+.gflista small{opacity:.6;font-variant-numeric:tabular-nums}

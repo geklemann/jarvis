@@ -342,7 +342,8 @@ Deno.serve(handler(async (req) => {
         if (Date.now() > deadline - 30_000) break;
         try {
           const { data: wsS } = await db.from("workspace_settings").select("data").eq("workspace_id", i.workspace_id).maybeSingle();
-          if (wsS?.data?.gerencial?.fiscal?.gnre_auto === false) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.gnre_auto = { ...(s.gnre_auto ?? {}), dia: hojeBR, desligada: true }; }); continue; }
+          // Só quando ligada na tela (padrão: desligada).
+          if (wsS?.data?.gerencial?.fiscal?.gnre_auto !== true) { await writeSettings(db, i.workspace_id, i.provider, (s) => { s.gnre_auto = { ...(s.gnre_auto ?? {}), dia: hojeBR, desligada: true }; }); continue; }
           const r = await prepararAutomatico(db, i.workspace_id, diasAPreparar(i.settings?.gnre_auto?.ultimo, hojeBR));
           if (r.guias) {
             const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
