@@ -606,3 +606,9 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 .gflista label{display:flex;gap:8px;align-items:center;font-weight:400;white-space:nowrap}
 .gflista label span{flex:1;overflow:hidden;text-overflow:ellipsis}
 .gflista small{opacity:.6;font-variant-numeric:tabular-nums}
+
+/* Filtro por coluna em qualquer tabela (filtros.js) */
+.xfbtn{margin-left:4px;vertical-align:middle;border:1px solid transparent;background:transparent;border-radius:5px;padding:0 4px;font-size:11px;line-height:16px;height:18px;min-height:0;cursor:pointer;color:var(--muted);opacity:.5}
+th:hover .xfbtn,.xfbtn:focus-visible{opacity:1;border-color:var(--line);background:var(--panel)}
+.xfbtn.on{opacity:1;background:var(--accent);border-color:var(--accent);color:#fff}
+.xfaviso{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;font-size:13px;background:var(--panel2,rgba(0,0,0,.03));border-bottom:1px solid var(--line)}

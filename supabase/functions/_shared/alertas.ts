@@ -7,6 +7,7 @@ import webpush from "npm:web-push@3.6.7";
 import { metasDoMes } from "./metas.ts";
 import { janelas, mudancasTarifa, type PedidoTarifa } from "./tarifas.ts";
 import { emAberto, rupturasPrevistas } from "./ruptura.ts";
+import { projecaoCaixa } from "./caixa.ts";
 
 type Alerta = { titulo: string; corpo: string; url: string; so_dono?: boolean; tag: string };
 let pronto = false;
@@ -127,13 +128,27 @@ export async function verificarAlertas(db: SupabaseClient, ws: string, estado: a
     });
     previstas = lista.map((x) => x.sku);
   }
+  // Caixa que vai ficar negativo nos próximos 30 dias: uma olhada por dia, depois das 8 h. Avisa de novo só se a data
+  // mudar ou depois de 3 dias.
+  let caixa = estado?.caixa ?? null;
+  if (horaBR >= 8 && caixa?.dia !== hojeBR) {
+    const p = await projecaoCaixa(db, ws, hojeBR).catch(() => null);
+    if (p?.temSaldo) {
+      const tres = new Date(Date.parse(hojeBR + "T12:00:00Z") - 3 * 864e5).toISOString().slice(0, 10);
+      if (p.negativoEm && (caixa?.negativoEm !== p.negativoEm || !caixa?.avisado || caixa.avisado <= tres)) {
+        const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+        out.push({ titulo: `Caixa fica negativo em ${dm(p.negativoEm)}`, corpo: `Pela projeção (saldo das contas, repasses a receber, vendas no ritmo atual e contas a pagar), o menor saldo é ${brl(p.min)} em ${dm(p.diaMin)}. Veja o Fluxo de caixa › Diário para adiar pagamentos ou antecipar recebíveis.`, url: "#fluxo", tag: "caixa" });
+        caixa = { dia: hojeBR, negativoEm: p.negativoEm, min: p.min, avisado: hojeBR };
+      } else caixa = { ...(caixa ?? {}), dia: hojeBR, negativoEm: p.negativoEm, min: p.min };
+    } else caixa = { ...(caixa ?? {}), dia: hojeBR };
+  }
   // Erro NOVO no sistema (Central de erros): um aviso com os primeiros, só para o dono.
   const { data: er } = await db.from("erros_sistema").select("mensagem,origem,pagina").eq("workspace_id", ws).is("resolvido_em", null).gt("primeiro_em", desde).limit(5);
   if (er?.length) out.push({ titulo: er.length > 1 ? `${er.length} erros novos no sistema` : "Erro novo no sistema", corpo: er.slice(0, 2).map((e) => `${e.origem === "servidor" ? "Servidor" : "Tela " + (e.pagina || "")}: ${String(e.mensagem).slice(0, 90)}`).join(" · "), url: "#erros", tag: "erros", so_dono: true });
   // Pagamentos aguardando aprovação lançados desde a última olhada (só o dono recebe).
   const { data: ap } = await db.from("payables").select("fornecedor,valor").eq("workspace_id", ws).eq("aprovacao", "pendente").gt("created_at", desde).limit(20);
   if (ap?.length) out.push({ titulo: `${ap.length} pagamento(s) para aprovar`, corpo: ap.slice(0, 3).map((p) => `${p.fornecedor ?? ""} ${brl(Number(p.valor))}`).join(" · "), url: "#pagar", tag: "aprov", so_dono: true });
-  return { alertas: out, estado: { em: agora.toISOString(), metas: horaBR >= 9 ? hojeBR : estado?.metas ?? null, rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido), tarifas, previstas, vendas_dia: horaBR >= 9 ? hojeBR : estado?.vendas_dia ?? null } };
+  return { alertas: out, estado: { em: agora.toISOString(), metas: horaBR >= 9 ? hojeBR : estado?.metas ?? null, rupturas: agoraZ, vencimentos: horaBR >= 8 ? hojeBR : estado?.vencimentos ?? null, diario: horaBR >= 8 ? hojeBR : estado?.diario ?? null, divergentes: (dv ?? []).map((p) => p.pedido), tarifas, previstas, caixa, vendas_dia: horaBR >= 9 ? hojeBR : estado?.vendas_dia ?? null } };
 }
 
 /** Tipo do alerta para os destinos de e-mail/WhatsApp (o mesmo nome escolhido na tela de Alertas e relatórios). */

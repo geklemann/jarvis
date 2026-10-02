@@ -24,7 +24,9 @@ function celula(bruto){let s=bruto.replace(/\s+/g,' ').trim().replace(/[−–�
  return {t:'s',v:s}}
 // Célula com valor e legenda em linhas separadas: tenta o valor da primeira linha.
 // data-exp-num="13158": a tela pede que a célula vá como número (ex.: nº da nota sem os zeros à esquerda, para PROCV).
-function celulaTd(td){const en=td.dataset?.expNum;if(typeof en==='string'&&en!==''&&isFinite(Number(en)))return {t:'n',v:Number(en),z:'0'};const t=td.innerText.replace(/ /g,' ').trim();if(!t)return null;const c=celula(t);if(c&&c.t!=='s')return c;
+// Cabeçalho: sem os botões de filtro (▾) e as caixas que o Jarvis põe nele.
+const textoCelula=td=>{if(td.tagName!=='TH'||!td.querySelector('button,input'))return td.innerText;const c=td.cloneNode(true);c.querySelectorAll('button,input').forEach(x=>x.remove());return c.textContent};
+function celulaTd(td){const en=td.dataset?.expNum;if(typeof en==='string'&&en!==''&&isFinite(Number(en)))return {t:'n',v:Number(en),z:'0'};const t=textoCelula(td).replace(/ /g,' ').trim();if(!t)return null;const c=celula(t);if(c&&c.t!=='s')return c;
  const l=t.split('\n').map(x=>x.trim()).filter(Boolean);if(l.length>1){const c1=celula(l[0]);if(c1&&c1.t!=='s')return c1}return {t:'s',v:l.join(' · ')}}
 
 function visivel(el){return !!(el.offsetParent||el.getClientRects().length)}
@@ -34,6 +36,7 @@ function tituloTabela(t,i,n){const view=document.getElementById('view')||documen
  const B='.tablebox,.card,.relout,section,.caixa,.formcard,.dg-folha,.cap';
  const hs=[...view.querySelectorAll('h2,h3,h4')].filter(h=>visivel(h)&&(h.compareDocumentPosition(t)&Node.DOCUMENT_POSITION_FOLLOWING)&&(h.closest(B)||view).contains(t)&&h.closest(B)!==null);
  const h=hs[hs.length-1];return (h&&txt(h).split('\n')[0])||(n===1?tituloTela():'Tabela '+(i+1))}
+const RX_NF=/^(nf|n[\u00ba\u00b0o.]*\s*(da\s+)?(nota|nf)|nota( fiscal)?|n[u\u00fa]mero)\b/i,RX_NUM_NF=/^(?:NF\s*)?0*(\d{1,9})$/i;
 function folhaDeTabela(XLSX,t){const ws={},merges=[];let r=0,cmax=0;const ocup={};
  for(const tr of t.rows){if(!visivel(tr))continue;let c=0;
   for(const td of tr.cells){if(!visivel(td)&&td.innerText.trim()==='')continue;while(ocup[r+','+c])c++;
@@ -42,6 +45,9 @@ function folhaDeTabela(XLSX,t){const ws={},merges=[];let r=0,cmax=0;const ocup={
    if(cs>1||rs>1){merges.push({s:{r,c},e:{r:r+rs-1,c:c+cs-1}});for(let a=0;a<rs;a++)for(let b=0;b<cs;b++)if(a||b)ocup[(r+a)+','+(c+b)]=1}
    c+=cs;cmax=Math.max(cmax,c)}
   r++}
+ // Coluna de número de nota ("NF", "Nota", "Número"): "NF 015158" ou "015158" vira o número 15158 (dá para usar PROCV).
+ for(let c=0;c<cmax;c++){const h=ws[XLSX.utils.encode_cell({r:0,c})];if(!h||h.t!=='s'||!RX_NF.test(String(h.v).trim()))continue;
+  for(let rr=1;rr<r;rr++){const ref=XLSX.utils.encode_cell({r:rr,c}),x=ws[ref];const m=x&&x.t==='s'?RX_NUM_NF.exec(String(x.v).trim()):null;if(m)ws[ref]={t:'n',v:Number(m[1]),z:'0'}}}
  if(!r)return null;ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r-1,c:Math.max(0,cmax-1)}});if(merges.length)ws['!merges']=merges;
  // Largura das colunas pelo maior texto.
  const larg=[];for(const k in ws){if(k[0]==='!')continue;const {c}=XLSX.utils.decode_cell(k),v=ws[k],n=String(v.t==='n'?v.v.toFixed(2):v.t==='d'?'00/00/0000':v.v).length;larg[c]=Math.min(60,Math.max(larg[c]||8,n+2))}
