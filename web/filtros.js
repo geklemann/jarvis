@@ -27,6 +27,30 @@ function tabelas(){const v=document.getElementById('view');if(!v)return [];
   const cols=[...hr.cells].map((c,j)=>({j,th:c,rot:rotulo(c)})).filter(c=>c.rot&&!(c.th.colSpan>1));
   return {t,i,hr,linhas,cols,k:pg()+'#'+i+'#'+[...hr.cells].map(rotulo).join('|')}}).filter(Boolean)}
 const passa=(r,f,menos)=>Object.entries(f).every(([j,set])=>Number(j)===menos||!set||set.has(valor(r.cells[j])));
+// ─────────── Total no rodapé seguindo o filtro ───────────
+// Linha de total (rodapé ou linha com células unidas): uma célula numérica cujo valor é a soma da coluna passa a mostrar
+// a soma só das linhas à vista; sem filtro, volta ao valor original. Só troca quando o total bate com a soma de todas
+// as linhas desenhadas (assim não mexe em médias, saldos acumulados nem em telas que mostram só parte das linhas).
+const num=t=>{const c=window.Exportar?.celula?.(String(t||''));return c&&c.t==='n'?c.v:null};
+function textoNo(td,linha){const ir=n=>{if(n.nodeType===3)return n.nodeValue.replace(/\s+/g,' ').includes(linha)?n:null;for(const x of n.childNodes){const r=ir(x);if(r)return r}return null};return ir(td)}
+function totais(T,ativos){const extras=[...T.t.rows].filter(r=>!T.linhas.includes(r)&&r.parentElement?.tagName!=='THEAD');
+ for(const r of extras){let pos=0;for(const td of r.cells){const j=pos,span=td.colSpan||1;pos+=span;if(span>1)continue;
+  if(!ativos){if(td.dataset.xfOrig!=null){td.innerHTML=td.dataset.xfOrig;delete td.dataset.xfOrig;delete td.dataset.xfTot}continue}
+  const base=td.dataset.xfOrig!=null?(()=>{const d=document.createElement('td');d.innerHTML=td.dataset.xfOrig;return d})():td,linha=valor(base),tot=num(linha);if(tot==null)continue;
+  let todas=0,vistas=0,ok=0;for(const l of T.linhas){const v=num(valor(l.cells[j]));if(v==null)continue;ok++;todas+=v;if(l.style.display!=='none')vistas+=v}
+  if(!ok||Math.abs(todas-tot)>0.05)continue;
+  if(td.dataset.xfOrig==null){td.dataset.xfOrig=td.innerHTML;td.dataset.xfTot=linha}
+  const novo=/R\$/.test(linha)?money(vistas):vistas.toLocaleString('pt-BR',{maximumFractionDigits:2});
+  if(valor(td)===novo.replace(/\s+/g,' '))continue;// já mostra a soma filtrada: não reescreve (evita laço com o observador)
+  td.innerHTML=td.dataset.xfOrig;const no=textoNo(td,linha);if(no)no.nodeValue=no.nodeValue.replace(/\s+/g,' ').replace(linha,novo);td.title='Soma das linhas filtradas (sem filtro: '+linha+')'}}}
+
+// ─────────── Filtros salvos (por pessoa, na conta; sem conta, neste navegador) ───────────
+const salvos=()=>{const m=window.Cloud?.session?.user?.user_metadata?.filtros_salvos;if(m&&typeof m==='object')return m;try{return JSON.parse(localStorage.getItem('eb_filtros_salvos')||'{}')}catch{return {}}};
+async function gravarSalvos(o){try{localStorage.setItem('eb_filtros_salvos',JSON.stringify(o))}catch{}
+ const u=window.Cloud?.session?.user;if(!u||!window.Cloud?.client)return;u.user_metadata={...(u.user_metadata||{}),filtros_salvos:o};
+ const {data}=await Cloud.client.auth.updateUser({data:{filtros_salvos:o}}).catch(()=>({}));if(data?.user)Cloud.session.user=data.user}
+let salvandoK=null;
+function usarSalvo(T,x){const f={};for(const c of T.cols){const v=x.f?.[c.rot];if(Array.isArray(v))f[c.j]=new Set(v)}if(Object.keys(f).length)estado.f[T.k]=f;else delete estado.f[T.k];fechar();aplicar()}
 let aplicando=false;
 function aplicar(){if(aplicando)return;aplicando=true;const desmarcar=[];
  try{const vivas=new Set();
@@ -39,10 +63,12 @@ function aplicar(){if(aplicando)return;aplicando=true;const desmarcar=[];
     if(!ok&&r.style.display!=='none'){r.style.display='none';r.dataset.xfOculta='1';const cx=r.cells[0]?.querySelector('input[type=checkbox]');if(cx?.checked&&!cx.disabled)desmarcar.push(cx)}
     else if(ok&&r.dataset.xfOculta){r.style.display='';delete r.dataset.xfOculta}
     if(ok)vistas++}
+   totais(T,ativos);
    // Aviso acima da tabela com o total filtrado.
    // Achado pela chave (a barra de rolagem de cima, rolagem.js, também se põe antes da tabela).
    const alvo=T.t.closest('.tablewrap')||T.t;let av=[...document.querySelectorAll('#view .xfaviso')].find(x=>x.dataset.xfk===T.k)||null;
-   if(ativos){const html=`Filtro: <strong>${vistas}</strong> de ${T.linhas.length} linha(s) <button type="button" class="small quiet" data-xf-limpar="${escH(T.k)}">Limpar filtros</button> <button type="button" class="small quiet" data-xf-excel>Exportar o filtrado (Excel)</button>`;
+   const meus=salvos()[T.k]||[];
+   if(ativos||meus.length){const html=(ativos?`Filtro: <strong>${vistas}</strong> de ${T.linhas.length} linha(s) <button type="button" class="small quiet" data-xf-limpar="${escH(T.k)}">Limpar filtros</button> <button type="button" class="small quiet" data-xf-excel>Exportar o filtrado (Excel)</button> <button type="button" class="small quiet" data-xf-salvar="${escH(T.k)}">Salvar este filtro</button>`:'')+(meus.length?`<span class="xfsalvos">${ativos?'· ':''}Filtros salvos: ${meus.map((x,n)=>`<span class="xfchip"><button type="button" class="small" data-xf-usar="${n}" data-xfk="${escH(T.k)}">${escH(x.nome)}</button><button type="button" class="xfx" data-xf-apagar="${n}" data-xfk="${escH(T.k)}" title="Apagar este filtro salvo" aria-label="Apagar ${escH(x.nome)}">✕</button></span>`).join('')}</span>`:'');
     if(!av){av=document.createElement('div');av.className='xfaviso';av.dataset.xfk=T.k;const ref=alvo.previousElementSibling?.classList?.contains('rolatopo')?alvo.previousElementSibling:alvo;ref.before(av)}if(av.innerHTML!==html)av.innerHTML=html}
    else av?.remove()}
   document.querySelectorAll('#view .xfaviso').forEach(x=>{if(!vivas.has(x.dataset.xfk))x.remove()});
@@ -73,6 +99,15 @@ document.addEventListener('click',e=>{const t=e.target,b=t.closest?.('.xfbtn');
  if(b){e.preventDefault();e.stopPropagation();const k=b.dataset.xfk,col=Number(b.dataset.xfc);if(aberto&&aberto.k===k&&aberto.col===col){fechar();return}aberto={k,col};busca='';b.scrollIntoView({block:'nearest'});painel();return}
  if(t.closest?.('[data-xf-limpar]')){e.preventDefault();delete estado.f[t.closest('[data-xf-limpar]').dataset.xfLimpar];fechar();aplicar();return}
  if(t.closest?.('[data-xf-excel]')){e.preventDefault();window.Exportar?.excel?.();return}
+ const sv=t.closest?.('[data-xf-salvar]');if(sv){e.preventDefault();salvandoK=sv.dataset.xfSalvar;fechar();
+  modal('Salvar este filtro','<form id="xfSalvarForm" style="display:grid;gap:10px"><label>Nome<input name="nome" required maxlength="40" placeholder="Ex.: Rejeitadas por falha temporária"></label><p class="caption" style="margin:0">Fica nesta tabela, para você, em qualquer computador em que entrar.</p><div class="row" style="justify-content:flex-end"><button class="primary" data-xf-confirmar>Salvar</button></div></form>');
+  setTimeout(()=>document.querySelector('#xfSalvarForm input')?.focus(),50);return}
+ if(t.closest?.('[data-xf-confirmar]')){e.preventDefault();const nome=String(document.querySelector('#xfSalvarForm input')?.value||'').trim().slice(0,40),T=tabelas().find(x=>x.k===salvandoK);if(!nome||!T)return;
+  const f={};for(const [j,set] of Object.entries(estado.f[T.k]||{}))if(set){const c=T.cols.find(x=>x.j===Number(j));if(c)f[c.rot]=[...set]}
+  const o=salvos(),l=(o[T.k]||[]).filter(x=>x.nome!==nome);l.push({nome,f});o[T.k]=l.slice(-12);closeModal();gravarSalvos(o).then(()=>{try{toast('Filtro salvo.')}catch{}aplicar()});aplicar();return}
+ const us=t.closest?.('[data-xf-usar]');if(us){e.preventDefault();const T=tabelas().find(x=>x.k===us.dataset.xfk),x=(salvos()[us.dataset.xfk]||[])[Number(us.dataset.xfUsar)];if(T&&x)usarSalvo(T,x);return}
+ const ap=t.closest?.('[data-xf-apagar]');if(ap){e.preventDefault();if(ap.dataset.conf!=='1'){ap.dataset.conf='1';ap.textContent='Apagar?';return}
+  const o=salvos(),l=(o[ap.dataset.xfk]||[]).filter((_,n)=>n!==Number(ap.dataset.xfApagar));if(l.length)o[ap.dataset.xfk]=l;else delete o[ap.dataset.xfk];gravarSalvos(o).then(aplicar);aplicar();return}
  const p=t.closest?.('.xfpainel');
  if(p){if(t.closest('[data-xf-ok]')){if(busca.trim())definir(aberto.k,aberto.col,new Set([...tmp].filter(v=>vis.includes(v))));fechar()}
   else if(t.closest('[data-xf-limparcol]')){definir(aberto.k,aberto.col,null);painel()}return}
@@ -80,6 +115,7 @@ document.addEventListener('click',e=>{const t=e.target,b=t.closest?.('.xfbtn');
 document.addEventListener('change',e=>{const x=e.target;if(!aberto||!x.closest?.('.xfpainel'))return;const f=estado.f[aberto.k]||{},col=aberto.col,q=busca.trim();
  if(x.matches('[data-xf-val]')){const v=x.dataset.xfVal;if(q){x.checked?tmp.add(v):tmp.delete(v)}else{const set=new Set(f[col]??vals);x.checked?set.add(v):set.delete(v);definir(aberto.k,col,vals.every(y=>set.has(y))?null:set)}painel();return}
  if(x.matches('[data-xf-tudo]')){if(q)tmp=x.checked?new Set(vis):new Set();else definir(aberto.k,col,x.checked?null:new Set());painel()}});
+document.addEventListener('submit',e=>{if(e.target.id==='xfSalvarForm'){e.preventDefault();document.querySelector('[data-xf-confirmar]')?.click()}});
 document.addEventListener('input',e=>{const x=e.target;if(!x.matches?.('[data-xf-busca]'))return;busca=x.value;const q=norm(busca);tmp=new Set(vals.filter(v=>!q||norm(v).includes(q)));painel()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&aberto)fechar();if(e.key==='Enter'&&e.target.matches?.('[data-xf-busca]')){e.preventDefault();document.querySelector('[data-xf-ok]')?.click()}});
 document.addEventListener('scroll',e=>{if(aberto&&!e.target.closest?.('.xfpainel'))posicionar(true)},{passive:true,capture:true});

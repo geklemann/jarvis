@@ -612,3 +612,8 @@ button.danger{background:#d64545!important;color:#fff!important;border-color:#d6
 th:hover .xfbtn,.xfbtn:focus-visible{opacity:1;border-color:var(--line);background:var(--panel)}
 .xfbtn.on{opacity:1;background:var(--accent);border-color:var(--accent);color:#fff}
 .xfaviso{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;font-size:13px;background:var(--panel2,rgba(0,0,0,.03));border-bottom:1px solid var(--line)}
+.xfsalvos{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.xfchip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.xfchip>button{border:0;border-radius:0}
+.xfx{border:0;border-left:1px solid var(--line);background:transparent;padding:0 7px;cursor:pointer;color:var(--muted);font-size:12px;min-height:0;height:100%}
+.xfx:hover{color:var(--danger,#d64545)}
