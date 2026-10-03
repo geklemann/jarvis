@@ -5,12 +5,12 @@
 (()=>{
 window.PERFIS=[['member','Equipe completa'],['owner','Administrador'],['financeiro','Financeiro'],['contador','Contabilidade (escritório)'],['atendimento','Atendimento e CRM'],['estoque','Estoque e expedição']];
 const MODULOS={owner:null,member:null,
- financeiro:['ini','atd','ven','est','fin','crm','cad','res','pre','rel'],
- contador:['ini','fin','cad','res','rel'],
+ financeiro:['ini','atd','ven','est','fin','orc','crm','cad','res','pre','rel'],
+ contador:['ini','fin','orc','cad','res','rel'],
  atendimento:['ini','atd','ven','crm','est'],
  estoque:['ini','atd','est','ven']};
 // Áreas de dados que cada módulo lê (para avisar quando uma tela liberada fica fora do que o perfil pode ver no banco).
-const AREA={ini:null,atd:'vendas',ven:'vendas',est:'estoque',fin:'financeiro',fis:'contabil',cx:null,crm:'vendas',cad:'config',res:'contabil',pre:'precos',pes:'financeiro',rel:'financeiro',ger:null};
+const AREA={orc:'financeiro',ini:null,atd:'vendas',ven:'vendas',est:'estoque',fin:'financeiro',fis:'contabil',cx:null,crm:'vendas',cad:'config',res:'contabil',pre:'precos',pes:'financeiro',rel:'financeiro',ger:null};
 const LE={owner:null,member:null,financeiro:['financeiro','contabil','vendas','precos','config','estoque'],contador:['contabil','config','financeiro','vendas','precos','estoque'],atendimento:['vendas','estoque','precos','config'],estoque:['estoque','vendas','precos','config']};
 const SEMPRE=['suporte','mapa','central','bolso','resumo'];// ajuda fica sempre disponível
 const INICIO={contador:'parametros',atendimento:'atendimento',estoque:'estoque'};
