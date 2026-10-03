@@ -55,7 +55,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-pm],
  if(k==='cancelar'){edit=null;closeModal();return}
  if(k==='salvar'){if(edit.personalizado&&!edit.sel.size){toast('Marque ao menos uma tela.');return}b.disabled=true;
   const {data,error}=await Cloud.client.rpc('set_paginas',{ws:Cloud.ws,uid:edit.uid,paginas:edit.personalizado?[...edit.sel]:null});
-  b.disabled=false;if(error){toast(error.message);return}toast(data);edit=null;closeModal();render()}});
+  b.disabled=false;if(error){toast(error.message);return}toast(data);edit=null;closeModal();window.EquipeTelas?.recarregar();render()}});
 document.addEventListener('change',async e=>{const s=e.target.closest('[data-acc-perfil]');if(!s)return;const uid=s.dataset.accPerfil;
  if(!confirm(`Trocar o perfil para "${s.selectedOptions[0].textContent}"?`)){render();return}
  const {data,error}=await Cloud.client.rpc('set_role',{ws:Cloud.ws,uid,papel:s.value});toast(error?error.message:data);render()});

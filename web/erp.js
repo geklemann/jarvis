@@ -24,7 +24,6 @@ const MODS=[
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','estparado','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
  {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfdevolucao','nfrecebidas']],['Tributos',['difal']],['Regras',['parametros','nfconfig']]]},
- {id:'cx',ic:'smile',t:'Experiência',grupos:[['Equipe',['cxequipe']]]},
  {id:'crm',ic:'heart',t:'CRM',grupos:[['CRM',['crm','crmclientes','crmfases','crmacoes']],['Análises',['crmprodutos','crmgeo']],['Automação',['crmreguas']]]},
  {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Comercial',['b2b']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Análises',['rentabilidade']],['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
@@ -32,11 +31,11 @@ const MODS=[
  {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Pessoas',['pessoas']],['Ponto e jornada',['ponto']]]},
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports','diagnostico','alertasrel']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.
-const VISAO={atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao',cx:'cxequipe'};
+const VISAO={atd:'atendimento',pes:'folha',ven:'dashboard',est:'estoque',fin:'fluxo',fis:'nfnotas',crm:'crm',res:'contabauto',pre:'formacao'};
 window.ERP_MENU={get MODS(){return MODS},get GERAL(){return GERAL}};
-const GERAL=['equipe','ai','history','auditoria','erros','integridade','fontes','integracoes','lancamento','imports'];
+const GERAL=['equipe','cxequipe','ai','history','auditoria','erros','integridade','fontes','integracoes','lancamento','imports'];
 for(const [id,t] of [['reconcile','Conciliação de vendas'],['pending','Pendências'],['closing','Fechamento de vendas'],['tesouraria','Bancos e saldos'],['fluxo','Fluxo de caixa'],['pagar','Contas a pagar'],['compras','Notas de entrada']]){const n=navItems.find(x=>x[0]===id);if(n)n[2]=t}
-const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='erros'||p==='integracoes'||p==='central'||p==='bolso'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
+const modDe=p=>p==='lancamento'?'fin':p==='integridade'||p==='fontes'||p==='erros'||p==='cxequipe'||p==='integracoes'||p==='central'||p==='bolso'?'ini':platforms[p]?'ven':MODS.find(m=>m.grupos.some(([,ids])=>ids.includes(p)))?.id;
 let modAtual=modDe(page)||'ini';
 const menuAberto=new Set((()=>{try{return JSON.parse(localStorage.getItem('eb_menu')||'[]')}catch{return []}})());
 const menuFechado=new Set();let menuSel=null;
@@ -98,8 +97,9 @@ document.addEventListener('click',e=>{const dm=e.target.closest('.dropmenu');con
   <button class="dropitem" data-nav="fontes">${ico('link',18)}<span><strong>De onde vêm os números</strong><small>Fontes de cada tela, atualização e o que conferir</small></span></button>
   <button class="dropitem" data-nav="integridade">${ico('shield',18)}<span><strong>Segurança e integridade</strong><small>Teste agora se os dados estão íntegros e protegidos</small></span></button>
   <button class="dropitem" data-nav="auditoria">${ico('shield',18)}<span><strong>Log e auditoria</strong><small>Cada inclusão, alteração e exclusão, com quem e quando</small></span></button>
+  ${['owner','member'].includes(window.Cloud?.role||'owner')?`<button class="dropitem" data-nav="cxequipe">${ico('smile',18)}<span><strong>Avaliação do Jarvis</strong><small>Notas e comentários da equipe sobre o sistema</small></span></button>`:''}
   ${window.Cloud?.role==='owner'?`<button class="dropitem" data-nav="erros">${ico('bug',18)}<span><strong>Central de erros</strong><small>Falhas na tela da equipe e no servidor</small></span>${window.CentralErros?.abertos?.()?`<em class="navcount">${window.CentralErros.abertos()}</em>`:''}</button>`:''}
-  <button class="dropitem" data-nav="integracoes">${ico('plug',18)}<span><strong>Integrações</strong><small>Bling e marketplaces</small></span></button>
+  <button class="dropitem" data-nav="integracoes">${ico('plug',18)}<span><strong>Integrações</strong><small>ERP e marketplaces</small></span></button>
   ${wss.length>1?wss.map(w=>`<button class="dropitem" data-erp-ws="${esc(w.id)}">${ico('folder',18)}<span><strong>${esc(w.name)}</strong><small>${w.id===Cloud.ws?'empresa aberta':'trocar para esta empresa'}</small></span></button>`).join(''):''}
   <button class="dropitem" data-erp-tema="1">${ico(db.theme==='light'?'moon':'sun',18)}<span><strong>Aparência</strong><small>Temas, cores e modo claro/escuro</small></span></button>
   <button class="dropitem" data-al="abrir">${ico('bell',18)}<span><strong>Alertas no celular</strong><small>Avisos de NF-e, reclamações, estoque e contas</small></span></button>
