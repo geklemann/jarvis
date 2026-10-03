@@ -39,6 +39,6 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-nfr]
   await Cloud.client.from('nfe_recebidas').update({titulos_gerados:true}).eq('workspace_id',Cloud.ws).eq('chave',n.chave).then(()=>null,()=>null);n.titulos_gerados=true;audit('Contas a pagar geradas da nota da SEFAZ',`${n.emitente} · ${dup.length} parcela(s) · ${money(Number(n.valor))}`);save();closeModal();render();toast(`${dup.length} conta(s) a pagar criada(s).`)}}
  catch(x){toast(x.message);b.disabled=false}});
 document.addEventListener('input',e=>{if(e.target.id!=='nfrBusca')return;ui.busca=e.target.value;const p=e.target.selectionStart;render();const n=$('#nfrBusca');n.focus();n.setSelectionRange(p,p)});
-addPage('nfrecebidas','receipt','Notas de compra (SEFAZ)',view,'NF-e emitidas contra o CNPJ da empresa, direto da SEFAZ: manifestação do destinatário e contas a pagar pelas duplicatas.','',()=>{});
+addPage('nfrecebidas','receipt','Notas da SEFAZ',view,'NF-e emitidas contra o CNPJ da empresa, direto da SEFAZ: manifestação do destinatário e contas a pagar pelas duplicatas.','',()=>{});
 window.NfRecebidas={avisos:()=>{const n=(st.notas||[]).filter(x=>!x.manifestacao).length;return n?[['warn','receipt',`${n} nota(s) de compra sem manifestação`,'Dê ciência para baixar itens e duplicatas','nfrecebidas']]:[]}};
 })();

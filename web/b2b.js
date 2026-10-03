@@ -85,6 +85,6 @@ document.addEventListener('change',e=>{const x=e.target,c=cfg();
  if(x.dataset.b2T){const k=x.dataset.b2T,v=k==='nome'?x.value.trim():num(x.value);salvar({tabelas:c.tabelas.map(t=>t.id===st.tab?{...t,[k]:v}:t)});render();return}
  if(x.dataset.b2R){const k=x.dataset.k,v=['comissao','dia'].includes(k)?num(x.value):x.value.trim();salvar({representantes:c.representantes.map(r=>r.id===x.dataset.b2R?{...r,[k]:v}:r)});return}
  if(x.dataset.b2C){const d=x.dataset.b2C,cl={...c.clientes};cl[d]={...(cl[d]||{}),[x.dataset.k]:x.value};salvar({clientes:cl});audit('B2B: cliente atualizado',`${d} · ${x.dataset.k}=${x.value||'—'}`);toast('Salvo.')}});
-addPage('b2b','handshake','Tabelas, clientes e comissões',view,'Venda direta B2B: tabela de preço por cliente, pedido mínimo, representantes, comissões no contas a pagar e proposta em PDF.','',()=>{});
+addPage('b2b','handshake','Comercial B2B',view,'Venda direta B2B: tabela de preço por cliente, pedido mínimo, representantes, comissões no contas a pagar e proposta em PDF.','',()=>{});
 window.B2B={precoPara,clienteCfg,tabela,representante,representantes:()=>cfg().representantes,tabelas:()=>cfg().tabelas,propostaPdf,comissoes};
 })();

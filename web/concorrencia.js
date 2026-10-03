@@ -1,5 +1,5 @@
 'use strict';
-// Preços › Vigia de preços: cada anúncio ativo do Mercado Livre que está num produto de catálogo, comparado com o menor
+// Vendas › Vigia de preços: cada anúncio ativo do Mercado Livre que está num produto de catálogo, comparado com o menor
 // preço de outro vendedor do MESMO produto, a disputa pela compra (anúncios de catálogo) e a margem que sobraria se você
 // igualasse o preço (mesmas tarifas, frete e custo do histórico — Radar de margem). Preço só muda quando a pessoa escolhe
 // os anúncios, a regra e a margem mínima, confere a prévia e confirma (servidor: ajustarPrecosML, com auditoria).

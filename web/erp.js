@@ -20,15 +20,15 @@ const C=tipo=>(db.cadastros||(db.cadastros=[])).filter(c=>c.tipo===tipo);
 const MODS=[
  {id:'ini',ic:'home',t:'Início',grupos:[['Início',['resumo']]]},
  {id:'atd',ic:'headset',t:'Atendimento',grupos:[['Atendimento',['atendimento']],['Pós-venda',['devolucoes']],['Satisfação do cliente',['cx']]]},
- {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['metas','dashboard','margem','raiox','anuncios','faturamento','reconcile','pending','closing']],['Vender',['vendadireta','b2b']]]},
+ {id:'ven',ic:'link',t:'Vendas',grupos:[['Acompanhar',['dashboard','metas']],['Margem e preço',['margem','raiox','anuncios','concorrencia']],['Faturamento e repasses',['faturamento','reconcile','pending','closing']],['Vender',['vendadireta']]]},
  {id:'est',ic:'box',t:'Estoque',grupos:[['Estoque',['estoque','estcompras','estparado','pedcompra','sazonal']],['Operação',['movestoque','inventario','separacao','conferencia']]]},
  {id:'fin',ic:'wallet',t:'Financeiro',grupos:[['A pagar',['pagar','compras']],['A receber',['receber']],['Bancos',['tesouraria','concbanco','sispag']],['Caixa e planejamento',['fluxo','orcamento']]]},
  {id:'fis',ic:'receipt',t:'Fiscal',grupos:[['Notas fiscais',['nfemitir','nfnotas','nfdevolucao','nfrecebidas']],['Tributos',['difal']],['Regras',['parametros','nfconfig']]]},
  {id:'cx',ic:'smile',t:'Experiência',grupos:[['Equipe',['cxequipe']]]},
  {id:'crm',ic:'heart',t:'CRM',grupos:[['CRM',['crm','crmclientes','crmfases','crmacoes']],['Análises',['crmprodutos','crmgeo']],['Automação',['crmreguas']]]},
- {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
+ {id:'cad',ic:'folder',t:'Cadastros',grupos:[['Parceiros',['fornecedores']],['Comercial',['b2b']],['Financeiro',['cadcontas','categorias','centros']],['Produtos',['catalogo','cadprodutos']],['Empresa',['privacidade']]]},
  {id:'res',ic:'chart',t:'Resultado',grupos:[['Análises',['rentabilidade']],['Contabilidade',['contabauto','fechcontab','contabil','planocontas']]]},
- {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']],['Concorrência',['concorrencia']]]},
+ {id:'pre',ic:'tag',t:'Preços',grupos:[['Formação de preço',['formacao','precos']]]},
  {id:'pes',ic:'wallet',t:'Folha',grupos:[['Folha de pagamento',['folha']],['Pessoas',['pessoas']],['Ponto e jornada',['ponto']]]},
 {id:'rel',ic:'print',t:'Relatórios',grupos:[['Relatórios',['relfin','reports','diagnostico','alertasrel']]]}];
 // Visão geral de cada seção: abre ao clicar no título da seção no menu.

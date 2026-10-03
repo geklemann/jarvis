@@ -131,6 +131,6 @@ document.addEventListener('change',e=>{const s=e.target.closest('[data-kx]');if(
  if(k==='dias'){st.dias=Number(s.value)||90;render()}else if(k==='filtro'){st.filtro=s.value;render()}
  else if(k==='busca'){const v=s.value.trim();if(prod(v)){st.sku=v;st.busca='';render()}}});
 document.addEventListener('input',e=>{const s=e.target.closest('[data-kx="busca"]');if(!s)return;st.busca=s.value;const pos=s.selectionStart;render();const n=document.querySelector('[data-kx="busca"]');if(n){n.focus();n.setSelectionRange(pos,pos)}});
-addPage('movestoque','kardex','Movimentação de estoque',view,'Extrato de cada produto: compras, vendas, devoluções, inventários e ajustes — com o que o Jarvis já enviou ao Bling.','',()=>{});
+addPage('movestoque','kardex','Movimentos de estoque',view,'Extrato de cada produto: compras, vendas, devoluções, inventários e ajustes — com o que o Jarvis já enviou ao Bling.','',()=>{});
 window.Kardex={registrar,deVendaDireta,cancelouVendaDireta,deInventario,deDevolucao,carregar,abrir:sku=>{st.sku=sku||'';navigate('movestoque')},movimentos:()=>st.movs||[]};
 })();
